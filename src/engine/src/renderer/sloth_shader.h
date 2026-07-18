@@ -1,0 +1,33 @@
+#pragma once
+
+#include "core/sloth_defines.h"
+
+#include <glm/glm.hpp>
+
+namespace sloth
+{
+
+    // Minimal GLSL shader program wrapper. Compiles a vertex + fragment
+    // shader pair and links them into a single program.
+    class Shader
+    {
+    public:
+        Shader(const char* vertexSource, const char* fragmentSource);
+        ~Shader();
+
+        SL_NON_COPYABLE(Shader);
+        SL_NON_MOVABLE(Shader);
+
+        void Bind() const;
+        void Unbind() const;
+
+        // Binds the program before setting the uniform.
+        void SetMat4(const char* name, const glm::mat4& value);
+
+        u32 GetRendererId() const { return rendererId; }
+
+    private:
+        u32 rendererId = 0;
+    };
+
+} // namespace sloth

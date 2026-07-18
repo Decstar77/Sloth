@@ -17,10 +17,13 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "vendor/GLFW/include"
 IncludeDir["GLAD"] = "vendor/GLAD/include"
+IncludeDir["GLM"] = "vendor"
+IncludeDir["JoltPhysics"] = "vendor/JoltPhysics"
 
 group "Dependencies"
     include "vendor/GLFW"
     include "vendor/GLAD"
+    include "vendor/JoltPhysics"
 group ""
 
 project "Engine"
@@ -43,28 +46,45 @@ project "Engine"
     {
         "src/engine/src",
         "%{IncludeDir.GLFW}",
-        "%{IncludeDir.GLAD}"
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}",
+        "%{IncludeDir.JoltPhysics}"
+    }
+
+    defines
+    {
+        "JPH_USE_SSE4_1",
+        "JPH_USE_SSE4_2",
+        "JPH_USE_AVX",
+        "JPH_USE_AVX2",
+        "JPH_USE_LZCNT",
+        "JPH_USE_TZCNT",
+        "JPH_USE_F16C",
+        "JPH_USE_FMADD",
+        "JPH_OBJECT_STREAM"
     }
 
     links
     {
         "GLFW",
-        "GLAD"
+        "GLAD",
+        "JoltPhysics"
     }
 
     filter "system:windows"
         systemversion "latest"
         defines { "SLOTH_PLATFORM_WINDOWS" }
         links { "opengl32.lib" }
+        vectorextensions "AVX2"
 
     filter "configurations:Debug"
-        defines { "SLOTH_DEBUG" }
+        defines { "SLOTH_DEBUG", "JPH_ENABLE_ASSERTS", "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED" }
         runtime "Debug"
         symbols "On"
         optimize "Off"
 
     filter "configurations:Release"
-        defines { "SLOTH_RELEASE" }
+        defines { "SLOTH_RELEASE", "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED" }
         runtime "Release"
         symbols "On"
         optimize "On"
@@ -95,7 +115,8 @@ project "Sandbox"
     {
         "src/engine/src",
         "%{IncludeDir.GLFW}",
-        "%{IncludeDir.GLAD}"
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}"
     }
 
     links

@@ -16,10 +16,12 @@ namespace sloth
         frameArena.Init(FrameArenaSize);
 
         window = std::make_unique<Window>(windowProps);
+        input = std::make_unique<Input>(window->GetNativeWindow());
     }
 
     void Engine::Shutdown()
     {
+        input.reset();
         window.reset();
 
         frameArena.Shutdown();
@@ -28,6 +30,7 @@ namespace sloth
 
     void Engine::EndFrame()
     {
+        input->Update();
         frameArena.Reset();
     }
 

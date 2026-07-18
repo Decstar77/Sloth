@@ -2,6 +2,7 @@
 
 #include "core/sloth_arena.h"
 #include "core/sloth_defines.h"
+#include "core/sloth_input.h"
 #include "core/sloth_window.h"
 
 #include <memory>
@@ -31,6 +32,7 @@ namespace sloth
         void EndFrame();
 
         Window& GetWindow() { return *window; }
+        Input& GetInput() { return *input; }
         Arena& GetPermanentArena() { return permanentArena; }
         Arena& GetFrameArena() { return frameArena; }
 
@@ -39,6 +41,7 @@ namespace sloth
         ~Engine() = default;
 
         std::unique_ptr<Window> window;
+        std::unique_ptr<Input> input;
         Arena permanentArena;
         Arena frameArena;
     };
