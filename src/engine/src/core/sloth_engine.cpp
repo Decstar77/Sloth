@@ -1,26 +1,22 @@
 #include "sloth_engine.h"
 
-namespace sloth
-{
-    Engine& Engine::Get()
-    {
+namespace sloth {
+    Engine& Engine::Get() {
         static Engine instance;
         return instance;
     }
 
-    void Engine::Init(const WindowProps& windowProps)
-    {
-        SL_ASSERT_MSG(window == nullptr, "Engine has already been initialized");
+    void Engine::Init( const WindowProps& windowProps ) {
+        SL_ASSERT_MSG( window == nullptr, "Engine has already been initialized" );
 
-        permanentArena.Init(PermanentArenaSize);
-        frameArena.Init(FrameArenaSize);
+        permanentArena.Init( PermanentArenaSize );
+        frameArena.Init( FrameArenaSize );
 
-        window = std::make_unique<Window>(windowProps);
-        input = std::make_unique<Input>(window->GetNativeWindow());
+        window = std::make_unique<Window>( windowProps );
+        input = std::make_unique<Input>( window->GetNativeWindow() );
     }
 
-    void Engine::Shutdown()
-    {
+    void Engine::Shutdown() {
         input.reset();
         window.reset();
 
@@ -28,8 +24,7 @@ namespace sloth
         permanentArena.Shutdown();
     }
 
-    void Engine::EndFrame()
-    {
+    void Engine::EndFrame() {
         input->Update();
         frameArena.Reset();
     }

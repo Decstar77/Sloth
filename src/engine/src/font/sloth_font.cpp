@@ -84,7 +84,7 @@ namespace sloth
     {
         SL_ASSERT_MSG(loaded, "Font::GetVMetrics called before a successful Load()");
         FontVMetrics metrics;
-        stbtt_GetFontVMetrics(fontInfo, &metrics.Ascent, &metrics.Descent, &metrics.LineGap);
+        stbtt_GetFontVMetrics(fontInfo, &metrics.ascent, &metrics.descent, &metrics.lineGap);
         return metrics;
     }
 
@@ -92,7 +92,7 @@ namespace sloth
     {
         SL_ASSERT_MSG(loaded, "Font::GetGlyphMetrics called before a successful Load()");
         GlyphMetrics metrics;
-        stbtt_GetGlyphHMetrics(fontInfo, glyphIndex, &metrics.AdvanceWidth, &metrics.LeftSideBearing);
+        stbtt_GetGlyphHMetrics(fontInfo, glyphIndex, &metrics.advanceWidth, &metrics.leftSideBearing);
         return metrics;
     }
 
@@ -100,13 +100,13 @@ namespace sloth
     {
         SL_ASSERT_MSG(loaded, "Font::GetGlyphOutline called before a successful Load()");
 
-        outOutline.Curves.clear();
+        outOutline.curves.clear();
 
         GlyphMetrics hMetrics = GetGlyphMetrics(glyphIndex);
-        outOutline.AdvanceWidth = hMetrics.AdvanceWidth;
-        outOutline.LeftSideBearing = hMetrics.LeftSideBearing;
+        outOutline.advanceWidth = hMetrics.advanceWidth;
+        outOutline.leftSideBearing = hMetrics.leftSideBearing;
 
-        stbtt_GetGlyphBox(fontInfo, glyphIndex, &outOutline.XMin, &outOutline.YMin, &outOutline.XMax, &outOutline.YMax);
+        stbtt_GetGlyphBox(fontInfo, glyphIndex, &outOutline.xMin, &outOutline.yMin, &outOutline.xMax, &outOutline.yMax);
 
         stbtt_vertex* vertices = nullptr;
         i32 vertexCount = stbtt_GetGlyphShape(fontInfo, glyphIndex, &vertices);
@@ -133,7 +133,7 @@ namespace sloth
                 case STBTT_vline:
                 {
                     glm::vec2 mid = 0.5f * (current + p);
-                    outOutline.Curves.push_back({ current, mid, p });
+                    outOutline.curves.push_back({ current, mid, p });
                     current = p;
                     break;
                 }
@@ -141,7 +141,7 @@ namespace sloth
                 case STBTT_vcurve:
                 {
                     glm::vec2 control(static_cast<f32>(v.cx), static_cast<f32>(v.cy));
-                    outOutline.Curves.push_back({ current, control, p });
+                    outOutline.curves.push_back({ current, control, p });
                     current = p;
                     break;
                 }

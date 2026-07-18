@@ -19,11 +19,11 @@ namespace sloth
 
     struct RigidBodyDesc
     {
-        glm::vec3 Position{ 0.0f, 0.0f, 0.0f };
-        glm::quat Rotation{ 1.0f, 0.0f, 0.0f, 0.0f }; // identity, glm order (w, x, y, z)
-        BodyMotionType MotionType = BodyMotionType::Dynamic;
-        f32 Friction = 0.5f;
-        f32 Restitution = 0.0f;
+        glm::vec3 position{ 0.0f, 0.0f, 0.0f };
+        glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f }; // identity, glm order (w, x, y, z)
+        BodyMotionType motionType = BodyMotionType::Dynamic;
+        f32 friction = 0.5f;
+        f32 restitution = 0.0f;
     };
 
     // Opaque handle to a body living inside a PhysicsWorld. Cheap to copy;

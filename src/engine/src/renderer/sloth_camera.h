@@ -24,12 +24,12 @@ namespace sloth {
         f32                 GetNearClip() const { return nearClip; }
         f32                 GetFarClip() const { return farClip; }
 
-        const glm::vec3&    GetForward() const { return forward; }
-        const glm::vec3&    GetRight() const { return right; }
-        const glm::vec3&    GetUp() const { return up; }
+        const glm::vec3 &   GetForward() const { return forward; }
+        const glm::vec3 &   GetRight() const { return right; }
+        const glm::vec3 &   GetUp() const { return up; }
 
-        const glm::mat4&    GetViewMatrix() const { return viewMatrix; }
-        const glm::mat4&    GetProjectionMatrix() const { return projectionMatrix; }
+        const glm::mat4 &   GetViewMatrix() const { return viewMatrix; }
+        const glm::mat4 &   GetProjectionMatrix() const { return projectionMatrix; }
         glm::mat4           GetViewProjectionMatrix() const { return projectionMatrix * viewMatrix; }
 
       private:

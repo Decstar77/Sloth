@@ -7,9 +7,8 @@
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace sloth
-{
-    static const char* ShapeVertexShaderSource = R"(
+namespace sloth {
+    static const char * ShapeVertexShaderSource = R"(
         #version 450 core
         layout(location = 0) in vec2 aUnit;
         layout(location = 1) in vec2 aQuadMin;
@@ -57,7 +56,7 @@ namespace sloth
     // border is a second, inset SDF evaluation of the same function so both
     // fill and stroke come from one analytic distance, antialiased against
     // its own screen-space derivative instead of MSAA/supersampling.
-    static const char* ShapeFragmentShaderSource = R"(
+    static const char * ShapeFragmentShaderSource = R"(
         #version 450 core
 
         in vec2 vPixelPos;
@@ -109,7 +108,7 @@ namespace sloth
         }
     )";
 
-    static const char* ImageVertexShaderSource = R"(
+    static const char * ImageVertexShaderSource = R"(
         #version 450 core
         layout(location = 0) in vec2 aUnit;
         layout(location = 1) in vec2 aQuadMin;
@@ -151,7 +150,7 @@ namespace sloth
 
     // Same rounded-box SDF clip as the shape shader (so icons/portraits can
     // be rounded or circular) layered over a plain texture sample.
-    static const char* ImageFragmentShaderSource = R"(
+    static const char * ImageFragmentShaderSource = R"(
         #version 450 core
 
         in vec2 vPixelPos;
@@ -195,223 +194,203 @@ namespace sloth
         }
     )";
 
-    glm::mat4 MakeScreenProjection(f32 width, f32 height)
-    {
-        return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+    glm::mat4 MakeScreenProjection( f32 width, f32 height ) {
+        return glm::ortho( 0.0f, width, height, 0.0f, -1.0f, 1.0f );
     }
 
-    static void CreateUnitQuadVertexArray(u32& outVertexArray, u32& outVertexBuffer)
-    {
+    static void CreateUnitQuadVertexArray( u32 & outVertexArray, u32 & outVertexBuffer ) {
         const f32 unitQuad[] = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            1.0f,
         };
 
-        glGenVertexArrays(1, &outVertexArray);
-        glBindVertexArray(outVertexArray);
+        glGenVertexArrays( 1, &outVertexArray );
+        glBindVertexArray( outVertexArray );
 
-        glGenBuffers(1, &outVertexBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, outVertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(unitQuad), unitQuad, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(f32) * 2, reinterpret_cast<void*>(0));
+        glGenBuffers( 1, &outVertexBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, outVertexBuffer );
+        glBufferData( GL_ARRAY_BUFFER, sizeof( unitQuad ), unitQuad, GL_STATIC_DRAW );
+        glEnableVertexAttribArray( 0 );
+        glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, sizeof( f32 ) * 2, reinterpret_cast<void *>( 0 ) );
     }
 
-    GuiRenderer::GuiRenderer()
-    {
-        shapeShader = std::make_unique<Shader>(ShapeVertexShaderSource, ShapeFragmentShaderSource);
+    GuiRenderer::GuiRenderer() {
+        shapeShader = std::make_unique<Shader>( ShapeVertexShaderSource, ShapeFragmentShaderSource );
 
-        CreateUnitQuadVertexArray(shapeVertexArray, shapeVertexBuffer);
+        CreateUnitQuadVertexArray( shapeVertexArray, shapeVertexBuffer );
 
-        glGenBuffers(1, &shapeInstanceBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceBuffer);
+        glGenBuffers( 1, &shapeInstanceBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, shapeInstanceBuffer );
 
-        auto shapeInstanceAttrib = [](u32 location, i32 componentCount, usize offset)
-        {
-            glEnableVertexAttribArray(location);
-            glVertexAttribPointer(location, componentCount, GL_FLOAT, GL_FALSE, sizeof(ShapeInstance), reinterpret_cast<void*>(offset));
-            glVertexAttribDivisor(location, 1);
+        auto shapeInstanceAttrib = []( u32 location, i32 componentCount, usize offset ) {
+            glEnableVertexAttribArray( location );
+            glVertexAttribPointer( location, componentCount, GL_FLOAT, GL_FALSE, sizeof( ShapeInstance ), reinterpret_cast<void *>( offset ) );
+            glVertexAttribDivisor( location, 1 );
         };
 
-        shapeInstanceAttrib(1, 2, offsetof(ShapeInstance, QuadMin));
-        shapeInstanceAttrib(2, 2, offsetof(ShapeInstance, QuadMax));
-        shapeInstanceAttrib(3, 4, offsetof(ShapeInstance, FillColor));
-        shapeInstanceAttrib(4, 4, offsetof(ShapeInstance, BorderColor));
-        shapeInstanceAttrib(5, 1, offsetof(ShapeInstance, CornerRadius));
-        shapeInstanceAttrib(6, 1, offsetof(ShapeInstance, BorderWidth));
-        shapeInstanceAttrib(7, 2, offsetof(ShapeInstance, ClipMin));
-        shapeInstanceAttrib(8, 2, offsetof(ShapeInstance, ClipMax));
+        shapeInstanceAttrib( 1, 2, offsetof( ShapeInstance, QuadMin ) );
+        shapeInstanceAttrib( 2, 2, offsetof( ShapeInstance, QuadMax ) );
+        shapeInstanceAttrib( 3, 4, offsetof( ShapeInstance, FillColor ) );
+        shapeInstanceAttrib( 4, 4, offsetof( ShapeInstance, BorderColor ) );
+        shapeInstanceAttrib( 5, 1, offsetof( ShapeInstance, CornerRadius ) );
+        shapeInstanceAttrib( 6, 1, offsetof( ShapeInstance, BorderWidth ) );
+        shapeInstanceAttrib( 7, 2, offsetof( ShapeInstance, ClipMin ) );
+        shapeInstanceAttrib( 8, 2, offsetof( ShapeInstance, ClipMax ) );
 
-        glBindVertexArray(0);
+        glBindVertexArray( 0 );
 
-        imageShader = std::make_unique<Shader>(ImageVertexShaderSource, ImageFragmentShaderSource);
+        imageShader = std::make_unique<Shader>( ImageVertexShaderSource, ImageFragmentShaderSource );
 
-        CreateUnitQuadVertexArray(imageVertexArray, imageVertexBuffer);
+        CreateUnitQuadVertexArray( imageVertexArray, imageVertexBuffer );
 
-        glGenBuffers(1, &imageInstanceBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, imageInstanceBuffer);
+        glGenBuffers( 1, &imageInstanceBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, imageInstanceBuffer );
 
-        auto imageInstanceAttrib = [](u32 location, i32 componentCount, usize offset)
-        {
-            glEnableVertexAttribArray(location);
-            glVertexAttribPointer(location, componentCount, GL_FLOAT, GL_FALSE, sizeof(ImageInstance), reinterpret_cast<void*>(offset));
-            glVertexAttribDivisor(location, 1);
+        auto imageInstanceAttrib = []( u32 location, i32 componentCount, usize offset ) {
+            glEnableVertexAttribArray( location );
+            glVertexAttribPointer( location, componentCount, GL_FLOAT, GL_FALSE, sizeof( ImageInstance ), reinterpret_cast<void *>( offset ) );
+            glVertexAttribDivisor( location, 1 );
         };
 
-        imageInstanceAttrib(1, 2, offsetof(ImageInstance, QuadMin));
-        imageInstanceAttrib(2, 2, offsetof(ImageInstance, QuadMax));
-        imageInstanceAttrib(3, 2, offsetof(ImageInstance, UVMin));
-        imageInstanceAttrib(4, 2, offsetof(ImageInstance, UVMax));
-        imageInstanceAttrib(5, 4, offsetof(ImageInstance, TintColor));
-        imageInstanceAttrib(6, 1, offsetof(ImageInstance, CornerRadius));
-        imageInstanceAttrib(7, 2, offsetof(ImageInstance, ClipMin));
-        imageInstanceAttrib(8, 2, offsetof(ImageInstance, ClipMax));
+        imageInstanceAttrib( 1, 2, offsetof( ImageInstance, QuadMin ) );
+        imageInstanceAttrib( 2, 2, offsetof( ImageInstance, QuadMax ) );
+        imageInstanceAttrib( 3, 2, offsetof( ImageInstance, UVMin ) );
+        imageInstanceAttrib( 4, 2, offsetof( ImageInstance, UVMax ) );
+        imageInstanceAttrib( 5, 4, offsetof( ImageInstance, TintColor ) );
+        imageInstanceAttrib( 6, 1, offsetof( ImageInstance, CornerRadius ) );
+        imageInstanceAttrib( 7, 2, offsetof( ImageInstance, ClipMin ) );
+        imageInstanceAttrib( 8, 2, offsetof( ImageInstance, ClipMax ) );
 
-        glBindVertexArray(0);
+        glBindVertexArray( 0 );
     }
 
-    GuiRenderer::~GuiRenderer()
-    {
-        glDeleteBuffers(1, &imageInstanceBuffer);
-        glDeleteBuffers(1, &imageVertexBuffer);
-        glDeleteVertexArrays(1, &imageVertexArray);
+    GuiRenderer::~GuiRenderer() {
+        glDeleteBuffers( 1, &imageInstanceBuffer );
+        glDeleteBuffers( 1, &imageVertexBuffer );
+        glDeleteVertexArrays( 1, &imageVertexArray );
 
-        glDeleteBuffers(1, &shapeInstanceBuffer);
-        glDeleteBuffers(1, &shapeVertexBuffer);
-        glDeleteVertexArrays(1, &shapeVertexArray);
+        glDeleteBuffers( 1, &shapeInstanceBuffer );
+        glDeleteBuffers( 1, &shapeVertexBuffer );
+        glDeleteVertexArrays( 1, &shapeVertexArray );
     }
 
-    void GuiRenderer::DrawRect(glm::vec2 min, glm::vec2 max, const glm::vec4& color, f32 cornerRadius,
-                                f32 borderWidth, const glm::vec4& borderColor)
-    {
-        cornerRadius = std::max(cornerRadius, 0.0f);
-        borderWidth = std::max(borderWidth, 0.0f);
+    void GuiRenderer::DrawRect( glm::vec2 min, glm::vec2 max, const glm::vec4 & color, f32 cornerRadius,
+        f32 borderWidth, const glm::vec4 & borderColor ) {
+        cornerRadius = std::max( cornerRadius, 0.0f );
+        borderWidth = std::max( borderWidth, 0.0f );
         GuiRect clip = GetCurrentClipRect();
-        instances.push_back(ShapeInstance{ min, max, color, borderColor, cornerRadius, borderWidth, clip.Min, clip.Max });
+        instances.push_back( ShapeInstance { min, max, color, borderColor, cornerRadius, borderWidth, clip.min, clip.max } );
     }
 
-    void GuiRenderer::DrawCircle(glm::vec2 center, f32 radius, const glm::vec4& color, f32 borderWidth,
-                                  const glm::vec4& borderColor)
-    {
-        DrawRect(center - glm::vec2(radius), center + glm::vec2(radius), color, radius, borderWidth, borderColor);
+    void GuiRenderer::DrawCircle( glm::vec2 center, f32 radius, const glm::vec4 & color, f32 borderWidth,
+        const glm::vec4 & borderColor ) {
+        DrawRect( center - glm::vec2( radius ), center + glm::vec2( radius ), color, radius, borderWidth, borderColor );
     }
 
-    void GuiRenderer::DrawImage(glm::vec2 min, glm::vec2 max, const Texture& texture, const glm::vec4& tintColor,
-                                 glm::vec2 uvMin, glm::vec2 uvMax, f32 cornerRadius)
-    {
-        cornerRadius = std::max(cornerRadius, 0.0f);
+    void GuiRenderer::DrawImage( glm::vec2 min, glm::vec2 max, const Texture & texture, const glm::vec4 & tintColor,
+        glm::vec2 uvMin, glm::vec2 uvMax, f32 cornerRadius ) {
+        cornerRadius = std::max( cornerRadius, 0.0f );
         GuiRect clip = GetCurrentClipRect();
-        imageEntries.push_back(ImageDrawEntry{ &texture, ImageInstance{ min, max, uvMin, uvMax, tintColor, cornerRadius, clip.Min, clip.Max } });
+        imageEntries.push_back( ImageDrawEntry { &texture, ImageInstance { min, max, uvMin, uvMax, tintColor, cornerRadius, clip.min, clip.max } } );
     }
 
-    void GuiRenderer::PushClipRect(glm::vec2 min, glm::vec2 max)
-    {
-        clipRectStack.push_back(IntersectGuiRect(GetCurrentClipRect(), GuiRect{ min, max }));
+    void GuiRenderer::PushClipRect( glm::vec2 min, glm::vec2 max ) {
+        clipRectStack.push_back( IntersectGuiRect( GetCurrentClipRect(), GuiRect { min, max } ) );
     }
 
-    void GuiRenderer::PopClipRect()
-    {
-        SL_ASSERT_MSG(!clipRectStack.empty(), "GuiRenderer::PopClipRect called without a matching PushClipRect");
+    void GuiRenderer::PopClipRect() {
+        SL_ASSERT_MSG( !clipRectStack.empty(), "GuiRenderer::PopClipRect called without a matching PushClipRect" );
         clipRectStack.pop_back();
     }
 
-    GuiRect GuiRenderer::GetCurrentClipRect() const
-    {
+    GuiRect GuiRenderer::GetCurrentClipRect() const {
         return clipRectStack.empty() ? UnboundedGuiRect() : clipRectStack.back();
     }
 
-    void GuiRenderer::Flush(const glm::mat4& viewProjection)
-    {
-        SL_ASSERT_MSG(clipRectStack.empty(), "GuiRenderer::Flush: unbalanced PushClipRect/PopClipRect");
+    void GuiRenderer::Flush( const glm::mat4 & viewProjection ) {
+        SL_ASSERT_MSG( clipRectStack.empty(), "GuiRenderer::Flush: unbalanced PushClipRect/PopClipRect" );
 
-        bool blendWasEnabled = glIsEnabled(GL_BLEND);
-        bool depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+        bool blendWasEnabled = glIsEnabled( GL_BLEND );
+        bool depthTestWasEnabled = glIsEnabled( GL_DEPTH_TEST );
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
+        glEnable( GL_BLEND );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+        glDisable( GL_DEPTH_TEST );
 
-        if (!instances.empty())
-        {
-            glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceBuffer);
-            usize requiredBytes = instances.size() * sizeof(ShapeInstance);
-            if (requiredBytes > shapeInstanceBufferCapacity)
-            {
+        if ( !instances.empty() ) {
+            glBindBuffer( GL_ARRAY_BUFFER, shapeInstanceBuffer );
+            usize requiredBytes = instances.size() * sizeof( ShapeInstance );
+            if ( requiredBytes > shapeInstanceBufferCapacity ) {
                 shapeInstanceBufferCapacity = requiredBytes;
-                glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shapeInstanceBufferCapacity), instances.data(), GL_DYNAMIC_DRAW);
-            }
-            else
-            {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(requiredBytes), instances.data());
+                glBufferData( GL_ARRAY_BUFFER, static_cast<GLsizeiptr>( shapeInstanceBufferCapacity ), instances.data(), GL_DYNAMIC_DRAW );
+            } else {
+                glBufferSubData( GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>( requiredBytes ), instances.data() );
             }
 
             shapeShader->Bind();
-            shapeShader->SetMat4("uViewProjection", viewProjection);
+            shapeShader->SetMat4( "uViewProjection", viewProjection );
 
-            glBindVertexArray(shapeVertexArray);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(instances.size()));
-            glBindVertexArray(0);
+            glBindVertexArray( shapeVertexArray );
+            glDrawArraysInstanced( GL_TRIANGLES, 0, 6, static_cast<GLsizei>( instances.size() ) );
+            glBindVertexArray( 0 );
 
             instances.clear();
         }
 
-        if (!imageEntries.empty())
-        {
+        if ( !imageEntries.empty() ) {
             imageShader->Bind();
-            imageShader->SetMat4("uViewProjection", viewProjection);
-            imageShader->SetInt("uTexture", 0);
+            imageShader->SetMat4( "uViewProjection", viewProjection );
+            imageShader->SetInt( "uTexture", 0 );
             FlushImages();
         }
 
-        if (depthTestWasEnabled)
-        {
-            glEnable(GL_DEPTH_TEST);
+        if ( depthTestWasEnabled ) {
+            glEnable( GL_DEPTH_TEST );
         }
 
-        if (!blendWasEnabled)
-        {
-            glDisable(GL_BLEND);
+        if ( !blendWasEnabled ) {
+            glDisable( GL_BLEND );
         }
     }
 
-    void GuiRenderer::FlushImages()
-    {
-        glBindVertexArray(imageVertexArray);
+    void GuiRenderer::FlushImages() {
+        glBindVertexArray( imageVertexArray );
 
         usize i = 0;
-        while (i < imageEntries.size())
-        {
-            const Texture* texture = imageEntries[i].TextureRef;
+        while ( i < imageEntries.size() ) {
+            const Texture * texture = imageEntries[i].TextureRef;
 
             imageUploadScratch.clear();
-            while (i < imageEntries.size() && imageEntries[i].TextureRef == texture)
-            {
-                imageUploadScratch.push_back(imageEntries[i].Instance);
+            while ( i < imageEntries.size() && imageEntries[i].TextureRef == texture ) {
+                imageUploadScratch.push_back( imageEntries[i].Instance );
                 ++i;
             }
 
-            texture->Bind(0);
+            texture->Bind( 0 );
 
-            glBindBuffer(GL_ARRAY_BUFFER, imageInstanceBuffer);
-            usize requiredBytes = imageUploadScratch.size() * sizeof(ImageInstance);
-            if (requiredBytes > imageInstanceBufferCapacity)
-            {
+            glBindBuffer( GL_ARRAY_BUFFER, imageInstanceBuffer );
+            usize requiredBytes = imageUploadScratch.size() * sizeof( ImageInstance );
+            if ( requiredBytes > imageInstanceBufferCapacity ) {
                 imageInstanceBufferCapacity = requiredBytes;
-                glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(imageInstanceBufferCapacity), imageUploadScratch.data(), GL_DYNAMIC_DRAW);
-            }
-            else
-            {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(requiredBytes), imageUploadScratch.data());
+                glBufferData( GL_ARRAY_BUFFER, static_cast<GLsizeiptr>( imageInstanceBufferCapacity ), imageUploadScratch.data(), GL_DYNAMIC_DRAW );
+            } else {
+                glBufferSubData( GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>( requiredBytes ), imageUploadScratch.data() );
             }
 
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(imageUploadScratch.size()));
+            glDrawArraysInstanced( GL_TRIANGLES, 0, 6, static_cast<GLsizei>( imageUploadScratch.size() ) );
         }
 
-        glBindVertexArray(0);
+        glBindVertexArray( 0 );
         imageEntries.clear();
     }
 

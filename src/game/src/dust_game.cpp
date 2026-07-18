@@ -41,7 +41,7 @@ namespace dust {
 
     static std::unique_ptr<StaticMesh> UploadMesh(const MeshData& data)
     {
-        return std::make_unique<StaticMesh>(data.Vertices.data(), static_cast<u32>(data.Vertices.size()), data.Indices.data(), static_cast<u32>(data.Indices.size()));
+        return std::make_unique<StaticMesh>(data.vertices.data(), static_cast<u32>(data.vertices.size()), data.indices.data(), static_cast<u32>(data.indices.size()));
     }
 
     void DustGame::Init()

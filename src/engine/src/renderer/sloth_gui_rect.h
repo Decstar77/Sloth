@@ -15,12 +15,12 @@ namespace sloth
     // GuiContext/GuiRenderer class comments).
     struct GuiRect
     {
-        glm::vec2 Min;
-        glm::vec2 Max;
+        glm::vec2 min;
+        glm::vec2 max;
 
         bool Contains(glm::vec2 point) const
         {
-            return point.x >= Min.x && point.x <= Max.x && point.y >= Min.y && point.y <= Max.y;
+            return point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y;
         }
     };
 
@@ -34,7 +34,7 @@ namespace sloth
 
     inline GuiRect IntersectGuiRect(const GuiRect& a, const GuiRect& b)
     {
-        return GuiRect{ glm::max(a.Min, b.Min), glm::min(a.Max, b.Max) };
+        return GuiRect{ glm::max(a.min, b.min), glm::min(a.max, b.max) };
     }
 
 } // namespace sloth

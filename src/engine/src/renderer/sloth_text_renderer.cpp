@@ -229,22 +229,22 @@ namespace sloth
             i32 glyphIndex = font.GetGlyphIndex(codepoint);
             const CachedGlyph& glyph = cache.GetOrAddGlyph(font, glyphIndex);
 
-            if (glyph.CurveCount > 0)
+            if (glyph.curveCount > 0)
             {
                 GlyphInstance instance;
                 // Glyph-space Y grows up, screen-space Y grows down - flip
                 // when placing the quad so glyphs aren't rendered upside down.
-                instance.QuadMin = cursor + glm::vec2(glyph.XMin, -glyph.YMax) * scale;
-                instance.QuadMax = cursor + glm::vec2(glyph.XMax, -glyph.YMin) * scale;
-                instance.CurveMin = glm::vec2(glyph.XMin, glyph.YMax);
-                instance.CurveMax = glm::vec2(glyph.XMax, glyph.YMin);
-                instance.CurveOffset = glyph.CurveOffset;
-                instance.CurveCount = glyph.CurveCount;
+                instance.QuadMin = cursor + glm::vec2(glyph.xMin, -glyph.yMax) * scale;
+                instance.QuadMax = cursor + glm::vec2(glyph.xMax, -glyph.yMin) * scale;
+                instance.CurveMin = glm::vec2(glyph.xMin, glyph.yMax);
+                instance.CurveMax = glm::vec2(glyph.xMax, glyph.yMin);
+                instance.CurveOffset = glyph.curveOffset;
+                instance.CurveCount = glyph.curveCount;
                 instance.Color = color;
                 instances.push_back(instance);
             }
 
-            cursor.x += static_cast<f32>(glyph.AdvanceWidth) * scale;
+            cursor.x += static_cast<f32>(glyph.advanceWidth) * scale;
         }
 
         if (instances.empty())

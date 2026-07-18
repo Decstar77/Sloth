@@ -72,11 +72,11 @@ namespace dust {
         if (entity.rigidBodyData.createRigidBody == true) 
         {
             sloth::RigidBodyDesc bodyDesc;
-            bodyDesc.Position = entity.position;
-            bodyDesc.Rotation = entity.rotation;
-            bodyDesc.MotionType = entity.rigidBodyData.motionType;
-            bodyDesc.Friction = entity.rigidBodyData.friction;
-            bodyDesc.Restitution = entity.rigidBodyData.restitution;
+            bodyDesc.position = entity.position;
+            bodyDesc.rotation = entity.rotation;
+            bodyDesc.motionType = entity.rigidBodyData.motionType;
+            bodyDesc.friction = entity.rigidBodyData.friction;
+            bodyDesc.restitution = entity.rigidBodyData.restitution;
 
             entity.rigidBody = (entity.rigidBodyData.shape == RigidBodyShape::Box)
                 ? physicsWorld->CreateBoxBody(entity.rigidBodyData.halfExtents, bodyDesc)

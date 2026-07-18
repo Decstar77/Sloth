@@ -189,12 +189,12 @@ namespace sloth
 
     RigidBody PhysicsWorld::Impl::CreateBodyFromShape(const JPH::Shape* shape, const RigidBodyDesc& desc)
     {
-        JPH::ObjectLayer layer = desc.MotionType == BodyMotionType::Static ? Layers::NonMoving : Layers::Moving;
+        JPH::ObjectLayer layer = desc.motionType == BodyMotionType::Static ? Layers::NonMoving : Layers::Moving;
 
-        JPH::BodyCreationSettings settings(shape, ToJolt(desc.Position), ToJolt(desc.Rotation),
-                                            ToJolt(desc.MotionType), layer);
-        settings.mFriction = desc.Friction;
-        settings.mRestitution = desc.Restitution;
+        JPH::BodyCreationSettings settings(shape, ToJolt(desc.position), ToJolt(desc.rotation),
+                                            ToJolt(desc.motionType), layer);
+        settings.mFriction = desc.friction;
+        settings.mRestitution = desc.restitution;
 
         JPH::Body* body = bodyInterface->CreateBody(settings);
         SL_ASSERT_MSG(body != nullptr, "PhysicsWorld: failed to create body (max body count reached?)");

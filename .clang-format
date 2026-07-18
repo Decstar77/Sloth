@@ -12,14 +12,14 @@ NamespaceIndentation: All
 IndentCaseLabels: true
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: All
 AllowShortBlocksOnASingleLine: Never
 BreakBeforeBinaryOperators: None
 BreakConstructorInitializers: BeforeColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 
-PointerAlignment: Left
-ReferenceAlignment: Left
+PointerAlignment: Middle
+ReferenceAlignment: Middle
 
 SpaceBeforeParens: ControlStatements
 SpacesInParentheses: true

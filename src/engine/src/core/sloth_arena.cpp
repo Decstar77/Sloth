@@ -3,27 +3,22 @@
 #include <cstring>
 #include <new>
 
-namespace sloth
-{
-    Arena::~Arena()
-    {
+namespace sloth {
+    Arena::~Arena() {
         Shutdown();
     }
 
-    void Arena::Init(usize size)
-    {
-        SL_ASSERT_MSG(base == nullptr, "Arena has already been initialized");
+    void Arena::Init( usize size ) {
+        SL_ASSERT_MSG( base == nullptr, "Arena has already been initialized" );
 
-        base = static_cast<u8*>(::operator new(size, std::align_val_t{ alignof(std::max_align_t) }));
+        base = static_cast<u8*>( ::operator new( size, std::align_val_t { alignof( std::max_align_t ) } ) );
         capacity = size;
         offset = 0;
     }
 
-    void Arena::Shutdown()
-    {
-        if (base != nullptr)
-        {
-            ::operator delete(base, std::align_val_t{ alignof(std::max_align_t) });
+    void Arena::Shutdown() {
+        if ( base != nullptr ) {
+            ::operator delete( base, std::align_val_t { alignof( std::max_align_t ) } );
             base = nullptr;
         }
 
@@ -31,18 +26,16 @@ namespace sloth
         offset = 0;
     }
 
-    void* Arena::Push(usize size, usize alignment)
-    {
-        SL_ASSERT_MSG(base != nullptr, "Arena has not been initialized");
+    void* Arena::Push( usize size, usize alignment ) {
+        SL_ASSERT_MSG( base != nullptr, "Arena has not been initialized" );
 
-        usize current = reinterpret_cast<usize>(base) + offset;
-        usize aligned = (current + (alignment - 1)) & ~(alignment - 1);
-        usize alignedOffset = aligned - reinterpret_cast<usize>(base);
+        usize current = reinterpret_cast<usize>( base ) + offset;
+        usize aligned = ( current + ( alignment - 1 ) ) & ~( alignment - 1 );
+        usize alignedOffset = aligned - reinterpret_cast<usize>( base );
         usize newOffset = alignedOffset + size;
 
-        SL_ASSERT_MSG(newOffset <= capacity, "Arena out of memory (capacity=%zu, requested=%zu)", capacity, newOffset);
-        if (newOffset > capacity)
-        {
+        SL_ASSERT_MSG( newOffset <= capacity, "Arena out of memory (capacity=%zu, requested=%zu)", capacity, newOffset );
+        if ( newOffset > capacity ) {
             return nullptr;
         }
 
@@ -50,19 +43,16 @@ namespace sloth
         return base + alignedOffset;
     }
 
-    void* Arena::PushZero(usize size, usize alignment)
-    {
-        void* ptr = Push(size, alignment);
-        if (ptr != nullptr)
-        {
-            std::memset(ptr, 0, size);
+    void* Arena::PushZero( usize size, usize alignment ) {
+        void* ptr = Push( size, alignment );
+        if ( ptr != nullptr ) {
+            std::memset( ptr, 0, size );
         }
 
         return ptr;
     }
 
-    void Arena::Reset()
-    {
+    void Arena::Reset() {
         offset = 0;
     }
 
