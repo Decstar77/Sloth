@@ -1,0 +1,46 @@
+# Build output
+bin/
+bin-int/
+
+# Premake-generated project/solution files
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+Makefile
+*.make
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# Object / intermediate files
+*.obj
+*.o
+*.lo
+*.ilk
+*.pdb
+*.idb
+*.exp
+*.iobj
+*.ipdb
+
+# Compiled binaries
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.dylib
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
