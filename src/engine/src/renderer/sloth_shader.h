@@ -23,6 +23,7 @@ namespace sloth
 
         // Binds the program before setting the uniform.
         void SetMat4(const char* name, const glm::mat4& value);
+        void SetInt(const char* name, i32 value);
 
         u32 GetRendererId() const { return rendererId; }
 

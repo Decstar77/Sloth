@@ -69,4 +69,11 @@ namespace sloth
         glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
     }
 
+    void Shader::SetInt(const char* name, i32 value)
+    {
+        Bind();
+        i32 location = glGetUniformLocation(rendererId, name);
+        glUniform1i(location, value);
+    }
+
 } // namespace sloth
