@@ -82,6 +82,22 @@ namespace dust {
                 ? physicsWorld->CreateBoxBody(spawn.entity.prop.halfExtents, bodyDesc)
                 : physicsWorld->CreateSphereBody(spawn.entity.prop.radius, bodyDesc);
         }
+        else if (spawn.entity.type == ENTITY_TYPE_VEHICLE)
+        {
+            sloth::RigidBodyDesc bodyDesc;
+            bodyDesc.Position    = spawn.entity.position;
+            bodyDesc.Rotation    = spawn.entity.rotation;
+            bodyDesc.MotionType  = BodyMotionType::Dynamic;
+            // Low, not zero: the chassis is a flat box directly touching the
+            // ground (no wheel model yet), so physical friction here would
+            // resist the drive force like a crate being pushed rather than a
+            // car rolling on wheels. Lateral tire grip is instead hand-
+            // simulated in DustGame::UpdateVehicleControl.
+            bodyDesc.Friction    = 0.05f;
+            bodyDesc.Restitution = 0.05f;
+
+            entity.rigidBody = physicsWorld->CreateBoxBody(spawn.entity.vehicle.chassisHalfExtents, bodyDesc);
+        }
     }
 
     void DustWorld::ApplyDestroy(EntityId id)
@@ -108,7 +124,7 @@ namespace dust {
             return; // Stale id: already destroyed, or never existed.
         }
 
-        if (entity.type == ENTITY_TYPE_PROP)
+        if (entity.rigidBody.IsValid())
         {
             physicsWorld->DestroyBody(entity.rigidBody);
         }

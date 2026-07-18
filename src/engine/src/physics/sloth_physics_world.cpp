@@ -247,6 +247,26 @@ namespace sloth
         return FromJolt(impl->bodyInterface->GetLinearVelocity(JPH::BodyID(body.Id)));
     }
 
+    void PhysicsWorld::SetAngularVelocity(RigidBody body, const glm::vec3& angularVelocity)
+    {
+        impl->bodyInterface->SetAngularVelocity(JPH::BodyID(body.Id), ToJolt(angularVelocity));
+    }
+
+    glm::vec3 PhysicsWorld::GetAngularVelocity(RigidBody body) const
+    {
+        return FromJolt(impl->bodyInterface->GetAngularVelocity(JPH::BodyID(body.Id)));
+    }
+
+    void PhysicsWorld::AddForce(RigidBody body, const glm::vec3& force)
+    {
+        impl->bodyInterface->AddForce(JPH::BodyID(body.Id), ToJolt(force));
+    }
+
+    void PhysicsWorld::AddTorque(RigidBody body, const glm::vec3& torque)
+    {
+        impl->bodyInterface->AddTorque(JPH::BodyID(body.Id), ToJolt(torque));
+    }
+
     f32 PhysicsWorld::GetInterpolationAlpha() const
     {
         return impl->accumulator / FixedTimeStep;

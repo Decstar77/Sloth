@@ -26,6 +26,10 @@ namespace dust {
         DustWorld&              GetWorld() { return world; }
 
     private:
+        void                    UpdateVehicleControl(f32 deltaTime);
+        void                    DrawVehicle(const Entity& entity, const glm::mat4& viewProjection);
+
+    private:
         DustWorld                       world;
         DustCamera                      camera;
 
@@ -36,6 +40,13 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh> floorMesh;
         std::unique_ptr<sloth::StaticMesh> sphereMesh;
         std::unique_ptr<sloth::StaticMesh> boxMesh;
+
+        // Buggy chassis/wheel meshes. Wheels are drawn per-entity from
+        // VehicleData's offsets, not stored as separate entities.
+        std::unique_ptr<sloth::StaticMesh> buggyChassisMesh;
+        std::unique_ptr<sloth::StaticMesh> buggyWheelMesh;
+
+        EntityId                        playerVehicleId = INVALID_ENTITY_ID;
 
         sloth::PhysicsWorld             physicsWorld;
     };

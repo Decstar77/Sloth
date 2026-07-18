@@ -74,6 +74,14 @@ namespace sloth
         void SetLinearVelocity(RigidBody body, const glm::vec3& velocity);
         glm::vec3 GetLinearVelocity(RigidBody body) const;
 
+        void SetAngularVelocity(RigidBody body, const glm::vec3& angularVelocity);
+        glm::vec3 GetAngularVelocity(RigidBody body) const;
+
+        // Accumulated and applied over the next Update() sub-step(s); must be
+        // called every frame to keep applying a continuous force/torque.
+        void AddForce(RigidBody body, const glm::vec3& force);
+        void AddTorque(RigidBody body, const glm::vec3& torque);
+
         // Fraction in [0,1) of a fixed step left over in the accumulator;
         // for interpolating render transforms between physics steps when
         // the physics tick rate doesn't match the render rate.

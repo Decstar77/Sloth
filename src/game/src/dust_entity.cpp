@@ -19,6 +19,9 @@ namespace dust {
             // Init prop data
             entity.prop = PropData();
         } break;
+        case ENTITY_TYPE_VEHICLE: {
+            entity.vehicle = VehicleData();
+        } break;
         }
 
         return entity;

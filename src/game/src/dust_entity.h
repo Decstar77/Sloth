@@ -14,6 +14,7 @@ namespace dust {
     enum EntityType {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
+        ENTITY_TYPE_VEHICLE,
     };
      
     struct EntityId {
@@ -40,6 +41,36 @@ namespace dust {
         f32                     restitution = 0.0f;
     };
 
+    // Arcade-style vehicle: a single dynamic box-shaped chassis body, driven
+    // by forces/torque applied directly to it (no wheel physics/constraints
+    // yet). Wheels are purely visual, positioned/spun/steered from this data
+    // by the renderer; they don't have their own rigid bodies.
+    struct VehicleData {
+        glm::vec3   chassisHalfExtents = { 0.9f, 0.35f, 1.7f };
+
+        f32         wheelRadius = 0.45f;
+        f32         wheelWidth = 0.3f;
+
+        glm::vec3   wheelOffsets[4] = {
+            {  0.9f, 0.10f,  1.3f },
+            { -0.9f, 0.10f,  1.3f },
+            {  0.9f, 0.10f, -1.3f },
+            { -0.9f, 0.10f, -1.3f },
+        };
+
+        f32         enginePower = 18000.0f;    // N, forward/back drive force
+        f32         turnTorque = 18000.0f;     // steering yaw torque
+        f32         maxYawRateRadians = 2.2f;  // rad/s, clamps the turn once spun up
+        f32         maxSpeed = 30.0f;          // m/s, engine cuts out past this
+        f32         gripStrength = 6.0f;       // 1/s, how hard sideways slide is cancelled
+        f32         maxSteerAngleDegrees = 30.0f;
+
+        bool        playerControlled = false;
+
+        f32         steerAngleDegrees = 0.0f;
+        f32         wheelSpinRadians = 0.0f;
+    };
+
     struct Entity {
         glm::vec3   position;
         glm::quat   rotation;
@@ -52,7 +83,8 @@ namespace dust {
         RigidBody   rigidBody;
 
         union {
-            PropData prop;
+            PropData    prop;
+            VehicleData vehicle;
         };
     };
 

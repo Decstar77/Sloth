@@ -4,10 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input and GLAD for OpenGL (4.5 core) function loading. The workspace has two projects:
+Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input, GLAD for OpenGL (4.5 core) function loading, and Jolt Physics for simulation. On top of it sits **Dust**, a Kenshi/X4: Foundations-style open-world sandbox game with one defining constraint: **there are no traditional walking-around human characters.** The player's "character" is always a vehicle — cars, buggies, trucks, tanks, etc. Everything in the entity/gameplay layer should be designed around vehicles-as-actors rather than humanoid pawns (no legs/animation rigs/character controllers — physics-driven rigid bodies and wheeled/tracked vehicle dynamics instead).
 
-- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`.
-- **Sandbox** (`src/sandbox`, ConsoleApp) — a thin executable that links Engine and exercises it (`src/sandbox/src/main.cpp`).
+The workspace has three projects:
+
+- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`. Windowing, OpenGL rendering, physics wrapper, fonts/text, arenas, strings, logging. Knows nothing about Dust.
+- **Game** (`src/game`, StaticLib) — Dust, the actual game, namespace `dust`. Entities, world, camera, gameplay logic. Links Engine.
+- **Sandbox** (`src/sandbox`, ConsoleApp) — a thin executable that links Game + Engine and drives the main loop (`src/sandbox/src/main.cpp`).
 
 ## Build
 
@@ -21,9 +24,9 @@ Run this after changing `premake5.lua` (new files added under `src/**` are picke
 
 There is no separate lint or test command yet.
 
-## Architecture
+## Architecture — Engine (`sloth` namespace)
 
-**Single-engine, single-window model.** `sloth::Engine` is a singleton (`Engine::Get()`) that owns all engine-wide global state — the `Window` and the two memory arenas. It is not copyable/movable and must be `Init()`'d once and `Shutdown()` at the end. Call `Engine::Get().EndFrame()` once per frame after submitting the frame's work.
+**Single-engine, single-window model.** `sloth::Engine` is a singleton (`Engine::Get()`) that owns all engine-wide global state — the `Window`, `Input`, and the two memory arenas. It is not copyable/movable and must be `Init()`'d once and `Shutdown()` at the end. Call `Engine::Get().EndFrame()` once per frame, after submitting the frame's work but **before** `Window::OnUpdate()` — `EndFrame()` clears the frame arena and advances `Input`'s edge-triggered (pressed/released) state, which must snapshot before GLFW events are polled.
 
 **Arena-based memory.** `sloth::Arena` (`core/sloth_arena.h`) is a bump allocator: reserved once via `Init(size)`, handed out via `Push`/`PushZero`/`PushArray<T>`/`PushStruct<T>`, and only ever released in bulk via `Reset()` (rewind, keep memory) or `Shutdown()` (free). No per-allocation free, no destructors run on pushed objects. The Engine holds two:
 - `GetPermanentArena()` — lives for the whole program.
@@ -34,8 +37,49 @@ There is no separate lint or test command yet.
 - `ArenaString` — grows by reallocating from an `Arena*` it was constructed with; old blocks are simply abandoned (arenas don't free individual allocations), so it's meant for build-once-per-frame use out of the frame arena, not long-lived incremental building.
 - `StringView` is a non-owning `(data, length)` view — not guaranteed null-terminated when sliced from the middle of another buffer (e.g. `GetDirectory()`), so always use `Data()`/`Length()` together rather than treating `Data()` as a C string.
 
-**Platform/config macros** (`core/sloth_defines.h`): fixed-width type aliases (`i32`, `u64`, `f32`, `usize`, ...), `SL_PLATFORM_*` / `SL_BUILD_*` derived from premake-defined macros (`SLOTH_PLATFORM_WINDOWS`, `SLOTH_DEBUG`/`SLOTH_RELEASE`/`SLOTH_DIST`), `SL_LOG_*` (stdio-based; TRACE/INFO to stdout, WARN/ERROR/FATAL to stderr), and `SL_ASSERT`/`SL_ASSERT_MSG` (stripped in Dist builds) vs `SL_VERIFY`/`SL_VERIFY_MSG` (expression always evaluated, for calls with side effects; only the check is stripped in Dist). Prefer these over raw `assert`/`printf` for consistency with the rest of the engine.
+**Platform/config macros** (`core/sloth_defines.h`): fixed-width type aliases (`i32`, `u64`, `f32`, `usize`, ...), `SL_PLATFORM_*` / `SL_BUILD_*` derived from premake-defined macros (`SLOTH_PLATFORM_WINDOWS`, `SLOTH_DEBUG`/`SLOTH_RELEASE`/`SLOTH_DIST`), `SL_LOG_*` (stdio-based; TRACE/INFO to stdout, WARN/ERROR/FATAL to stderr), `SL_ASSERT`/`SL_ASSERT_MSG` (stripped in Dist builds) vs `SL_VERIFY`/`SL_VERIFY_MSG` (expression always evaluated, for calls with side effects; only the check is stripped in Dist), and `SL_NON_COPYABLE`/`SL_NON_MOVABLE` helpers used pervasively on classes owning GPU/OS/physics resources. Prefer these over raw `assert`/`printf` for consistency with the rest of the engine.
 
 **Window** (`core/sloth_window.h/.cpp`) wraps a single GLFW window + OpenGL context (4.5 core). Owned by `Engine`, reached via `Engine::Get().GetWindow()`; not copyable/movable, single-window only. Handles resize/position via GLFW callbacks routed through `glfwGetWindowUserPointer`.
 
-**Naming conventions**: files are `sloth_*.h`/`.cpp` under `core/` (and future subsystem folders like `renderer/`, currently empty), all engine code lives in namespace `sloth`, public macros are prefixed `SL_`, and premake-injected preprocessor defines are prefixed `SLOTH_`.
+**Input** (`core/sloth_input.h/.cpp`) — polled input state, owned by `Engine`, reached via `Engine::Get().GetInput()`.
+
+**Renderer** (`renderer/`) — a thin, immediate-ish OpenGL wrapper, all pure `sloth` code with no knowledge of Dust:
+- `sloth_shader.h/.cpp` — `Shader`: wraps a GL program built from raw GLSL source strings. `Bind()`/`Unbind()`, `SetMat4`/`SetInt` (bind-then-set).
+- `sloth_static_mesh.h/.cpp` — `Vertex{ Position, Color }` (both `vec3`; no UVs/normals yet) and `StaticMesh`, a VAO+VBO+EBO for immutable geometry uploaded once at construction (`Draw()` does `glDrawElements`). Not for geometry that changes every frame.
+- `sloth_geometry.h/.cpp` — `MeshData{ Vertices, Indices }` (CPU-side) and `Geometry`, a static builder for procedural primitives: `CreatePlane`, `CreateBox`, `CreateUVSphere`, `CreateIsoSphere`, `CreateCylinder`. Pure geometry generation, outward-facing CCW winding, no GPU calls.
+- `sloth_render_model.h` — `RenderModel{ Shader*, StaticMesh* }`: a small, copyable, **non-owning** pointer pair describing what to draw something with. The shader/mesh are owned and shared elsewhere (currently by `DustGame`); `RenderModel` just references them. This is what `dust::Entity` carries to know how to draw itself, decoupling the renderer from any specific gameplay/entity system.
+- `sloth_camera.h/.cpp` — `Camera`: yaw/pitch (degrees) + position, perspective params, derives view/projection matrices via `GetViewProjectionMatrix()`. Pure math, no input handling — driving it is the caller's job (see `DustCamera` below).
+- `sloth_glyph_cache.h/.cpp`, `sloth_text_renderer.h/.cpp` — text-specific rendering (curve-texture-buffer glyph rendering), separate from the general mesh/model path above.
+
+No OBJ/model-file loader and no `Texture` class exist yet — `stb_image.h` is compiled in (`core/sloth_stb_impl.cpp`) but nothing currently calls into it; only `stb_truetype` is wired up, for fonts. Geometry today is entirely procedural (`Geometry::Create*`) plus vertex color, no textures.
+
+**Font** (`font/sloth_font.h/.cpp`) — TTF loading/parsing via stb_truetype, used together with `GlyphCache`/`TextRenderer` for on-screen text.
+
+**Physics** (`physics/sloth_physics_world.h/.cpp`) — `PhysicsWorld` owns a Jolt Physics simulation (`PhysicsSystem`, job system, temp allocator); all Jolt types are hidden behind a private `Impl` (PIMPL, like `Window` hides `GLFWwindow`), so nothing outside this `.cpp` needs Jolt headers. `Update(deltaTime)` runs a fixed-timestep accumulator internally — call it once per frame with the real variable frame delta. `RigidBody` is a cheap, copyable opaque handle (`Id`, `IsValid()`) into Jolt's body pool; not valid across different `PhysicsWorld` instances or after `DestroyBody()`. Bodies are created via `CreateBoxBody`/`CreateSphereBody` + `RigidBodyDesc` (position/rotation/`BodyMotionType` Static|Kinematic|Dynamic/friction/restitution), and read back via `GetPosition`/`GetRotation`/`GetLinearVelocity`. Body transforms are only valid to read once `Update()` has returned for that call.
+
+## Architecture — Game (`dust` namespace, `src/game`)
+
+**Entity** (`dust_entity.h/.cpp`) — a single flat `struct Entity` with a `type` tag (`EntityType`) and a `union` of per-type data blocks (currently just `PropData`, for rigid-body-backed objects with no gameplay logic of their own — crates, rocks, debris; vehicles will be a future `EntityType`/data block here, not a new hierarchy). No inheritance — adding a new entity type means adding an `ENTITY_TYPE_*` enumerator, a `XxxData` struct, a union member, and a case in `MakeEntity()`. Fields that live outside the union, common to every entity type:
+- `position` / `rotation` / `scale` — the entity's canonical transform. **Single source of truth**: for physics-backed entities this is kept in sync from the physics body once per frame (see `DustWorld::SyncPhysicsTransforms()` below) rather than read from the physics world ad hoc, so gameplay/render code never needs to know or care whether a given entity has physics backing.
+- `renderModel` (`sloth::RenderModel`) — what to draw the entity with; set by whoever spawns the entity (currently `DustGame`, pointing at meshes/shader it owns).
+- `rigidBody` (`sloth::RigidBody`) — the physics handle, if any (`IsValid()` to check). Lives on `Entity` directly (not inside the `PropData` union) since any future entity type may want physics backing, not just props.
+- `id` (`EntityId{ index, generation }`) — generation-counted handle, `INVALID_ENTITY_ID` sentinel, `operator==`/`operator!=`.
+
+**DustWorld** (`dust_world.h/.cpp`) owns the entity table (`std::vector<Entity>` + free-list) and the `PhysicsWorld*` entities are backed by. Key behavior:
+- `SpawnEntity`/`DestroyEntity` are **deferred** — they only buffer a request (returning the `EntityId` the entity will have once applied); the actual table/physics mutation happens in `FlushPendingChanges()`, called once per frame from a single thread after gameplay code is done submitting requests. This keeps the entity table stable for the rest of the frame and means a freshly spawned entity is only visible to `GetEntity()`/`GetEntities()` the frame after it was requested.
+- `SyncPhysicsTransforms()` — call once per frame, after `PhysicsWorld::Update()` and before rendering: copies each physics-backed entity's `position`/`rotation` from its `rigidBody`. This is what keeps `Entity::position/rotation` authoritative; renderer/gameplay code should read those fields, never reach into `PhysicsWorld` directly for an entity's transform.
+- `GetEntities()` — read access to the live entity table for iteration (e.g. rendering); skip slots where `type == ENTITY_TYPE_INVALID`.
+- `simHot`/`simWarm`/`simCold` — placeholder coarse simulation/LOD buckets for future gameplay code, currently unpopulated.
+
+**DustCamera** (`dust_camera.h/.cpp`) — a Kenshi-style top-down RTS camera: looks down at a focus point that slides along the ground plane (not free-fly). WASD pans the focus point, RMB-drag orbits yaw/pitch around it, scroll wheel zooms distance. Drives an owned `sloth::Camera`, whose matrices are what the renderer actually consumes.
+
+**DustGame** (`dust_game.h/.cpp`) — the per-frame driver: owns `DustWorld`, `DustCamera`, `PhysicsWorld`, and the render resources (`Shader`, and currently a few hand-owned `StaticMesh`es that entities' `RenderModel`s point at). `Init()` spawns starting entities into `world`; `Update(deltaTime)` steps the camera, steps physics, syncs entity transforms from physics, then flushes pending spawns/destroys (in that order); `Render()` iterates `world.GetEntities()` and draws each via its `RenderModel` and synced `position`/`rotation` — it does not touch `PhysicsWorld` at all.
+
+**Naming conventions**: engine files are `sloth_*.h`/`.cpp` under `core/`, `renderer/`, `physics/`, `font/`; game files are `dust_*.h`/`.cpp` under `src/game/src`. Engine code lives in namespace `sloth`, game code in namespace `dust` (which does `using namespace sloth;` at the top of headers for convenience). Public macros are prefixed `SL_`, premake-injected preprocessor defines are prefixed `SLOTH_`.
+
+## Where the game is headed
+
+Dust is meant to be an open-world vehicle sandbox in the spirit of Kenshi (persistent simulated world, emergent factions/economy, no fast-travel-only theme-park structure) crossed with X4: Foundations (vehicle-scale piloting, systemic economy/combat) — but grounded, not spaceborne, and with **vehicles standing in for characters entirely**. Design implications worth keeping in mind when extending the entity/gameplay layer:
+- No humanoid character controller, animation rig, or inventory-on-a-body model is planned — don't build gameplay systems assuming a walking pawn.
+- The player and NPCs alike are always "in" a vehicle; a future vehicle `EntityType` (wheeled/tracked, driven by physics forces/motors on top of `RigidBody`, not kinematic character movement) is the natural next addition to `dust_entity.h`, following the same union-of-data-blocks pattern `PropData` already establishes.
+- Expect terrain/world-scale concerns (large streamed world, vehicle physics at speed, faction/economy simulation) to matter more here than in a typical small-scale character game — the `simHot`/`simWarm`/`simCold` buckets on `DustWorld` already anticipate this.
