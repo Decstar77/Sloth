@@ -47,8 +47,8 @@ void FreeCamera::Update(f32 deltaTime)
     if (input.IsKeyDown(Key::S)) movement -= camera.GetForward();
     if (input.IsKeyDown(Key::D)) movement += camera.GetRight();
     if (input.IsKeyDown(Key::A)) movement -= camera.GetRight();
-    if (input.IsKeyDown(Key::E)) movement += glm::vec3(0.0f, 1.0f, 0.0f);
-    if (input.IsKeyDown(Key::Q)) movement -= glm::vec3(0.0f, 1.0f, 0.0f);
+    if (input.IsKeyDown(Key::Space)) movement += glm::vec3(0.0f, 1.0f, 0.0f);
+    if (input.IsKeyDown(Key::LeftControl)) movement -= glm::vec3(0.0f, 1.0f, 0.0f);
 
     if (glm::length(movement) > 0.0f)
     {

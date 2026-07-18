@@ -79,8 +79,8 @@ int main()
         triangleShader.SetMat4("uViewProjection", freeCamera.GetCamera().GetViewProjectionMatrix());
         triangleMesh.Draw();
 
-        window.OnUpdate();
         engine.EndFrame();
+        window.OnUpdate();
     }
 
     engine.Shutdown();

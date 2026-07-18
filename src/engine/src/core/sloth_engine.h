@@ -27,8 +27,12 @@ namespace sloth
         void Init(const WindowProps& windowProps = WindowProps());
         void Shutdown();
 
-        // Clears the frame arena. Call once per frame, after the frame's
-        // work has been submitted.
+        // Clears the frame arena and advances Input's edge-triggered state
+        // (pressed/released, deltas). Call once per frame, after the frame's
+        // work has been submitted but BEFORE Window::OnUpdate() — Input's
+        // previous-state snapshot must happen before GLFW events are polled,
+        // otherwise "pressed this frame" edges are overwritten before any
+        // game code observes them.
         void EndFrame();
 
         Window& GetWindow() { return *window; }
