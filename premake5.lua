@@ -97,6 +97,60 @@ project "Engine"
         symbols "Off"
         optimize "Full"
 
+project "Game"
+    location "src/game"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    staticruntime "off"
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files
+    {
+        "src/game/src/**.h",
+        "src/game/src/**.cpp"
+    }
+
+    includedirs
+    {
+        "src/game/src",
+        "src/engine/src",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}",
+        "%{IncludeDir.JoltPhysics}",
+        "%{IncludeDir.stb}"
+    }
+
+    links
+    {
+        "Engine"
+    }
+
+    filter "system:windows"
+        systemversion "latest"
+        defines { "SLOTH_PLATFORM_WINDOWS" }
+
+    filter "configurations:Debug"
+        defines { "SLOTH_DEBUG" }
+        runtime "Debug"
+        symbols "On"
+        optimize "Off"
+
+    filter "configurations:Release"
+        defines { "SLOTH_RELEASE" }
+        runtime "Release"
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines { "SLOTH_DIST" }
+        runtime "Release"
+        symbols "Off"
+        optimize "Full"
+
 project "Sandbox"
     location "src/sandbox"
     kind "ConsoleApp"
@@ -115,6 +169,7 @@ project "Sandbox"
 
     includedirs
     {
+        "src/game/src",
         "src/engine/src",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.GLAD}",
@@ -123,6 +178,7 @@ project "Sandbox"
 
     links
     {
+        "Game",
         "Engine"
     }
 

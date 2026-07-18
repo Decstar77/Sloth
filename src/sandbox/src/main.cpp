@@ -158,7 +158,7 @@ int main()
         if (font.IsLoaded())
         {
             glm::mat4 textProjection = glm::ortho(0.0f, static_cast<f32>(window.GetWidth()), static_cast<f32>(window.GetHeight()), 0.0f);
-            textRenderer.DrawText(font, glyphCache, "Hello, Sloth!", { 32.0f, 64.0f }, 48.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, textProjection);
+            textRenderer.DrawText(font, glyphCache, "Hello, Sloth!", { 32.0f, 64.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, textProjection);
         }
 
         engine.EndFrame();

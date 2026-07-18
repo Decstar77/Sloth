@@ -6,9 +6,6 @@
 
 namespace sloth
 {
-
-    // Minimal GLSL shader program wrapper. Compiles a vertex + fragment
-    // shader pair and links them into a single program.
     class Shader
     {
     public:
