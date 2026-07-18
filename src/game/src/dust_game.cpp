@@ -113,7 +113,7 @@ namespace dust {
             playerVehicleId = world.SpawnEntity(entity);
         }
 
-        // Iron ore node  
+        // Iron ore node
         {
             glm::vec3 halfExtents(3.0f, 2.3f, 3.0f);
             oreNode= UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f }));
