@@ -59,9 +59,9 @@ namespace dust {
 
             Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 0.0f, -0.5f, 0.0f });
             entity.renderModel = { shader.get(), floorMesh.get() };
-            entity.prop.propShape = PropShape::Box;
-            entity.prop.halfExtents = halfExtents;
-            entity.prop.motionType = BodyMotionType::Static;
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = halfExtents;
+            entity.rigidBodyData.motionType = BodyMotionType::Static;
             world.SpawnEntity(entity);
         }
 
@@ -71,9 +71,9 @@ namespace dust {
 
             Entity entity = MakeEntity(ENTITY_TYPE_PROP, { -1.5f, 8.0f, 0.0f });
             entity.renderModel = { shader.get(), sphereMesh.get() };
-            entity.prop.propShape = PropShape::Sphere;
-            entity.prop.radius = 1.0f;
-            entity.prop.restitution = 0.4f;
+            entity.rigidBodyData.shape = RigidBodyShape::Sphere;
+            entity.rigidBodyData.radius = 1.0f;
+            entity.rigidBodyData.restitution = 0.4f;
             world.SpawnEntity(entity);
         }
 
@@ -85,9 +85,9 @@ namespace dust {
             Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 1.5f, 11.0f, 0.0f });
             entity.renderModel = { shader.get(), boxMesh.get() };
             entity.rotation = glm::angleAxis(glm::radians(25.0f), glm::normalize(glm::vec3(1.0f, 0.5f, 0.0f)));
-            entity.prop.propShape = PropShape::Box;
-            entity.prop.halfExtents = halfExtents;
-            entity.prop.restitution = 0.1f;
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = halfExtents;
+            entity.rigidBodyData.restitution = 0.1f;
             world.SpawnEntity(entity);
         }
 
@@ -102,7 +102,32 @@ namespace dust {
             Entity entity = MakeEntity(ENTITY_TYPE_VEHICLE, { 0.0f, 3.0f, 0.0f });
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
             entity.vehicle.playerControlled = true;
+            
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = chassisHalfExtents;
+            entity.rigidBodyData.restitution = 0.1f;
+            entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
+            entity.rigidBodyData.friction = 0.05f; // // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
+            entity.rigidBodyData.restitution = 0.05f;
+
             playerVehicleId = world.SpawnEntity(entity);
+        }
+
+        // Iron ore node  
+        {
+            glm::vec3 halfExtents(3.0f, 2.3f, 3.0f);
+            oreNode= UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f }));
+
+            Entity entity = MakeEntity(ENTITY_TYPE_ORE_NODE, { 14, 0, -14 });
+            entity.renderModel = { shader.get(), oreNode.get() };
+            entity.oreNode.type = ORE_NODE_TYPE_IRON;
+            entity.oreNode.amount = 2000;
+
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = halfExtents;
+            entity.rigidBodyData.motionType = BodyMotionType::Static;
+
+            world.SpawnEntity(entity);
         }
 
         camera.SetFocusPoint({ 0.0f, 0.0f, 0.0f });
@@ -227,17 +252,16 @@ namespace dust {
                 continue;
             }
 
-            if (entity.type == ENTITY_TYPE_PROP)
+            if (entity.type == ENTITY_TYPE_VEHICLE)
+            {
+                DrawVehicle(entity, viewProjection);
+            }
+            else // Generic draw
             {
                 glm::mat4 model = glm::translate(glm::mat4(1.0f), entity.position) * glm::mat4_cast(entity.rotation);
-
                 entity.renderModel.shader->SetMat4("uViewProjection", viewProjection);
                 entity.renderModel.shader->SetMat4("uModel", model);
                 entity.renderModel.mesh->Draw();
-            }
-            else if (entity.type == ENTITY_TYPE_VEHICLE)
-            {
-                DrawVehicle(entity, viewProjection);
             }
         }
     }

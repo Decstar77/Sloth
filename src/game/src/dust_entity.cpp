@@ -16,12 +16,16 @@ namespace dust {
             SL_ASSERT_MSG(false, "Making entity of invalid type");
         } break;
         case ENTITY_TYPE_PROP: {
-            // Init prop data
-            entity.prop = PropData();
+            entity.rigidBodyData.createRigidBody = true;
         } break;
         case ENTITY_TYPE_VEHICLE: {
+            entity.rigidBodyData.createRigidBody = true;
             entity.vehicle = VehicleData();
         } break;
+        case ENTITY_TYPE_ORE_NODE: {
+            entity.rigidBodyData.createRigidBody = true;
+            entity.oreNode = OreNode();
+        }
         }
 
         return entity;

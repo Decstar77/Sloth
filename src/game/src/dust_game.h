@@ -33,18 +33,14 @@ namespace dust {
         DustWorld                       world;
         DustCamera                      camera;
 
+        // Rendering stuff, need a better place to put all this
         std::unique_ptr<sloth::Shader>  shader;
-
-        // Meshes shared across entities via RenderModel; owned here since
-        // Entity/RenderModel only hold non-owning pointers to them.
         std::unique_ptr<sloth::StaticMesh> floorMesh;
         std::unique_ptr<sloth::StaticMesh> sphereMesh;
         std::unique_ptr<sloth::StaticMesh> boxMesh;
-
-        // Buggy chassis/wheel meshes. Wheels are drawn per-entity from
-        // VehicleData's offsets, not stored as separate entities.
         std::unique_ptr<sloth::StaticMesh> buggyChassisMesh;
         std::unique_ptr<sloth::StaticMesh> buggyWheelMesh;
+        std::unique_ptr<sloth::StaticMesh> oreNode;
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
 

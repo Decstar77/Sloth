@@ -69,34 +69,18 @@ namespace dust {
         // Copy over data
         entity = spawn.entity;
 
-        if (spawn.entity.type == ENTITY_TYPE_PROP)
+        if (entity.rigidBodyData.createRigidBody == true) 
         {
             sloth::RigidBodyDesc bodyDesc;
-            bodyDesc.Position    = spawn.entity.position;
-            bodyDesc.Rotation    = spawn.entity.rotation;
-            bodyDesc.MotionType  = spawn.entity.prop.motionType;
-            bodyDesc.Friction    = spawn.entity.prop.friction;
-            bodyDesc.Restitution = spawn.entity.prop.restitution;
+            bodyDesc.Position = entity.position;
+            bodyDesc.Rotation = entity.rotation;
+            bodyDesc.MotionType = entity.rigidBodyData.motionType;
+            bodyDesc.Friction = entity.rigidBodyData.friction;
+            bodyDesc.Restitution = entity.rigidBodyData.restitution;
 
-            entity.rigidBody = (spawn.entity.prop.propShape == PropShape::Box)
-                ? physicsWorld->CreateBoxBody(spawn.entity.prop.halfExtents, bodyDesc)
-                : physicsWorld->CreateSphereBody(spawn.entity.prop.radius, bodyDesc);
-        }
-        else if (spawn.entity.type == ENTITY_TYPE_VEHICLE)
-        {
-            sloth::RigidBodyDesc bodyDesc;
-            bodyDesc.Position    = spawn.entity.position;
-            bodyDesc.Rotation    = spawn.entity.rotation;
-            bodyDesc.MotionType  = BodyMotionType::Dynamic;
-            // Low, not zero: the chassis is a flat box directly touching the
-            // ground (no wheel model yet), so physical friction here would
-            // resist the drive force like a crate being pushed rather than a
-            // car rolling on wheels. Lateral tire grip is instead hand-
-            // simulated in DustGame::UpdateVehicleControl.
-            bodyDesc.Friction    = 0.05f;
-            bodyDesc.Restitution = 0.05f;
-
-            entity.rigidBody = physicsWorld->CreateBoxBody(spawn.entity.vehicle.chassisHalfExtents, bodyDesc);
+            entity.rigidBody = (entity.rigidBodyData.shape == RigidBodyShape::Box)
+                ? physicsWorld->CreateBoxBody(entity.rigidBodyData.halfExtents, bodyDesc)
+                : physicsWorld->CreateSphereBody(entity.rigidBodyData.radius, bodyDesc);
         }
     }
 

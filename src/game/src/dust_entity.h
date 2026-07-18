@@ -15,6 +15,7 @@ namespace dust {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
         ENTITY_TYPE_VEHICLE,
+        ENTITY_TYPE_ORE_NODE,
     };
      
     struct EntityId {
@@ -27,13 +28,14 @@ namespace dust {
     inline bool operator==(const EntityId& a, const EntityId& b) { return a.index == b.index && a.generation == b.generation; }
     inline bool operator!=(const EntityId& a, const EntityId& b) { return !(a == b); }
 
-    enum class PropShape {
+    enum class RigidBodyShape {
         Box,
         Sphere,
     };
 
-    struct PropData {
-        PropShape               propShape = PropShape::Box;
+    struct RigidBodySpawnData {
+        bool                    createRigidBody = false;
+        RigidBodyShape          shape = RigidBodyShape::Box;
         glm::vec3               halfExtents = { 0.5f, 0.5f, 0.5f };
         f32                     radius = 0.5f;
         BodyMotionType          motionType = BodyMotionType::Dynamic;
@@ -71,6 +73,16 @@ namespace dust {
         f32         wheelSpinRadians = 0.0f;
     };
 
+    enum OreNodeType {
+        ORE_NODE_TYPE_IRON,
+        ORE_NODE_TYPE_COPPER,
+    };
+
+    struct OreNode {
+        OreNodeType type = ORE_NODE_TYPE_IRON;
+        i32         amount = 100;
+    };
+
     struct Entity {
         glm::vec3   position;
         glm::quat   rotation;
@@ -79,12 +91,13 @@ namespace dust {
         EntityType  type;
         EntityId    id;
 
-        RenderModel renderModel;
-        RigidBody   rigidBody;
+        RenderModel        renderModel;
+        RigidBody          rigidBody;
+        RigidBodySpawnData rigidBodyData;
 
         union {
-            PropData    prop;
             VehicleData vehicle;
+            OreNode     oreNode;
         };
     };
 
