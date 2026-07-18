@@ -7,8 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace sloth
-{
+namespace sloth {
     class Font;
     class GlyphCache;
     class Shader;
@@ -18,26 +17,24 @@ namespace sloth
     // technique) - no bitmap atlas, crisp at any scale. This first pass
     // loops over every curve in the glyph per pixel (no band acceleration),
     // which is fine for typical Latin glyph curve counts.
-    class TextRenderer
-    {
-    public:
+    class TextRenderer {
+      public:
         TextRenderer();
         ~TextRenderer();
 
-        SL_NON_COPYABLE(TextRenderer);
-        SL_NON_MOVABLE(TextRenderer);
+        SL_NON_COPYABLE( TextRenderer );
+        SL_NON_MOVABLE( TextRenderer );
 
         // Draws `text` (ASCII only - no UTF-8 decoding yet) with its
         // baseline starting at `baselinePos` (pixels, y-down), `pixelHeight`
         // font pixels tall. One batched instanced draw call per invocation.
         // Manages its own GL state (blending on, depth test/write off)
         // around the draw.
-        void DrawText(const Font& font, GlyphCache& cache, StringView text, glm::vec2 baselinePos, f32 pixelHeight,
-                       const glm::vec4& color, const glm::mat4& viewProjection);
+        void DrawText( const Font & font, GlyphCache & cache, StringView text, glm::vec2 baselinePos, f32 pixelHeight,
+            const glm::vec4 & color, const glm::mat4 & viewProjection );
 
-    private:
-        struct GlyphInstance
-        {
+      private:
+        struct GlyphInstance {
             glm::vec2 QuadMin;
             glm::vec2 QuadMax;
             glm::vec2 CurveMin;
@@ -47,7 +44,7 @@ namespace sloth
             glm::vec4 Color;
         };
 
-    private:
+      private:
         std::unique_ptr<Shader> shader;
 
         u32 quadVertexArray = 0;

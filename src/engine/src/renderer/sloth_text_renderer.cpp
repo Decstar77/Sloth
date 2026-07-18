@@ -6,9 +6,8 @@
 
 #include <glad/gl.h>
 
-namespace sloth
-{
-    static const char* TextVertexShaderSource = R"(
+namespace sloth {
+    static const char * TextVertexShaderSource = R"(
         #version 450 core
         layout(location = 0) in vec2 aUnit;
         layout(location = 1) in vec2 aQuadMin;
@@ -45,7 +44,7 @@ namespace sloth
     // space derivatives of the curve-space position approximates
     // antialiasing (Slug proper computes this analytically - this is a
     // simpler, more expensive stand-in for a first pass).
-    static const char* TextFragmentShaderSource = R"(
+    static const char * TextFragmentShaderSource = R"(
         #version 450 core
 
         in vec2 vCurvePos;
@@ -158,137 +157,128 @@ namespace sloth
         }
     )";
 
-    TextRenderer::TextRenderer()
-    {
-        shader = std::make_unique<Shader>(TextVertexShaderSource, TextFragmentShaderSource);
+    TextRenderer::TextRenderer() {
+        shader = std::make_unique<Shader>( TextVertexShaderSource, TextFragmentShaderSource );
 
         const f32 unitQuad[] = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            1.0f,
         };
 
-        glGenVertexArrays(1, &quadVertexArray);
-        glBindVertexArray(quadVertexArray);
+        glGenVertexArrays( 1, &quadVertexArray );
+        glBindVertexArray( quadVertexArray );
 
-        glGenBuffers(1, &quadVertexBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(unitQuad), unitQuad, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(f32) * 2, reinterpret_cast<void*>(0));
+        glGenBuffers( 1, &quadVertexBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, quadVertexBuffer );
+        glBufferData( GL_ARRAY_BUFFER, sizeof( unitQuad ), unitQuad, GL_STATIC_DRAW );
+        glEnableVertexAttribArray( 0 );
+        glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, sizeof( f32 ) * 2, reinterpret_cast<void *>( 0 ) );
 
-        glGenBuffers(1, &instanceBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
+        glGenBuffers( 1, &instanceBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, instanceBuffer );
 
-        auto instanceAttrib = [](u32 location, i32 componentCount, GLenum type, usize offset)
-        {
-            glEnableVertexAttribArray(location);
-            if (type == GL_UNSIGNED_INT)
-            {
-                glVertexAttribIPointer(location, componentCount, type, sizeof(GlyphInstance), reinterpret_cast<void*>(offset));
+        auto instanceAttrib = []( u32 location, i32 componentCount, GLenum type, usize offset ) {
+            glEnableVertexAttribArray( location );
+            if ( type == GL_UNSIGNED_INT ) {
+                glVertexAttribIPointer( location, componentCount, type, sizeof( GlyphInstance ), reinterpret_cast<void *>( offset ) );
+            } else {
+                glVertexAttribPointer( location, componentCount, type, GL_FALSE, sizeof( GlyphInstance ), reinterpret_cast<void *>( offset ) );
             }
-            else
-            {
-                glVertexAttribPointer(location, componentCount, type, GL_FALSE, sizeof(GlyphInstance), reinterpret_cast<void*>(offset));
-            }
-            glVertexAttribDivisor(location, 1);
+            glVertexAttribDivisor( location, 1 );
         };
 
-        instanceAttrib(1, 2, GL_FLOAT, offsetof(GlyphInstance, QuadMin));
-        instanceAttrib(2, 2, GL_FLOAT, offsetof(GlyphInstance, QuadMax));
-        instanceAttrib(3, 2, GL_FLOAT, offsetof(GlyphInstance, CurveMin));
-        instanceAttrib(4, 2, GL_FLOAT, offsetof(GlyphInstance, CurveMax));
-        instanceAttrib(5, 1, GL_UNSIGNED_INT, offsetof(GlyphInstance, CurveOffset));
-        instanceAttrib(6, 1, GL_UNSIGNED_INT, offsetof(GlyphInstance, CurveCount));
-        instanceAttrib(7, 4, GL_FLOAT, offsetof(GlyphInstance, Color));
+        instanceAttrib( 1, 2, GL_FLOAT, offsetof( GlyphInstance, QuadMin ) );
+        instanceAttrib( 2, 2, GL_FLOAT, offsetof( GlyphInstance, QuadMax ) );
+        instanceAttrib( 3, 2, GL_FLOAT, offsetof( GlyphInstance, CurveMin ) );
+        instanceAttrib( 4, 2, GL_FLOAT, offsetof( GlyphInstance, CurveMax ) );
+        instanceAttrib( 5, 1, GL_UNSIGNED_INT, offsetof( GlyphInstance, CurveOffset ) );
+        instanceAttrib( 6, 1, GL_UNSIGNED_INT, offsetof( GlyphInstance, CurveCount ) );
+        instanceAttrib( 7, 4, GL_FLOAT, offsetof( GlyphInstance, Color ) );
 
-        glBindVertexArray(0);
+        glBindVertexArray( 0 );
     }
 
-    TextRenderer::~TextRenderer()
-    {
-        glDeleteBuffers(1, &instanceBuffer);
-        glDeleteBuffers(1, &quadVertexBuffer);
-        glDeleteVertexArrays(1, &quadVertexArray);
+    TextRenderer::~TextRenderer() {
+        glDeleteBuffers( 1, &instanceBuffer );
+        glDeleteBuffers( 1, &quadVertexBuffer );
+        glDeleteVertexArrays( 1, &quadVertexArray );
     }
 
-    void TextRenderer::DrawText(const Font& font, GlyphCache& cache, StringView text, glm::vec2 baselinePos, f32 pixelHeight,
-                                 const glm::vec4& color, const glm::mat4& viewProjection)
-    {
+    void TextRenderer::DrawText( const Font & font, GlyphCache & cache, StringView text, glm::vec2 baselinePos, f32 pixelHeight,
+        const glm::vec4 & color, const glm::mat4 & viewProjection ) {
         instances.clear();
 
-        f32 scale = font.GetScaleForPixelHeight(pixelHeight);
+        f32 scale = font.GetScaleForPixelHeight( pixelHeight );
         glm::vec2 cursor = baselinePos;
 
-        for (usize i = 0; i < text.Length(); ++i)
-        {
-            u32 codepoint = static_cast<u8>(text[i]);
-            i32 glyphIndex = font.GetGlyphIndex(codepoint);
-            const CachedGlyph& glyph = cache.GetOrAddGlyph(font, glyphIndex);
+        for ( usize i = 0; i < text.Length(); ++i ) {
+            u32 codepoint = static_cast<u8>( text[i] );
+            i32 glyphIndex = font.GetGlyphIndex( codepoint );
+            const CachedGlyph & glyph = cache.GetOrAddGlyph( font, glyphIndex );
 
-            if (glyph.curveCount > 0)
-            {
+            if ( glyph.curveCount > 0 ) {
                 GlyphInstance instance;
                 // Glyph-space Y grows up, screen-space Y grows down - flip
                 // when placing the quad so glyphs aren't rendered upside down.
-                instance.QuadMin = cursor + glm::vec2(glyph.xMin, -glyph.yMax) * scale;
-                instance.QuadMax = cursor + glm::vec2(glyph.xMax, -glyph.yMin) * scale;
-                instance.CurveMin = glm::vec2(glyph.xMin, glyph.yMax);
-                instance.CurveMax = glm::vec2(glyph.xMax, glyph.yMin);
+                instance.QuadMin = cursor + glm::vec2( glyph.xMin, -glyph.yMax ) * scale;
+                instance.QuadMax = cursor + glm::vec2( glyph.xMax, -glyph.yMin ) * scale;
+                instance.CurveMin = glm::vec2( glyph.xMin, glyph.yMax );
+                instance.CurveMax = glm::vec2( glyph.xMax, glyph.yMin );
                 instance.CurveOffset = glyph.curveOffset;
                 instance.CurveCount = glyph.curveCount;
                 instance.Color = color;
-                instances.push_back(instance);
+                instances.push_back( instance );
             }
 
-            cursor.x += static_cast<f32>(glyph.advanceWidth) * scale;
+            cursor.x += static_cast<f32>( glyph.advanceWidth ) * scale;
         }
 
-        if (instances.empty())
-        {
+        if ( instances.empty() ) {
             return;
         }
 
-        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
-        usize requiredBytes = instances.size() * sizeof(GlyphInstance);
-        if (requiredBytes > instanceBufferCapacity)
-        {
+        glBindBuffer( GL_ARRAY_BUFFER, instanceBuffer );
+        usize requiredBytes = instances.size() * sizeof( GlyphInstance );
+        if ( requiredBytes > instanceBufferCapacity ) {
             instanceBufferCapacity = requiredBytes;
-            glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(instanceBufferCapacity), instances.data(), GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-            glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(requiredBytes), instances.data());
+            glBufferData( GL_ARRAY_BUFFER, static_cast<GLsizeiptr>( instanceBufferCapacity ), instances.data(), GL_DYNAMIC_DRAW );
+        } else {
+            glBufferSubData( GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>( requiredBytes ), instances.data() );
         }
 
-        bool blendWasEnabled = glIsEnabled(GL_BLEND);
-        bool depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+        bool blendWasEnabled = glIsEnabled( GL_BLEND );
+        bool depthTestWasEnabled = glIsEnabled( GL_DEPTH_TEST );
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
+        glEnable( GL_BLEND );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+        glDisable( GL_DEPTH_TEST );
 
         shader->Bind();
-        shader->SetMat4("uViewProjection", viewProjection);
-        shader->SetInt("uCurves", 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_BUFFER, cache.GetCurveTextureId());
+        shader->SetMat4( "uViewProjection", viewProjection );
+        shader->SetInt( "uCurves", 0 );
+        glActiveTexture( GL_TEXTURE0 );
+        glBindTexture( GL_TEXTURE_BUFFER, cache.GetCurveTextureId() );
 
-        glBindVertexArray(quadVertexArray);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(instances.size()));
-        glBindVertexArray(0);
+        glBindVertexArray( quadVertexArray );
+        glDrawArraysInstanced( GL_TRIANGLES, 0, 6, static_cast<GLsizei>( instances.size() ) );
+        glBindVertexArray( 0 );
 
-        if (depthTestWasEnabled)
-        {
-            glEnable(GL_DEPTH_TEST);
+        if ( depthTestWasEnabled ) {
+            glEnable( GL_DEPTH_TEST );
         }
 
-        if (!blendWasEnabled)
-        {
-            glDisable(GL_BLEND);
+        if ( !blendWasEnabled ) {
+            glDisable( GL_BLEND );
         }
     }
 
