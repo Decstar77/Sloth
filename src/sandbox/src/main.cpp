@@ -1,5 +1,6 @@
 #include <core/sloth_engine.h>
 #include <font/sloth_font.h>
+#include <gui/sloth_gui_context.h>
 #include <renderer/sloth_glyph_cache.h>
 #include <renderer/sloth_gui_renderer.h>
 #include <renderer/sloth_text_renderer.h>
@@ -48,6 +49,8 @@ int main()
     }
     Texture checkerTexture(checkerPixels, checkerSize, checkerSize, TextureFilter::Nearest);
 
+    GuiContext guiContext;
+
     dust::DustGame game;
     game.Init();
 
@@ -58,6 +61,8 @@ int main()
         f64 currentFrameTime = glfwGetTime();
         f32 deltaTime = static_cast<f32>(currentFrameTime - lastFrameTime);
         lastFrameTime = currentFrameTime;
+
+        guiContext.NewFrame(engine.GetInput());
 
         game.Update(deltaTime);
         game.Render();
@@ -71,13 +76,63 @@ int main()
         guiRenderer.DrawCircle({ 270.0f, 176.0f }, 32.0f, { 0.15f, 0.15f, 0.18f, 1.0f }, 3.0f, { 0.4f, 0.9f, 0.5f, 1.0f });
         guiRenderer.DrawImage({ 48.0f, 208.0f }, { 112.0f, 272.0f }, checkerTexture);
         guiRenderer.DrawImage({ 128.0f, 208.0f }, { 192.0f, 272.0f }, checkerTexture, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }, { 1.0f, 1.0f }, 32.0f);
-        guiRenderer.Flush(screenProjection);
+
+        // Hand-rolled clickable rect exercising GuiContext directly (no
+        // Button() widget wrapper exists yet) - the classic hot/active
+        // state machine, plus GuiStorage to persist a click count per-ID
+        // across frames.
+        {
+            glm::vec2 buttonMin{ 32.0f, 320.0f };
+            glm::vec2 buttonMax{ 232.0f, 368.0f };
+            GuiId buttonId = guiContext.GetId("DemoButton");
+
+            bool hovered = GuiContext::IsPointInRect(guiContext.GetMousePos(), buttonMin, buttonMax);
+            if (hovered)
+            {
+                guiContext.SetHot(buttonId);
+            }
+
+            if (guiContext.IsHot(buttonId) && guiContext.IsMousePressed())
+            {
+                guiContext.SetActive(buttonId);
+                guiContext.SetFocused(buttonId);
+            }
+
+            bool clicked = false;
+            if (guiContext.IsActive(buttonId) && guiContext.IsMouseReleased())
+            {
+                clicked = guiContext.IsHot(buttonId);
+                guiContext.ClearActive();
+            }
+
+            i32& clickCount = guiContext.GetStorage().GetOrAddInt(buttonId);
+            if (clicked)
+            {
+                ++clickCount;
+            }
+
+            glm::vec4 buttonColor = guiContext.IsActive(buttonId) ? glm::vec4{ 0.15f, 0.4f, 0.7f, 1.0f }
+                                   : guiContext.IsHot(buttonId)   ? glm::vec4{ 0.3f, 0.65f, 1.0f, 1.0f }
+                                                                   : glm::vec4{ 0.2f, 0.55f, 0.9f, 1.0f };
+            guiRenderer.DrawRect(buttonMin, buttonMax, buttonColor, 8.0f);
+
+            guiRenderer.Flush(screenProjection);
+
+            if (font.IsLoaded())
+            {
+                LargeString buttonLabel;
+                buttonLabel.Format("Clicked: %d", clickCount);
+                textRenderer.DrawText(font, glyphCache, buttonLabel.View(), buttonMin + glm::vec2(12.0f, 30.0f), 16.0f,
+                                       { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
+            }
+        }
 
         if (font.IsLoaded())
         {
-            textRenderer.DrawText(font, glyphCache, "Hello, Sloth!", { 32.0f, 64.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
+            textRenderer.DrawText(font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
         }
 
+        guiContext.EndFrame();
         engine.EndFrame();
         window.OnUpdate();
     }
