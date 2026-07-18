@@ -48,6 +48,8 @@ namespace dust {
     {
         glEnable(GL_DEPTH_TEST);
 
+        world.Init(&physicsWorld);
+
         shader = std::make_unique<Shader>(VertexShaderSource, FragmentShaderSource);
 
         // Static floor.
@@ -104,6 +106,10 @@ namespace dust {
     {
         camera.Update(deltaTime);
         physicsWorld.Update(deltaTime);
+
+        // Entity spawn/destroy requests buffered this frame are applied once
+        // here, at the end of the frame's update.
+        world.FlushPendingChanges();
     }
 
     void DustGame::Render()
