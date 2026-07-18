@@ -28,6 +28,17 @@ namespace dust {
         Entity*         GetEntity(EntityId id);
         const Entity*   GetEntity(EntityId id) const;
 
+        // All live entity slots (may include freed/invalid slots pending
+        // reuse; check Entity::type != ENTITY_TYPE_INVALID before use).
+        // Excludes entities whose spawn is still pending FlushPendingChanges().
+        const std::vector<Entity>& GetEntities() const { return entities; }
+
+        // Copies each physics-backed entity's position/rotation from its
+        // physics body, so Entity::position/rotation stay the single source
+        // of truth for "where is this entity" regardless of entity type.
+        // Call once per frame after PhysicsWorld::Update().
+        void            SyncPhysicsTransforms();
+
         void            FlushPendingChanges();
 
     private:

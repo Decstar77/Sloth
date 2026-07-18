@@ -78,7 +78,7 @@ namespace dust {
             bodyDesc.Friction    = spawn.entity.prop.friction;
             bodyDesc.Restitution = spawn.entity.prop.restitution;
 
-            entity.prop.physicsBody = (spawn.entity.prop.propShape == PropShape::Box)
+            entity.rigidBody = (spawn.entity.prop.propShape == PropShape::Box)
                 ? physicsWorld->CreateBoxBody(spawn.entity.prop.halfExtents, bodyDesc)
                 : physicsWorld->CreateSphereBody(spawn.entity.prop.radius, bodyDesc);
         }
@@ -110,7 +110,7 @@ namespace dust {
 
         if (entity.type == ENTITY_TYPE_PROP)
         {
-            physicsWorld->DestroyBody(entity.prop.physicsBody);
+            physicsWorld->DestroyBody(entity.rigidBody);
         }
 
         i32 nextGeneration = entity.id.generation + 1;
@@ -118,6 +118,20 @@ namespace dust {
         entity.id = { id.index, nextGeneration };
 
         freeSlots.push_back(id.index);
+    }
+
+    void DustWorld::SyncPhysicsTransforms()
+    {
+        for (Entity& entity : entities)
+        {
+            if (entity.rigidBody.IsValid() == false) 
+            {
+                continue;
+            }
+
+            entity.position = physicsWorld->GetPosition(entity.rigidBody);
+            entity.rotation = physicsWorld->GetRotation(entity.rigidBody);
+        }
     }
 
     void DustWorld::FlushPendingChanges()

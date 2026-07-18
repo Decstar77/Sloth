@@ -55,41 +55,42 @@ namespace dust {
         // Static floor.
         {
             glm::vec3 halfExtents(10.0f, 0.5f, 10.0f);
-
-            RigidBodyDesc desc;
-            desc.Position = { 0.0f, -0.5f, 0.0f };
-            desc.MotionType = BodyMotionType::Static;
-
-            RigidBody body = physicsWorld.CreateBoxBody(halfExtents, desc);
-            auto mesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f,
+            floorMesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f,
                                                         { 0.5f, 0.5f, 0.55f }));
-            physicsEntries.push_back({ std::move(mesh), body });
+
+            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 0.0f, -0.5f, 0.0f });
+            entity.renderModel = { shader.get(), floorMesh.get() };
+            entity.prop.propShape = PropShape::Box;
+            entity.prop.halfExtents = halfExtents;
+            entity.prop.motionType = BodyMotionType::Static;
+            world.SpawnEntity(entity);
         }
 
         // Falling sphere.
         {
-            RigidBodyDesc desc;
-            desc.Position = { -1.5f, 8.0f, 0.0f };
-            desc.Restitution = 0.4f;
+            sphereMesh = UploadMesh(Geometry::CreateUVSphere(1.0f, 16, 32, { 0.3f, 0.9f, 0.3f }));
 
-            RigidBody body = physicsWorld.CreateSphereBody(1.0f, desc);
-            auto mesh = UploadMesh(Geometry::CreateUVSphere(1.0f, 16, 32, { 0.3f, 0.9f, 0.3f }));
-            physicsEntries.push_back({ std::move(mesh), body });
+            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { -1.5f, 8.0f, 0.0f });
+            entity.renderModel = { shader.get(), sphereMesh.get() };
+            entity.prop.propShape = PropShape::Sphere;
+            entity.prop.radius = 1.0f;
+            entity.prop.restitution = 0.4f;
+            world.SpawnEntity(entity);
         }
 
         // Falling, tumbling box.
         {
             glm::vec3 halfExtents(0.75f, 0.75f, 0.75f);
+            boxMesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f,
+                                                      { 0.9f, 0.3f, 0.3f }));
 
-            RigidBodyDesc desc;
-            desc.Position = { 1.5f, 11.0f, 0.0f };
-            desc.Rotation = glm::angleAxis(glm::radians(25.0f), glm::normalize(glm::vec3(1.0f, 0.5f, 0.0f)));
-            desc.Restitution = 0.1f;
-
-            RigidBody body = physicsWorld.CreateBoxBody(halfExtents, desc);
-            auto mesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f,
-                                                        { 0.9f, 0.3f, 0.3f }));
-            physicsEntries.push_back({ std::move(mesh), body });
+            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 1.5f, 11.0f, 0.0f });
+            entity.renderModel = { shader.get(), boxMesh.get() };
+            entity.rotation = glm::angleAxis(glm::radians(25.0f), glm::normalize(glm::vec3(1.0f, 0.5f, 0.0f)));
+            entity.prop.propShape = PropShape::Box;
+            entity.prop.halfExtents = halfExtents;
+            entity.prop.restitution = 0.1f;
+            world.SpawnEntity(entity);
         }
 
         camera.SetFocusPoint({ 0.0f, 0.0f, 0.0f });
@@ -98,7 +99,9 @@ namespace dust {
 
     void DustGame::Shutdown()
     {
-        physicsEntries.clear();
+        floorMesh.reset();
+        sphereMesh.reset();
+        boxMesh.reset();
         shader.reset();
     }
 
@@ -106,6 +109,7 @@ namespace dust {
     {
         camera.Update(deltaTime);
         physicsWorld.Update(deltaTime);
+        world.SyncPhysicsTransforms();
 
         // Entity spawn/destroy requests buffered this frame are applied once
         // here, at the end of the frame's update.
@@ -119,14 +123,18 @@ namespace dust {
 
         glm::mat4 viewProjection = camera.GetCamera().GetViewProjectionMatrix();
 
-        for (const PhysicsEntry& entry : physicsEntries)
+        for (const Entity& entity : world.GetEntities())
         {
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), physicsWorld.GetPosition(entry.Body)) *
-                               glm::mat4_cast(physicsWorld.GetRotation(entry.Body));
+            if (entity.type != ENTITY_TYPE_PROP || !entity.renderModel.shader || !entity.renderModel.mesh)
+            {
+                continue;
+            }
 
-            shader->SetMat4("uViewProjection", viewProjection);
-            shader->SetMat4("uModel", model);
-            entry.Mesh->Draw();
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), entity.position) * glm::mat4_cast(entity.rotation);
+
+            entity.renderModel.shader->SetMat4("uViewProjection", viewProjection);
+            entity.renderModel.shader->SetMat4("uModel", model);
+            entity.renderModel.mesh->Draw();
         }
     }
 

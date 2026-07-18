@@ -13,11 +13,6 @@
 
 namespace dust {
 
-    struct PhysicsEntry {
-        std::unique_ptr<sloth::StaticMesh> Mesh;
-        sloth::RigidBody Body;
-    };
-
     class DustGame {
     public:
         void                    Init();
@@ -36,8 +31,13 @@ namespace dust {
 
         std::unique_ptr<sloth::Shader>  shader;
 
+        // Meshes shared across entities via RenderModel; owned here since
+        // Entity/RenderModel only hold non-owning pointers to them.
+        std::unique_ptr<sloth::StaticMesh> floorMesh;
+        std::unique_ptr<sloth::StaticMesh> sphereMesh;
+        std::unique_ptr<sloth::StaticMesh> boxMesh;
+
         sloth::PhysicsWorld             physicsWorld;
-        std::vector<PhysicsEntry>       physicsEntries;
     };
 
 }

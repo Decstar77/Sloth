@@ -2,6 +2,7 @@
 
 #include <core/sloth_defines.h>
 #include <physics/sloth_physics_world.h>
+#include <renderer/sloth_render_model.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -12,7 +13,7 @@ namespace dust {
 
     enum EntityType {
         ENTITY_TYPE_INVALID = 0,
-        ENTITY_TYPE_PROP, // A rigid-body-backed object with no gameplay logic of its own (crates, rocks, debris, ...).
+        ENTITY_TYPE_PROP,
     };
      
     struct EntityId {
@@ -31,7 +32,6 @@ namespace dust {
     };
 
     struct PropData {
-        RigidBody               physicsBody;
         PropShape               propShape = PropShape::Box;
         glm::vec3               halfExtents = { 0.5f, 0.5f, 0.5f };
         f32                     radius = 0.5f;
@@ -47,6 +47,9 @@ namespace dust {
 
         EntityType  type;
         EntityId    id;
+
+        RenderModel renderModel;
+        RigidBody   rigidBody;
 
         union {
             PropData prop;

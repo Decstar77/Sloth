@@ -9,7 +9,7 @@ namespace dust {
         entity.position = position;
         entity.rotation = glm::quat(1, 0, 0, 0);
         entity.scale = 1.0;
-
+        entity.rigidBody = RigidBody();
 
         switch (type) {
         case ENTITY_TYPE_INVALID: {
