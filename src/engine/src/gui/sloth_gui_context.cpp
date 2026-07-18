@@ -52,6 +52,7 @@ namespace sloth
     void GuiContext::NewFrame(const Input& input)
     {
         SL_ASSERT_MSG(idStack.size() == 1, "GuiContext::NewFrame: unbalanced PushId/PopId left over from last frame");
+        SL_ASSERT_MSG(clipRectStack.empty(), "GuiContext::NewFrame: unbalanced PushClipRect/PopClipRect left over from last frame");
 
         hotId = InvalidGuiId;
 
@@ -64,6 +65,7 @@ namespace sloth
     void GuiContext::EndFrame()
     {
         SL_ASSERT_MSG(idStack.size() == 1, "GuiContext::EndFrame: unbalanced PushId/PopId (missing a PopId somewhere this frame)");
+        SL_ASSERT_MSG(clipRectStack.empty(), "GuiContext::EndFrame: unbalanced PushClipRect/PopClipRect (missing a PopClipRect somewhere this frame)");
     }
 
     void GuiContext::PushId(StringView label)
@@ -123,6 +125,22 @@ namespace sloth
     bool GuiContext::IsPointInRect(glm::vec2 point, glm::vec2 min, glm::vec2 max)
     {
         return point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y;
+    }
+
+    void GuiContext::PushClipRect(glm::vec2 min, glm::vec2 max)
+    {
+        clipRectStack.push_back(IntersectGuiRect(GetClipRect(), GuiRect{ min, max }));
+    }
+
+    void GuiContext::PopClipRect()
+    {
+        SL_ASSERT_MSG(!clipRectStack.empty(), "GuiContext::PopClipRect called without a matching PushClipRect");
+        clipRectStack.pop_back();
+    }
+
+    GuiRect GuiContext::GetClipRect() const
+    {
+        return clipRectStack.empty() ? UnboundedGuiRect() : clipRectStack.back();
     }
 
 } // namespace sloth

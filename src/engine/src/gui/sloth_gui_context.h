@@ -2,6 +2,7 @@
 
 #include "core/sloth_defines.h"
 #include "gui/sloth_gui_id.h"
+#include "renderer/sloth_gui_rect.h"
 
 #include <glm/glm.hpp>
 #include <unordered_map>
@@ -127,10 +128,25 @@ namespace sloth
         bool IsMouseReleased() const { return mouseReleased; }
         static bool IsPointInRect(glm::vec2 point, glm::vec2 min, glm::vec2 max);
 
+        // --- Clip rect -----------------------------------------------------
+        // Tracks the same nested clip region as GuiRenderer::PushClipRect/
+        // PopClipRect (see that class for why the two stacks are separate
+        // rather than shared), so hit-testing agrees with what's actually
+        // visible: a widget scrolled out of view under a clipped panel
+        // shouldn't be clickable just because the mouse still overlaps its
+        // raw rect. Widgets should gate their own hover test with
+        // IsPointVisible() in addition to IsPointInRect(). Must balance with
+        // PopClipRect() before the following EndFrame().
+        void PushClipRect(glm::vec2 min, glm::vec2 max);
+        void PopClipRect();
+        GuiRect GetClipRect() const;
+        bool IsPointVisible(glm::vec2 point) const { return GetClipRect().Contains(point); }
+
         GuiStorage& GetStorage() { return storage; }
 
     private:
         std::vector<GuiId> idStack{ GuiIdRootSeed };
+        std::vector<GuiRect> clipRectStack;
 
         GuiId hotId = InvalidGuiId;
         GuiId activeId = InvalidGuiId;

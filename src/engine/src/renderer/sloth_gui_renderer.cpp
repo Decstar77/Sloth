@@ -18,6 +18,8 @@ namespace sloth
         layout(location = 4) in vec4 aBorderColor;
         layout(location = 5) in float aCornerRadius;
         layout(location = 6) in float aBorderWidth;
+        layout(location = 7) in vec2 aClipMin;
+        layout(location = 8) in vec2 aClipMax;
 
         uniform mat4 uViewProjection;
 
@@ -28,6 +30,8 @@ namespace sloth
         out float vBorderWidth;
         out vec4 vFillColor;
         out vec4 vBorderColor;
+        out vec2 vClipMin;
+        out vec2 vClipMax;
 
         void main()
         {
@@ -40,6 +44,8 @@ namespace sloth
             vBorderWidth = aBorderWidth;
             vFillColor = aFillColor;
             vBorderColor = aBorderColor;
+            vClipMin = aClipMin;
+            vClipMax = aClipMax;
 
             gl_Position = uViewProjection * vec4(vPixelPos, 0.0, 1.0);
         }
@@ -61,6 +67,8 @@ namespace sloth
         in float vBorderWidth;
         in vec4 vFillColor;
         in vec4 vBorderColor;
+        in vec2 vClipMin;
+        in vec2 vClipMax;
 
         out vec4 FragColor;
 
@@ -72,6 +80,11 @@ namespace sloth
 
         void main()
         {
+            if (any(lessThan(vPixelPos, vClipMin)) || any(greaterThan(vPixelPos, vClipMax)))
+            {
+                discard;
+            }
+
             vec2 p = vPixelPos - vCenter;
             float outerDist = SignedDistanceRoundBox(p, vHalfSize, vCornerRadius);
 
@@ -105,6 +118,8 @@ namespace sloth
         layout(location = 4) in vec2 aUVMax;
         layout(location = 5) in vec4 aTintColor;
         layout(location = 6) in float aCornerRadius;
+        layout(location = 7) in vec2 aClipMin;
+        layout(location = 8) in vec2 aClipMax;
 
         uniform mat4 uViewProjection;
 
@@ -114,6 +129,8 @@ namespace sloth
         out vec2 vUV;
         out vec4 vTintColor;
         out float vCornerRadius;
+        out vec2 vClipMin;
+        out vec2 vClipMax;
 
         void main()
         {
@@ -125,6 +142,8 @@ namespace sloth
             vUV = mix(aUVMin, aUVMax, aUnit);
             vTintColor = aTintColor;
             vCornerRadius = min(aCornerRadius, min(halfSize.x, halfSize.y));
+            vClipMin = aClipMin;
+            vClipMax = aClipMax;
 
             gl_Position = uViewProjection * vec4(vPixelPos, 0.0, 1.0);
         }
@@ -141,6 +160,8 @@ namespace sloth
         in vec2 vUV;
         in vec4 vTintColor;
         in float vCornerRadius;
+        in vec2 vClipMin;
+        in vec2 vClipMax;
 
         uniform sampler2D uTexture;
 
@@ -154,6 +175,11 @@ namespace sloth
 
         void main()
         {
+            if (any(lessThan(vPixelPos, vClipMin)) || any(greaterThan(vPixelPos, vClipMax)))
+            {
+                discard;
+            }
+
             vec2 p = vPixelPos - vCenter;
             float dist = SignedDistanceRoundBox(p, vHalfSize, vCornerRadius);
 
@@ -217,6 +243,8 @@ namespace sloth
         shapeInstanceAttrib(4, 4, offsetof(ShapeInstance, BorderColor));
         shapeInstanceAttrib(5, 1, offsetof(ShapeInstance, CornerRadius));
         shapeInstanceAttrib(6, 1, offsetof(ShapeInstance, BorderWidth));
+        shapeInstanceAttrib(7, 2, offsetof(ShapeInstance, ClipMin));
+        shapeInstanceAttrib(8, 2, offsetof(ShapeInstance, ClipMax));
 
         glBindVertexArray(0);
 
@@ -240,6 +268,8 @@ namespace sloth
         imageInstanceAttrib(4, 2, offsetof(ImageInstance, UVMax));
         imageInstanceAttrib(5, 4, offsetof(ImageInstance, TintColor));
         imageInstanceAttrib(6, 1, offsetof(ImageInstance, CornerRadius));
+        imageInstanceAttrib(7, 2, offsetof(ImageInstance, ClipMin));
+        imageInstanceAttrib(8, 2, offsetof(ImageInstance, ClipMax));
 
         glBindVertexArray(0);
     }
@@ -260,7 +290,8 @@ namespace sloth
     {
         cornerRadius = std::max(cornerRadius, 0.0f);
         borderWidth = std::max(borderWidth, 0.0f);
-        instances.push_back(ShapeInstance{ min, max, color, borderColor, cornerRadius, borderWidth });
+        GuiRect clip = GetCurrentClipRect();
+        instances.push_back(ShapeInstance{ min, max, color, borderColor, cornerRadius, borderWidth, clip.Min, clip.Max });
     }
 
     void GuiRenderer::DrawCircle(glm::vec2 center, f32 radius, const glm::vec4& color, f32 borderWidth,
@@ -273,11 +304,30 @@ namespace sloth
                                  glm::vec2 uvMin, glm::vec2 uvMax, f32 cornerRadius)
     {
         cornerRadius = std::max(cornerRadius, 0.0f);
-        imageEntries.push_back(ImageDrawEntry{ &texture, ImageInstance{ min, max, uvMin, uvMax, tintColor, cornerRadius } });
+        GuiRect clip = GetCurrentClipRect();
+        imageEntries.push_back(ImageDrawEntry{ &texture, ImageInstance{ min, max, uvMin, uvMax, tintColor, cornerRadius, clip.Min, clip.Max } });
+    }
+
+    void GuiRenderer::PushClipRect(glm::vec2 min, glm::vec2 max)
+    {
+        clipRectStack.push_back(IntersectGuiRect(GetCurrentClipRect(), GuiRect{ min, max }));
+    }
+
+    void GuiRenderer::PopClipRect()
+    {
+        SL_ASSERT_MSG(!clipRectStack.empty(), "GuiRenderer::PopClipRect called without a matching PushClipRect");
+        clipRectStack.pop_back();
+    }
+
+    GuiRect GuiRenderer::GetCurrentClipRect() const
+    {
+        return clipRectStack.empty() ? UnboundedGuiRect() : clipRectStack.back();
     }
 
     void GuiRenderer::Flush(const glm::mat4& viewProjection)
     {
+        SL_ASSERT_MSG(clipRectStack.empty(), "GuiRenderer::Flush: unbalanced PushClipRect/PopClipRect");
+
         bool blendWasEnabled = glIsEnabled(GL_BLEND);
         bool depthTestWasEnabled = glIsEnabled(GL_DEPTH_TEST);
 

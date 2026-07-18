@@ -132,6 +132,39 @@ int main()
             textRenderer.DrawText(font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
         }
 
+        // Clip-rect / scissor demo: a small "viewport" panel showing a list
+        // of rows that overflow both above and below it. Rows outside the
+        // viewport should be cut off cleanly at its edge instead of
+        // spilling onto the rest of the screen, and the mouse shouldn't be
+        // able to hover a row's clipped-off portion.
+        {
+            glm::vec2 viewportMin{ 360.0f, 96.0f };
+            glm::vec2 viewportMax{ 560.0f, 280.0f };
+
+            guiRenderer.DrawRect(viewportMin, viewportMax, { 0.1f, 0.1f, 0.13f, 1.0f }, 8.0f);
+
+            guiContext.PushClipRect(viewportMin, viewportMax);
+            guiRenderer.PushClipRect(viewportMin, viewportMax);
+
+            constexpr f32 rowHeight = 36.0f;
+            constexpr f32 scrollOffset = 40.0f; // Pretend the list has been scrolled down a bit.
+            for (i32 row = 0; row < 8; ++row)
+            {
+                f32 y = viewportMin.y + 8.0f + static_cast<f32>(row) * rowHeight - scrollOffset;
+                glm::vec2 rowMin{ viewportMin.x + 8.0f, y };
+                glm::vec2 rowMax{ viewportMax.x - 8.0f, y + rowHeight - 6.0f };
+
+                bool hovered = GuiContext::IsPointInRect(guiContext.GetMousePos(), rowMin, rowMax) && guiContext.IsPointVisible(guiContext.GetMousePos());
+                glm::vec4 rowColor = hovered ? glm::vec4{ 0.35f, 0.35f, 0.42f, 1.0f } : glm::vec4{ 0.22f, 0.22f, 0.28f, 1.0f };
+                guiRenderer.DrawRect(rowMin, rowMax, rowColor, 4.0f);
+            }
+
+            guiRenderer.PopClipRect();
+            guiContext.PopClipRect();
+
+            guiRenderer.Flush(screenProjection);
+        }
+
         guiContext.EndFrame();
         engine.EndFrame();
         window.OnUpdate();

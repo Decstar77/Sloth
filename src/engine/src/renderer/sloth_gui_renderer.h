@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/sloth_defines.h"
+#include "renderer/sloth_gui_rect.h"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -65,6 +66,18 @@ namespace sloth
         void DrawImage(glm::vec2 min, glm::vec2 max, const Texture& texture, const glm::vec4& tintColor = glm::vec4(1.0f),
                        glm::vec2 uvMin = glm::vec2(0.0f), glm::vec2 uvMax = glm::vec2(1.0f), f32 cornerRadius = 0.0f);
 
+        // Narrows the active clip rect (intersected with whatever was
+        // already pushed) that every DrawRect()/DrawCircle()/DrawImage()
+        // call queues into its instance data from this point until the
+        // matching PopClipRect(). Unlike a GL scissor test, this costs
+        // nothing extra per draw call and needs no batch break - each
+        // instance just carries its own clip rect and gets discarded
+        // per-fragment in the same shader pass that already evaluates its
+        // SDF, so differently-clipped shapes can freely share one batch.
+        // Must balance with PopClipRect() before the following Flush().
+        void PushClipRect(glm::vec2 min, glm::vec2 max);
+        void PopClipRect();
+
         // Draws every shape and image queued since the last Flush(), then
         // clears both queues. See the class comment for draw-order caveats.
         void Flush(const glm::mat4& viewProjection);
@@ -78,6 +91,8 @@ namespace sloth
             glm::vec4 BorderColor;
             f32 CornerRadius;
             f32 BorderWidth;
+            glm::vec2 ClipMin;
+            glm::vec2 ClipMax;
         };
 
         struct ImageInstance
@@ -88,6 +103,8 @@ namespace sloth
             glm::vec2 UVMax;
             glm::vec4 TintColor;
             f32 CornerRadius;
+            glm::vec2 ClipMin;
+            glm::vec2 ClipMax;
         };
 
         struct ImageDrawEntry
@@ -98,6 +115,7 @@ namespace sloth
 
     private:
         void FlushImages();
+        GuiRect GetCurrentClipRect() const;
 
     private:
         std::unique_ptr<Shader> shapeShader;
@@ -114,6 +132,8 @@ namespace sloth
         usize imageInstanceBufferCapacity = 0;
         std::vector<ImageDrawEntry> imageEntries;   // Scratch, rebuilt each frame.
         std::vector<ImageInstance> imageUploadScratch; // Scratch, one texture-run at a time.
+
+        std::vector<GuiRect> clipRectStack;
     };
 
 } // namespace sloth
