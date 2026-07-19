@@ -144,8 +144,8 @@ namespace dust {
     void DustGame::Update( f32 deltaTime ) {
         camera.Update( deltaTime );
 
-        UpdateVehicleControl( deltaTime );
-        UpdateTargeting();
+        PlayerUpdateVehicleControl( deltaTime );
+        PlayerUpdateTargeting();
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
 
@@ -161,7 +161,7 @@ namespace dust {
         world.FlushPendingChanges();
     }
 
-    void DustGame::UpdateVehicleControl( f32 deltaTime ) {
+    void DustGame::PlayerUpdateVehicleControl( f32 deltaTime ) {
         Entity * entity = world.GetEntity( playerVehicleId );
         if ( !entity || entity->type != ENTITY_TYPE_VEHICLE || !entity->rigidBody.IsValid() ) {
             return;
@@ -232,7 +232,7 @@ namespace dust {
         vehicle.wheelSpinRadians += ( forwardSpeed / glm::max( vehicle.wheelRadius, 0.01f ) ) * deltaTime;
     }
 
-    void DustGame::UpdateTargeting() {
+    void DustGame::PlayerUpdateTargeting() {
         Input & input = Engine::Get().GetInput();
         if ( !input.IsMouseButtonPressed( MouseButton::Left ) ) {
             return;

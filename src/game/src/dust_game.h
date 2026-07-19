@@ -30,8 +30,8 @@ namespace dust {
         const Entity*           GetPlayerTarget() const;
 
     private:
-        void                    UpdateVehicleControl( f32 deltaTime );
-        void                    UpdateTargeting();
+        void                    PlayerUpdateVehicleControl( f32 deltaTime );
+        void                    PlayerUpdateTargeting();
         void                    DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection );
 
     private:

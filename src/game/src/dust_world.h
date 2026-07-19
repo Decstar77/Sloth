@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dust_entity.h"
-
+#include "dust_faction.h"
 #include <physics/sloth_physics_world.h>
 
 #include <vector>
@@ -20,31 +20,20 @@ namespace dust {
     // to GetEntity() on the frame after it was requested.
     class DustWorld {
     public:
-        void            Init(sloth::PhysicsWorld* physicsWorld);
+        void                        Init(sloth::PhysicsWorld* physicsWorld);
 
-        EntityId        SpawnEntity(Entity entity);
-        void            DestroyEntity(EntityId id);
+        EntityId                    SpawnEntity(Entity entity);
+        void                        DestroyEntity(EntityId id);
 
-        Entity*         GetEntity(EntityId id);
-        const Entity*   GetEntity(EntityId id) const;
+        Entity*                     GetEntity(EntityId id);
+        const Entity*               GetEntity(EntityId id) const;
+        EntityId                    FindEntityByRigidBody(sloth::RigidBody body) const;
+        
+        const std::vector<Entity>&  GetEntities() const { return entities; }
 
-        // Linear search over the live entity table for the entity backed by
-        // the given physics body, e.g. to resolve a PhysicsWorld::CastRay()
-        // hit back into game-level state. Returns INVALID_ENTITY_ID if none.
-        EntityId        FindEntityByRigidBody(sloth::RigidBody body) const;
-
-        // All live entity slots (may include freed/invalid slots pending
-        // reuse; check Entity::type != ENTITY_TYPE_INVALID before use).
-        // Excludes entities whose spawn is still pending FlushPendingChanges().
-        const std::vector<Entity>& GetEntities() const { return entities; }
-
-        // Copies each physics-backed entity's position/rotation from its
-        // physics body, so Entity::position/rotation stay the single source
-        // of truth for "where is this entity" regardless of entity type.
-        // Call once per frame after PhysicsWorld::Update().
-        void            SyncPhysicsTransforms();
-
-        void            FlushPendingChanges();
+        void                        Update( f32 dt );
+        void                        SyncPhysicsTransforms();
+        void                        FlushPendingChanges();
 
     private:
         struct PendingSpawn {
@@ -65,7 +54,6 @@ namespace dust {
         std::vector<PendingSpawn> pendingSpawns;
         std::vector<EntityId>     pendingDestroys;
 
-    public:
         // Coarse simulation buckets, populated by future gameplay/LOD code.
         std::vector<EntityId> simHot;
         std::vector<EntityId> simWarm;

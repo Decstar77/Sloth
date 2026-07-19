@@ -116,6 +116,27 @@ namespace dust {
         freeSlots.push_back( id.index );
     }
 
+    void DustWorld::Update( f32 dt ) {
+        // TODO: LOD simulation
+
+        for ( Entity & entity : entities ) {
+            if ( entity.targetId != INVALID_ENTITY_ID ) {
+                Entity * targetEntity = GetEntity( entity.targetId );
+                if ( targetEntity != nullptr ) {
+                    switch (targetEntity->type) {
+                        case ENTITY_TYPE_ORE_NODE: {
+                            if ( targetEntity->oreNode.type == ORE_NODE_TYPE_IRON ) {
+                            
+                            } else if ( targetEntity->oreNode.type == ORE_NODE_TYPE_COAL ) {
+
+                            } 
+                        } break;
+                    }
+                }
+            }
+        }
+    }
+
     void DustWorld::SyncPhysicsTransforms() {
         for ( Entity & entity : entities ) {
             if ( entity.rigidBody.IsValid() == false ) {

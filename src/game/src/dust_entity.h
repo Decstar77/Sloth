@@ -76,11 +76,38 @@ namespace dust {
     enum OreNodeType {
         ORE_NODE_TYPE_IRON,
         ORE_NODE_TYPE_COPPER,
+        ORE_NODE_TYPE_COAL,
+        ORE_NODE_TYPE_SULPHUR,
+        ORE_NODE_TYPE_ALUMINUM,
+        ORE_NODE_TYPE_CHROME,
+    };
+
+    enum DieselType {
+        DIESEL_TYPE_PETROLEUM,
+        DIESEL_TYPE_BIODIESEL,
+        DIESEL_TYPE_COAL_LIQUID,
     };
 
     struct OreNode {
         OreNodeType type = ORE_NODE_TYPE_IRON;
         i32         amount = 100;
+    };
+
+    enum InventoryItemType {
+        INVENTORY_ITEM_TYPE_ORE_IRON,
+        INVENTORY_ITEM_TYPE_ORE_COPPER,
+        INVENTORY_ITEM_TYPE_ORE_COAL,
+    };
+
+    struct InventoryItem {
+        InventoryItemType type;
+        i32 amount;
+        i32 weight;
+    };
+
+    struct Inventory {
+        i32 count;
+        InventoryItem items[64];
     };
 
     struct Entity {
