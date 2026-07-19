@@ -67,7 +67,11 @@ the reasoning, not just the code.
    (hit-testing) are two parallel stacks widget code drives together —
    deliberately not merged into one shared stack, since one's a rendering
    concern and the other's an interaction concern living in different
-   classes. Both assert Push/Pop balance at frame boundaries.
+   classes. `GuiContext` asserts its clip stack balances at `EndFrame`;
+   `GuiRenderer`'s clip stack is persistent state independent of `Flush()`
+   (a widget may flush its own background mid-region while a panel clip is
+   still pushed - see item 6b), with over-pop caught by `PopClipRect` and
+   overall balance riding on the lockstep `GuiContext` side.
 
 All five are demoed by hand in `src/sandbox/src/main.cpp` and have been
 visually verified running.
@@ -106,22 +110,47 @@ visually verified running.
    - `main.cpp`'s demo button block now calls `Button()`/`Label()`, plus a
      new `Checkbox()` demo, exercising all three against the sandbox's real
      font/text-renderer.
-   - **Not done yet**: `Panel`/`BeginPanel`/`EndPanel` (draggable, clippable
-     container) — deferred, see below.
+6b. **Panel/window (`BeginPanel`/`EndPanel`)**
+   `gui/sloth_gui_widgets.h/.cpp` — a draggable, clippable container, the
+   remaining piece of item 6. `BeginPanel(... label, defaultPos, size ...)`
+   returns a `PanelResult{ contentMin, contentMax }` (the padded, title-bar-
+   excluded content rect the caller places widgets into); `EndPanel()` closes
+   it. Paired like `PushClipRect`/`PopClipRect`, both once per frame.
+   - **Persistent position**: the panel's top-left lives in `GuiStorage` as a
+     `vec2` keyed by the panel's `GuiId`, so a dragged panel stays put across
+     frames; `defaultPos` only seeds the slot the first frame that ID is seen.
+   - **Dragging**: grabbed on the title bar (`hot` + press within the bar →
+     `active`, storing a mouse-to-origin `dragAnchor` vec2 in `GuiStorage`
+     under `HashGuiId("##drag", id)` so the corner doesn't snap to the
+     cursor). A live drag stays `active` wherever the pointer wanders —
+     `activeId` locks out every other widget's `SetHot`, so a fast drag can't
+     slip off the bar, and child widgets inside can't be hovered mid-drag.
+     Position-drag only; no resize handles yet.
+   - **Input capture**: hovering anywhere over the panel claims `hot` (so
+     `WantsMouseInput` is true and gameplay code below won't react to a click
+     that lands on the panel). A child widget drawn later overrides this via
+     last-`SetHot`-wins, so it only captures the panel's empty regions.
+   - **Clipping**: pushes the content rect on both the `GuiRenderer` clip
+     stack (per-fragment) and the `GuiContext` clip stack (hit-testing), kept
+     in lockstep so an overflowing widget is neither drawn nor clickable past
+     the edge. `EndPanel` flushes queued content *before* popping so it
+     inherits the panel's clip, then pops both.
+   - **Draw ordering**: `BeginPanel` draws its body + title-bar rects and
+     `Flush()`es immediately, so content (and `TextRenderer`, which draws
+     immediately) lands on top — same local workaround Button/Checkbox use
+     pending draw layers (item 8).
+   - **Known gaps**: `TextRenderer` doesn't clip, so a widget label
+     overflowing the panel isn't cut off (only its background rect is);
+     no click-to-front z-ordering between overlapping panels (needs draw
+     layers, item 8); no resize, no collapse/close button.
+   - The sandbox's inventory window (`main.cpp`, toggled with `I`) is now a
+     real `BeginPanel`/`EndPanel` wrapping the slot-button grid — draggable by
+     its title bar, exercising the panel against live content.
 
 ### Not started
 
 Everything below is ordered by dependency, not necessarily priority — items
 within a step can be reordered based on what Dust actually needs first.
-
-## 6b. Panel/window
-
-The remaining piece of item 6 — a draggable, clippable container,
-`BeginPanel`/`EndPanel` pair that pushes a clip rect (item 5) around its
-content and, if draggable, stores its position in `GuiStorage` keyed by the
-panel's `GuiId` (so a panel remembers where it was dragged to across
-frames). Resize handles can come later; position-drag only for the first
-pass.
 
 ## 7. Auto-layout stack (rows/columns, padding, spacing)
 

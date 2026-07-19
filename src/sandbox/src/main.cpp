@@ -171,21 +171,28 @@ int main() {
 
                 constexpr f32 slotSize = 64.0f;
                 constexpr f32 slotGap = 8.0f;
-                constexpr f32 panelPadding = 16.0f;
 
                 f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
                 f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
 
-                glm::vec2 panelMin {
-                    ( static_cast<f32>( window.GetWidth() ) - gridWidth ) * 0.5f - panelPadding,
-                    ( static_cast<f32>( window.GetHeight() ) - gridHeight ) * 0.5f - panelPadding,
+                // Panel spans the grid plus BeginPanel's own content padding
+                // on all sides and its title bar up top; centred as the
+                // default first-open position, then draggable from there.
+                constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
+                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+                glm::vec2 panelSize {
+                    gridWidth + panelPadding * 2.0f,
+                    gridHeight + panelPadding * 2.0f + titleBarHeight,
                 };
-                glm::vec2 panelMax = panelMin + glm::vec2( gridWidth, gridHeight ) + glm::vec2( panelPadding * 2.0f );
+                glm::vec2 defaultPos {
+                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f,
+                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+                };
 
-                guiRenderer.DrawRect( panelMin, panelMax, { 0.1f, 0.1f, 0.13f, 0.92f }, 12.0f );
-                guiRenderer.Flush( screenProjection );
+                PanelResult panel = BeginPanel( guiContext, guiRenderer, textRenderer, font, glyphCache,
+                    "Inventory##InvPanel", defaultPos, panelSize, screenProjection );
 
-                glm::vec2 gridOrigin = panelMin + glm::vec2( panelPadding, panelPadding );
+                glm::vec2 gridOrigin = panel.contentMin;
 
                 i32 slotCount = gridCols * gridRows;
                 i32 itemCount = static_cast<i32>( inventory.items.GetCount() );
@@ -206,6 +213,8 @@ int main() {
 
                     Button( guiContext, guiRenderer, textRenderer, font, glyphCache, slotLabel.View(), slotMin, slotMax, screenProjection );
                 }
+
+                EndPanel( guiContext, guiRenderer, screenProjection );
             }
         }
 

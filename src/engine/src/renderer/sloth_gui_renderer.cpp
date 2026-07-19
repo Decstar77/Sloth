@@ -317,7 +317,14 @@ namespace sloth {
     }
 
     void GuiRenderer::Flush( const glm::mat4 & viewProjection ) {
-        SL_ASSERT_MSG( clipRectStack.empty(), "GuiRenderer::Flush: unbalanced PushClipRect/PopClipRect" );
+        // Deliberately does NOT require the clip stack be empty: Flush() only
+        // drains the queued instances, while the clip stack is persistent
+        // state that legitimately survives across flushes. A widget nested
+        // inside a pushed clip rect (a Button in a clipped Panel) flushes its
+        // own background mid-region so its immediately-drawn text lands on
+        // top - that flush happens with the clip stack non-empty by design.
+        // Push/Pop balance is caught by PopClipRect (over-pop) and by
+        // GuiContext::EndFrame, whose clip stack is driven in lockstep.
 
         bool blendWasEnabled = glIsEnabled( GL_BLEND );
         bool depthTestWasEnabled = glIsEnabled( GL_DEPTH_TEST );

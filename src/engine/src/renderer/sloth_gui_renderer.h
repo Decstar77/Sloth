@@ -72,7 +72,10 @@ namespace sloth {
         // instance just carries its own clip rect and gets discarded
         // per-fragment in the same shader pass that already evaluates its
         // SDF, so differently-clipped shapes can freely share one batch.
-        // Must balance with PopClipRect() before the following Flush().
+        // The clip stack is persistent state independent of Flush() - it may
+        // be non-empty across a Flush (e.g. a widget flushing its own
+        // background inside a pushed panel clip); just balance each
+        // PushClipRect() with a PopClipRect() within the frame.
         void PushClipRect( glm::vec2 min, glm::vec2 max );
         void PopClipRect();
 
