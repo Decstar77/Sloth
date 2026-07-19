@@ -32,6 +32,9 @@ namespace sloth {
         const glm::mat4 &   GetProjectionMatrix() const { return projectionMatrix; }
         glm::mat4           GetViewProjectionMatrix() const { return projectionMatrix * viewMatrix; }
 
+        // Unprojects a screen-space point (pixels, y-down from top-left, e.g. straight from Input::GetMouseX/Y) into a world-space ray.
+        void                ScreenPointToRay( f32 screenX, f32 screenY, f32 screenWidth, f32 screenHeight, glm::vec3 & outOrigin, glm::vec3 & outDirection ) const;
+
       private:
         void                RecalculateView();
         void                RecalculateProjection();

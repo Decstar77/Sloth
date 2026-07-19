@@ -132,6 +132,26 @@ int main()
             textRenderer.DrawText(font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 28.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
         }
 
+        // Player's current raycast target, top-right corner.
+        if (font.IsLoaded())
+        {
+            const dust::Entity* target = game.GetPlayerTarget();
+
+            LargeString targetLabel;
+            if (target)
+            {
+                targetLabel.Format("Target: %s", dust::ToString(target->type));
+            }
+            else
+            {
+                targetLabel.Assign("Target: none");
+            }
+
+            constexpr f32 rightMargin = 300.0f;
+            glm::vec2 targetLabelPos{ static_cast<f32>(window.GetWidth()) - rightMargin, 32.0f };
+            textRenderer.DrawText(font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection);
+        }
+
         // Clip-rect / scissor demo: a small "viewport" panel showing a list
         // of rows that overflow both above and below it. Rows outside the
         // viewport should be cut off cleanly at its edge instead of

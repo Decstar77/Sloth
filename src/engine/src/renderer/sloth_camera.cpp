@@ -41,4 +41,15 @@ namespace sloth {
     void Camera::RecalculateProjection() {
         projectionMatrix = glm::perspective( glm::radians( fovYDegrees ), aspectRatio, nearClip, farClip );
     }
+
+    void Camera::ScreenPointToRay( f32 screenX, f32 screenY, f32 screenWidth, f32 screenHeight, glm::vec3 & outOrigin, glm::vec3 & outDirection ) const {
+        glm::vec4 viewport( 0.0f, 0.0f, screenWidth, screenHeight );
+        f32 windowY = screenHeight - screenY;
+
+        glm::vec3 nearPoint = glm::unProject( glm::vec3( screenX, windowY, 0.0f ), viewMatrix, projectionMatrix, viewport );
+        glm::vec3 farPoint = glm::unProject( glm::vec3( screenX, windowY, 1.0f ), viewMatrix, projectionMatrix, viewport );
+
+        outOrigin = nearPoint;
+        outDirection = glm::normalize( farPoint - nearPoint );
+    }
 } // namespace sloth

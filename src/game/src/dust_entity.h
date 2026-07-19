@@ -84,16 +84,24 @@ namespace dust {
     };
 
     struct Entity {
+        // Entity
+        EntityType type;
+        EntityId id;
+
+        // Transform
         glm::vec3   position;
         glm::quat   rotation;
         f32         scale;
 
-        EntityType  type;
-        EntityId    id;
-
+        // Rendering
         RenderModel        renderModel;
+
+        // Physics
         RigidBody          rigidBody;
         RigidBodySpawnData rigidBodyData;
+
+        // Interaction
+        EntityId targetId;
 
         union {
             VehicleData vehicle;
@@ -102,4 +110,6 @@ namespace dust {
     };
 
     Entity MakeEntity(EntityType type, glm::vec3 position);
+
+    const char* ToString(EntityType type);
 }

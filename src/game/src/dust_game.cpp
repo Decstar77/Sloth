@@ -11,7 +11,7 @@ using namespace sloth;
 
 namespace dust {
 
-    static const char* VertexShaderSource = R"(
+    static const char * VertexShaderSource = R"(
         #version 450 core
         layout(location = 0) in vec3 aPosition;
         layout(location = 1) in vec3 aColor;
@@ -28,7 +28,7 @@ namespace dust {
         }
     )";
 
-    static const char* FragmentShaderSource = R"(
+    static const char * FragmentShaderSource = R"(
         #version 450 core
         in vec3 vColor;
         out vec4 FragColor;
@@ -39,56 +39,54 @@ namespace dust {
         }
     )";
 
-    static std::unique_ptr<StaticMesh> UploadMesh(const MeshData& data)
-    {
-        return std::make_unique<StaticMesh>(data.vertices.data(), static_cast<u32>(data.vertices.size()), data.indices.data(), static_cast<u32>(data.indices.size()));
+    static std::unique_ptr<StaticMesh> UploadMesh( const MeshData & data ) {
+        return std::make_unique<StaticMesh>( data.vertices.data(), static_cast<u32>( data.vertices.size() ), data.indices.data(), static_cast<u32>( data.indices.size() ) );
     }
 
-    void DustGame::Init()
-    {
-        glEnable(GL_DEPTH_TEST);
+    void DustGame::Init() {
+        glEnable( GL_DEPTH_TEST );
 
-        world.Init(&physicsWorld);
+        world.Init( &physicsWorld );
 
-        shader = std::make_unique<Shader>(VertexShaderSource, FragmentShaderSource);
+        shader = std::make_unique<Shader>( VertexShaderSource, FragmentShaderSource );
 
         // Static floor.
         {
-            glm::vec3 halfExtents(70.0f, 0.5f, 70.0f);
-            floorMesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.5f, 0.5f, 0.55f }));
+            glm::vec3 halfExtents( 70.0f, 0.5f, 70.0f );
+            floorMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.5f, 0.5f, 0.55f } ) );
 
-            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 0.0f, -0.5f, 0.0f });
+            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { 0.0f, -0.5f, 0.0f } );
             entity.renderModel = { shader.get(), floorMesh.get() };
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = halfExtents;
             entity.rigidBodyData.motionType = BodyMotionType::Static;
-            world.SpawnEntity(entity);
+            world.SpawnEntity( entity );
         }
 
         // Falling sphere.
         {
-            sphereMesh = UploadMesh(Geometry::CreateUVSphere(1.0f, 16, 32, { 0.3f, 0.9f, 0.3f }));
+            sphereMesh = UploadMesh( Geometry::CreateUVSphere( 1.0f, 16, 32, { 0.3f, 0.9f, 0.3f } ) );
 
-            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { -1.5f, 8.0f, 0.0f });
+            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { -1.5f, 8.0f, 0.0f } );
             entity.renderModel = { shader.get(), sphereMesh.get() };
             entity.rigidBodyData.shape = RigidBodyShape::Sphere;
             entity.rigidBodyData.radius = 1.0f;
             entity.rigidBodyData.restitution = 0.4f;
-            world.SpawnEntity(entity);
+            world.SpawnEntity( entity );
         }
 
         // Falling, tumbling box.
         {
-            glm::vec3 halfExtents(0.75f, 0.75f, 0.75f);
-            boxMesh = UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.9f, 0.3f, 0.3f }));
+            glm::vec3 halfExtents( 0.75f, 0.75f, 0.75f );
+            boxMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.9f, 0.3f, 0.3f } ) );
 
-            Entity entity = MakeEntity(ENTITY_TYPE_PROP, { 1.5f, 11.0f, 0.0f });
+            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { 1.5f, 11.0f, 0.0f } );
             entity.renderModel = { shader.get(), boxMesh.get() };
-            entity.rotation = glm::angleAxis(glm::radians(25.0f), glm::normalize(glm::vec3(1.0f, 0.5f, 0.0f)));
+            entity.rotation = glm::angleAxis( glm::radians( 25.0f ), glm::normalize( glm::vec3( 1.0f, 0.5f, 0.0f ) ) );
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = halfExtents;
             entity.rigidBodyData.restitution = 0.1f;
-            world.SpawnEntity(entity);
+            world.SpawnEntity( entity );
         }
 
         // Player dune buggy.
@@ -96,13 +94,13 @@ namespace dust {
             VehicleData vehicleDefaults;
             glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
 
-            buggyChassisMesh = UploadMesh(Geometry::CreateBox(chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.85f, 0.5f, 0.15f }));
-            buggyWheelMesh = UploadMesh(Geometry::CreateCylinder(vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f }));
+            buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.85f, 0.5f, 0.15f } ) );
+            buggyWheelMesh = UploadMesh( Geometry::CreateCylinder( vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f } ) );
 
-            Entity entity = MakeEntity(ENTITY_TYPE_VEHICLE, { 0.0f, 3.0f, 0.0f });
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, { 0.0f, 3.0f, 0.0f } );
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
             entity.vehicle.playerControlled = true;
-            
+
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = chassisHalfExtents;
             entity.rigidBodyData.restitution = 0.1f;
@@ -110,15 +108,15 @@ namespace dust {
             entity.rigidBodyData.friction = 0.05f; // // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
             entity.rigidBodyData.restitution = 0.05f;
 
-            playerVehicleId = world.SpawnEntity(entity);
+            playerVehicleId = world.SpawnEntity( entity );
         }
 
         // Iron ore node
         {
-            glm::vec3 halfExtents(3.0f, 2.3f, 3.0f);
-            oreNode= UploadMesh(Geometry::CreateBox(halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f }));
+            glm::vec3 halfExtents( 3.0f, 2.3f, 3.0f );
+            oreNode = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f } ) );
 
-            Entity entity = MakeEntity(ENTITY_TYPE_ORE_NODE, { 14, 0, -14 });
+            Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, { 14, 0, -14 } );
             entity.renderModel = { shader.get(), oreNode.get() };
             entity.oreNode.type = ORE_NODE_TYPE_IRON;
             entity.oreNode.amount = 2000;
@@ -127,15 +125,14 @@ namespace dust {
             entity.rigidBodyData.halfExtents = halfExtents;
             entity.rigidBodyData.motionType = BodyMotionType::Static;
 
-            world.SpawnEntity(entity);
+            world.SpawnEntity( entity );
         }
 
-        camera.SetFocusPoint({ 0.0f, 0.0f, 0.0f });
-        camera.SetDistance(20.0f);
+        camera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
+        camera.SetDistance( 20.0f );
     }
 
-    void DustGame::Shutdown()
-    {
+    void DustGame::Shutdown() {
         floorMesh.reset();
         sphereMesh.reset();
         boxMesh.reset();
@@ -144,20 +141,19 @@ namespace dust {
         shader.reset();
     }
 
-    void DustGame::Update(f32 deltaTime)
-    {
-        camera.Update(deltaTime);
+    void DustGame::Update( f32 deltaTime ) {
+        camera.Update( deltaTime );
 
-        UpdateVehicleControl(deltaTime);
-        physicsWorld.Update(deltaTime);
+        UpdateVehicleControl( deltaTime );
+        UpdateTargeting();
+        physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
 
         // Camera follows the player vehicle: overrides the manual WASD pan
         // camera.Update() just computed, since those keys now drive the
         // buggy instead.
-        if (Entity* vehicle = world.GetEntity(playerVehicleId))
-        {
-            camera.SetFocusPoint(vehicle->position);
+        if ( Entity * vehicle = world.GetEntity( playerVehicleId ) ) {
+            camera.SetFocusPoint( vehicle->position );
         }
 
         // Entity spawn/destroy requests buffered this frame are applied once
@@ -165,40 +161,40 @@ namespace dust {
         world.FlushPendingChanges();
     }
 
-    void DustGame::UpdateVehicleControl(f32 deltaTime)
-    {
-        Entity* entity = world.GetEntity(playerVehicleId);
-        if (!entity || entity->type != ENTITY_TYPE_VEHICLE || !entity->rigidBody.IsValid())
-        {
+    void DustGame::UpdateVehicleControl( f32 deltaTime ) {
+        Entity * entity = world.GetEntity( playerVehicleId );
+        if ( !entity || entity->type != ENTITY_TYPE_VEHICLE || !entity->rigidBody.IsValid() ) {
             return;
         }
 
-        VehicleData& vehicle = entity->vehicle;
-        if (!vehicle.playerControlled)
-        {
+        VehicleData & vehicle = entity->vehicle;
+        if ( !vehicle.playerControlled ) {
             return;
         }
 
-        Input& input = Engine::Get().GetInput();
+        Input & input = Engine::Get().GetInput();
 
-        glm::vec3 forward = entity->rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-        glm::vec3 right   = entity->rotation * glm::vec3(1.0f, 0.0f, 0.0f);
-        glm::vec3 up      = entity->rotation * glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 forward = entity->rotation * glm::vec3( 0.0f, 0.0f, 1.0f );
+        glm::vec3 right = entity->rotation * glm::vec3( 1.0f, 0.0f, 0.0f );
+        glm::vec3 up = entity->rotation * glm::vec3( 0.0f, 1.0f, 0.0f );
 
-        glm::vec3 velocity = physicsWorld.GetLinearVelocity(entity->rigidBody);
-        f32 forwardSpeed = glm::dot(velocity, forward);
+        glm::vec3 velocity = physicsWorld.GetLinearVelocity( entity->rigidBody );
+        f32 forwardSpeed = glm::dot( velocity, forward );
 
         f32 throttle = 0.0f;
-        if (input.IsKeyDown(Key::W)) throttle += 1.0f;
-        if (input.IsKeyDown(Key::S)) throttle -= 1.0f;
+        if ( input.IsKeyDown( Key::W ) )
+            throttle += 1.0f;
+        if ( input.IsKeyDown( Key::S ) )
+            throttle -= 1.0f;
 
         f32 steer = 0.0f;
-        if (input.IsKeyDown(Key::A)) steer += 1.0f;
-        if (input.IsKeyDown(Key::D)) steer -= 1.0f;
+        if ( input.IsKeyDown( Key::A ) )
+            steer += 1.0f;
+        if ( input.IsKeyDown( Key::D ) )
+            steer -= 1.0f;
 
-        if (throttle != 0.0f && glm::abs(forwardSpeed) < vehicle.maxSpeed)
-        {
-            physicsWorld.AddForce(entity->rigidBody, forward * throttle * vehicle.enginePower);
+        if ( throttle != 0.0f && glm::abs( forwardSpeed ) < vehicle.maxSpeed ) {
+            physicsWorld.AddForce( entity->rigidBody, forward * throttle * vehicle.enginePower );
         }
 
         // Steering torque; flips sign in reverse like a real car backing up.
@@ -207,95 +203,122 @@ namespace dust {
         // already resists spinning in place — a speed-scaled torque on top
         // of that was enough to fully cancel out at low speed and left
         // steering doing nothing. Turn rate is capped below instead.
-        if (steer != 0.0f)
-        {
+        if ( steer != 0.0f ) {
             f32 reverseSign = forwardSpeed < 0.0f ? -1.0f : 1.0f;
-            physicsWorld.AddTorque(entity->rigidBody, up * steer * reverseSign * vehicle.turnTorque);
+            physicsWorld.AddTorque( entity->rigidBody, up * steer * reverseSign * vehicle.turnTorque );
         }
 
         // Clamp yaw spin rate so the steering torque above (sized to
         // overcome ground friction) doesn't turn the buggy into a spinning
         // top once it gets going.
         {
-            glm::vec3 angularVelocity = physicsWorld.GetAngularVelocity(entity->rigidBody);
-            f32 yawRate = glm::dot(angularVelocity, up);
-            f32 clampedYawRate = glm::clamp(yawRate, -vehicle.maxYawRateRadians, vehicle.maxYawRateRadians);
-            if (clampedYawRate != yawRate)
-            {
-                physicsWorld.SetAngularVelocity(entity->rigidBody, angularVelocity + up * (clampedYawRate - yawRate));
+            glm::vec3 angularVelocity = physicsWorld.GetAngularVelocity( entity->rigidBody );
+            f32 yawRate = glm::dot( angularVelocity, up );
+            f32 clampedYawRate = glm::clamp( yawRate, -vehicle.maxYawRateRadians, vehicle.maxYawRateRadians );
+            if ( clampedYawRate != yawRate ) {
+                physicsWorld.SetAngularVelocity( entity->rigidBody, angularVelocity + up * ( clampedYawRate - yawRate ) );
             }
         }
 
         // Arcade tire grip: cancel most sideways velocity each frame so the
         // buggy corners instead of sliding around like a hockey puck. Stands
         // in for real wheel friction until there's an actual wheel model.
-        f32 lateralSpeed = glm::dot(velocity, right);
-        f32 gripFactor = glm::clamp(vehicle.gripStrength * deltaTime, 0.0f, 1.0f);
-        physicsWorld.SetLinearVelocity(entity->rigidBody, velocity - right * lateralSpeed * gripFactor);
+        f32 lateralSpeed = glm::dot( velocity, right );
+        f32 gripFactor = glm::clamp( vehicle.gripStrength * deltaTime, 0.0f, 1.0f );
+        physicsWorld.SetLinearVelocity( entity->rigidBody, velocity - right * lateralSpeed * gripFactor );
 
         // Visual-only wheel state, consumed by DrawVehicle().
-        vehicle.steerAngleDegrees = glm::mix(vehicle.steerAngleDegrees, steer * vehicle.maxSteerAngleDegrees, glm::clamp(8.0f * deltaTime, 0.0f, 1.0f));
-        vehicle.wheelSpinRadians += (forwardSpeed / glm::max(vehicle.wheelRadius, 0.01f)) * deltaTime;
+        vehicle.steerAngleDegrees = glm::mix( vehicle.steerAngleDegrees, steer * vehicle.maxSteerAngleDegrees, glm::clamp( 8.0f * deltaTime, 0.0f, 1.0f ) );
+        vehicle.wheelSpinRadians += ( forwardSpeed / glm::max( vehicle.wheelRadius, 0.01f ) ) * deltaTime;
     }
 
-    void DustGame::Render()
-    {
-        glClearColor(0.10f, 0.30f, 0.80f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    void DustGame::UpdateTargeting() {
+        Input & input = Engine::Get().GetInput();
+        if ( !input.IsMouseButtonPressed( MouseButton::Left ) ) {
+            return;
+        }
+
+        Entity * player = world.GetEntity( playerVehicleId );
+        if ( !player ) {
+            return;
+        }
+
+        Window & window = Engine::Get().GetWindow();
+
+        glm::vec3 rayOrigin, rayDirection;
+        camera.GetCamera().ScreenPointToRay(
+            static_cast<f32>( input.GetMouseX() ), static_cast<f32>( input.GetMouseY() ),
+            static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ),
+            rayOrigin, rayDirection );
+
+        constexpr f32 maxRayDistance = 500.0f;
+        RayCastHit hit;
+        if ( !physicsWorld.Raycast( rayOrigin, rayDirection, maxRayDistance, hit ) ) {
+            return;
+        }
+
+        EntityId hitId = world.FindEntityByRigidBody( hit.body );
+        if ( hitId != INVALID_ENTITY_ID ) {
+            player->targetId = hitId;
+        }
+    }
+
+    const Entity * DustGame::GetPlayerTarget() const {
+        const Entity * player = world.GetEntity( playerVehicleId );
+        if ( !player ) {
+            return nullptr;
+        }
+
+        return world.GetEntity( player->targetId );
+    }
+
+    void DustGame::Render() {
+        glClearColor( 0.10f, 0.30f, 0.80f, 1.0f );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         glm::mat4 viewProjection = camera.GetCamera().GetViewProjectionMatrix();
 
-        for (const Entity& entity : world.GetEntities())
-        {
-            if (!entity.renderModel.shader || !entity.renderModel.mesh)
-            {
+        for ( const Entity & entity : world.GetEntities() ) {
+            if ( !entity.renderModel.shader || !entity.renderModel.mesh ) {
                 continue;
             }
 
-            if (entity.type == ENTITY_TYPE_VEHICLE)
+            if ( entity.type == ENTITY_TYPE_VEHICLE ) {
+                DrawVehicle( entity, viewProjection );
+            } else // Generic draw
             {
-                DrawVehicle(entity, viewProjection);
-            }
-            else // Generic draw
-            {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), entity.position) * glm::mat4_cast(entity.rotation);
-                entity.renderModel.shader->SetMat4("uViewProjection", viewProjection);
-                entity.renderModel.shader->SetMat4("uModel", model);
+                glm::mat4 model = glm::translate( glm::mat4( 1.0f ), entity.position ) * glm::mat4_cast( entity.rotation );
+                entity.renderModel.shader->SetMat4( "uViewProjection", viewProjection );
+                entity.renderModel.shader->SetMat4( "uModel", model );
                 entity.renderModel.mesh->Draw();
             }
         }
     }
 
-    void DustGame::DrawVehicle(const Entity& entity, const glm::mat4& viewProjection)
-    {
-        if (!buggyWheelMesh)
-        {
+    void DustGame::DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection ) {
+        if ( !buggyWheelMesh ) {
             return;
         }
 
-        glm::mat4 chassisModel = glm::translate(glm::mat4(1.0f), entity.position) * glm::mat4_cast(entity.rotation);
+        glm::mat4 chassisModel = glm::translate( glm::mat4( 1.0f ), entity.position ) * glm::mat4_cast( entity.rotation );
 
-        entity.renderModel.shader->SetMat4("uViewProjection", viewProjection);
-        entity.renderModel.shader->SetMat4("uModel", chassisModel);
+        entity.renderModel.shader->SetMat4( "uViewProjection", viewProjection );
+        entity.renderModel.shader->SetMat4( "uModel", chassisModel );
         entity.renderModel.mesh->Draw();
 
-        const VehicleData& vehicle = entity.vehicle;
-        for (i32 i = 0; i < 4; ++i)
-        {
+        const VehicleData & vehicle = entity.vehicle;
+        for ( i32 i = 0; i < 4; ++i ) {
             bool isFrontWheel = i < 2;
-            f32 steerRadians = isFrontWheel ? glm::radians(vehicle.steerAngleDegrees) : 0.0f;
+            f32 steerRadians = isFrontWheel ? glm::radians( vehicle.steerAngleDegrees ) : 0.0f;
 
             // Order (applied right-to-left): align the cylinder's default
             // Y-axis to the wheel's roll axis (X), spin it around that axis,
             // steer front wheels about the chassis' up axis, then place it.
-            glm::mat4 wheelLocal = glm::translate(glm::mat4(1.0f), vehicle.wheelOffsets[i])
-                * glm::rotate(glm::mat4(1.0f), steerRadians, glm::vec3(0.0f, 1.0f, 0.0f))
-                * glm::rotate(glm::mat4(1.0f), vehicle.wheelSpinRadians, glm::vec3(1.0f, 0.0f, 0.0f))
-                * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            glm::mat4 wheelLocal = glm::translate( glm::mat4( 1.0f ), vehicle.wheelOffsets[i] ) * glm::rotate( glm::mat4( 1.0f ), steerRadians, glm::vec3( 0.0f, 1.0f, 0.0f ) ) * glm::rotate( glm::mat4( 1.0f ), vehicle.wheelSpinRadians, glm::vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( glm::mat4( 1.0f ), glm::radians( 90.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
 
-            entity.renderModel.shader->SetMat4("uModel", chassisModel * wheelLocal);
+            entity.renderModel.shader->SetMat4( "uModel", chassisModel * wheelLocal );
             buggyWheelMesh->Draw();
         }
     }
 
-}
+} // namespace dust

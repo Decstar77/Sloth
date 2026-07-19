@@ -28,6 +28,11 @@ namespace dust {
         Entity*         GetEntity(EntityId id);
         const Entity*   GetEntity(EntityId id) const;
 
+        // Linear search over the live entity table for the entity backed by
+        // the given physics body, e.g. to resolve a PhysicsWorld::CastRay()
+        // hit back into game-level state. Returns INVALID_ENTITY_ID if none.
+        EntityId        FindEntityByRigidBody(sloth::RigidBody body) const;
+
         // All live entity slots (may include freed/invalid slots pending
         // reuse; check Entity::type != ENTITY_TYPE_INVALID before use).
         // Excludes entities whose spawn is still pending FlushPendingChanges().
