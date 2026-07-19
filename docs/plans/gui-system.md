@@ -69,37 +69,59 @@ the reasoning, not just the code.
    concern and the other's an interaction concern living in different
    classes. Both assert Push/Pop balance at frame boundaries.
 
-All five are demoed by hand in `src/sandbox/src/main.cpp` (no widget
-wrappers exist yet) and have been visually verified running.
+All five are demoed by hand in `src/sandbox/src/main.cpp` and have been
+visually verified running.
+
+6. **Button, Checkbox, Label widgets**
+   `gui/sloth_gui_widgets.h/.cpp` — the hot/active/click pattern that used to
+   be hand-rolled inline in `main.cpp` is now extracted into reusable
+   functions:
+   - `bool Button(GuiContext&, GuiRenderer&, TextRenderer&, const Font&, GlyphCache&, StringView label, glm::vec2 min, glm::vec2 max, const glm::mat4& viewProjection)`
+     — returns true on the frame it's released while still hovered (a
+     click, not a press).
+   - `bool Checkbox(GuiContext&, GuiRenderer&, TextRenderer&, const Font&, GlyphCache&, StringView label, glm::vec2 pos, bool& value, const glm::mat4& viewProjection)`
+     — toggles `value` in place and returns true the frame it changed;
+     `value` lives in caller state, not `GuiStorage`.
+   - `void Label(TextRenderer&, const Font&, GlyphCache&, StringView text, glm::vec2 baselinePos, f32 pixelHeight, const glm::vec4& color, const glm::mat4& viewProjection)`
+     — thin wrapper around `TextRenderer::DrawText`, no `GuiId`/interaction
+     state of its own (dropped the `GuiRenderer&` param the original sketch
+     had, since nothing in it needs to draw a shape).
+   - Both `Button`/`Checkbox` internally `Flush()` the `GuiRenderer` after
+     queuing their background rect(s) and before drawing their label —
+     `TextRenderer::DrawText` issues its own immediate draw call (unlike
+     `GuiRenderer`'s queued shapes), so without an internal Flush the label
+     could render before the background rect that's supposed to sit behind
+     it. This is the same ordering caveat item 8 (draw-layer sorting) is
+     meant to solve properly; widgets paper over it locally for now rather
+     than waiting on that.
+   - No text-measurement/centering yet — labels are left-aligned with a
+     fixed padding, vertically offset by a hardcoded baseline-from-midpoint
+     constant (`TextBaselineMidpointOffset` in the .cpp) rather than real
+     font ascent/descent math. Revisit once `Font`/`TextRenderer` expose
+     per-call metrics, or once item 7's layout solver needs real intrinsic
+     sizes anyway.
+   - Colors/sizing are hardcoded constants in `sloth_gui_widgets.cpp`
+     (no `GuiStyle` yet — that's item 12); expect these signatures to
+     shrink once a style stack exists.
+   - `main.cpp`'s demo button block now calls `Button()`/`Label()`, plus a
+     new `Checkbox()` demo, exercising all three against the sandbox's real
+     font/text-renderer.
+   - **Not done yet**: `Panel`/`BeginPanel`/`EndPanel` (draggable, clippable
+     container) — deferred, see below.
 
 ### Not started
 
 Everything below is ordered by dependency, not necessarily priority — items
 within a step can be reordered based on what Dust actually needs first.
 
-## 6. Manual-layout widgets (Button, Checkbox, Label, Panel)
+## 6b. Panel/window
 
-The first real widget wrappers around what's already built. `main.cpp`
-currently hand-rolls the hot/active/click state machine inline; this step
-extracts that into reusable functions.
-
-- `bool Button(GuiContext&, GuiRenderer&, StringView label, glm::vec2 min, glm::vec2 max)`
-  — the hot/active/click pattern already proven in the sandbox demo, wrapped
-  once. Returns true on the frame it's clicked.
-- `bool Checkbox(GuiContext&, GuiRenderer&, StringView label, glm::vec2 pos, bool& value)`
-  — toggles `value` in place, persists nothing extra (the bool lives in
-  caller state, not `GuiStorage` — no reason to duplicate it).
-- `void Label(GuiRenderer&, TextRenderer&, ...)` — thin wrapper, mostly for
-  API symmetry with the other widgets and a future auto-layout cursor.
-- **Panel/window**: a draggable, clippable container — `BeginPanel`/`EndPanel`
-  pair that pushes a clip rect (item 5) around its content and, if
-  draggable, stores its position in `GuiStorage` keyed by the panel's
-  `GuiId` (so a panel remembers where it was dragged to across frames).
-  Resize handles can come later; position-drag only for the first pass.
-- Font/size: widgets need a `Font&`/`GlyphCache&` passed in alongside
-  `GuiRenderer&` until item 10 (multi-font support) exists — expect an
-  awkward number of parameters per call until then; a `GuiStyle` (item 10)
-  is what eventually collapses this down.
+The remaining piece of item 6 — a draggable, clippable container,
+`BeginPanel`/`EndPanel` pair that pushes a clip rect (item 5) around its
+content and, if draggable, stores its position in `GuiStorage` keyed by the
+panel's `GuiId` (so a panel remembers where it was dragged to across
+frames). Resize handles can come later; position-drag only for the first
+pass.
 
 ## 7. Auto-layout stack (rows/columns, padding, spacing)
 

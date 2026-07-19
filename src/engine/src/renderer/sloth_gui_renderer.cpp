@@ -284,8 +284,7 @@ namespace sloth {
         glDeleteVertexArrays( 1, &shapeVertexArray );
     }
 
-    void GuiRenderer::DrawRect( glm::vec2 min, glm::vec2 max, const glm::vec4 & color, f32 cornerRadius,
-        f32 borderWidth, const glm::vec4 & borderColor ) {
+    void GuiRenderer::DrawRect( glm::vec2 min, glm::vec2 max, const glm::vec4 & color, f32 cornerRadius, f32 borderWidth, const glm::vec4 & borderColor ) {
         cornerRadius = std::max( cornerRadius, 0.0f );
         borderWidth = std::max( borderWidth, 0.0f );
         GuiRect clip = GetCurrentClipRect();
