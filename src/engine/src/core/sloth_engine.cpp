@@ -14,9 +14,13 @@ namespace sloth {
 
         window = std::make_unique<Window>( windowProps );
         input = std::make_unique<Input>( window->GetNativeWindow() );
+
+        DebugRenderer::Get().Init();
     }
 
     void Engine::Shutdown() {
+        DebugRenderer::Get().Shutdown();
+
         input.reset();
         window.reset();
 

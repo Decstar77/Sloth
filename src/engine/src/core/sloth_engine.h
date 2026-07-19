@@ -4,6 +4,7 @@
 #include "core/sloth_defines.h"
 #include "core/sloth_input.h"
 #include "core/sloth_window.h"
+#include "renderer/sloth_debug_renderer.h"
 
 #include <memory>
 

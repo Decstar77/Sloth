@@ -1,6 +1,7 @@
 #include "dust_game.h"
 
 #include <core/sloth_engine.h>
+#include <renderer/sloth_debug_renderer.h>
 #include <renderer/sloth_geometry.h>
 
 #include <glad/gl.h>
@@ -292,7 +293,15 @@ namespace dust {
                 entity.renderModel.shader->SetMat4( "uModel", model );
                 entity.renderModel.mesh->Draw();
             }
+
+            if ( entity.targetId != INVALID_ENTITY_ID ) {
+                if ( const Entity * target = world.GetEntity( entity.targetId ) ) {
+                    DebugRenderer::Get().DrawLine( entity.position, target->position, { 1.0f, 0.1f, 0.1f } );
+                }
+            }
         }
+
+        DebugRenderer::Get().Render( viewProjection );
     }
 
     void DustGame::DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection ) {
