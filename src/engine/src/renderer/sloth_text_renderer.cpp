@@ -232,14 +232,31 @@ namespace sloth {
                 // when placing the quad so glyphs aren't rendered upside down.
                 glm::vec2 quadMin = cursor + glm::vec2( glyph.xMin, -glyph.yMax ) * scale;
                 glm::vec2 quadMax = cursor + glm::vec2( glyph.xMax, -glyph.yMin ) * scale;
-                // Snap the quad to the pixel grid (preserving its size) so
-                // identical glyphs rasterize at the same subpixel phase
-                // instead of some appearing bolder than others.
-                glm::vec2 snappedMin = glm::round( quadMin );
-                instance.QuadMin = snappedMin;
-                instance.QuadMax = quadMax + ( snappedMin - quadMin );
-                instance.CurveMin = glm::vec2( glyph.xMin, glyph.yMax );
-                instance.CurveMax = glm::vec2( glyph.xMax, glyph.yMin );
+                glm::vec2 curveMin = glm::vec2( glyph.xMin, glyph.yMax );
+                glm::vec2 curveMax = glm::vec2( glyph.xMax, glyph.yMin );
+
+                // Expand the screen quad outward to whole pixels. GL only
+                // rasterizes a pixel when its center is inside the quad, so a
+                // tight quad whose edge lands mid-pixel drops that edge's
+                // partially-covered row/column entirely - visibly clipping the
+                // bottom of small glyphs (an 'e' sitting on the baseline).
+                // floor/ceil guarantees every edge pixel is rasterized; the
+                // fragment shader then gives it its true (possibly partial)
+                // coverage instead of nothing.
+                glm::vec2 expandedMin = glm::floor( quadMin );
+                glm::vec2 expandedMax = glm::ceil( quadMax );
+
+                // Remap the curve-space corners onto the expanded quad so the
+                // pixel->curve mapping the shader interpolates is unchanged:
+                // the glyph interior lands identically and the new margin maps
+                // just outside the glyph bbox, where winding is zero and the
+                // fragment is discarded.
+                glm::vec2 size = quadMax - quadMin;
+                glm::vec2 slope = ( curveMax - curveMin ) / size;
+                instance.QuadMin = expandedMin;
+                instance.QuadMax = expandedMax;
+                instance.CurveMin = curveMin + ( expandedMin - quadMin ) * slope;
+                instance.CurveMax = curveMin + ( expandedMax - quadMin ) * slope;
                 instance.CurveOffset = glyph.curveOffset;
                 instance.CurveCount = glyph.curveCount;
                 instance.Color = color;

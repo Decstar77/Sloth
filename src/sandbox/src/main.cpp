@@ -189,8 +189,7 @@ int main() {
                     ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
                 };
 
-                PanelResult panel = BeginPanel( guiContext, guiRenderer, textRenderer, font, glyphCache,
-                    "Inventory##InvPanel", defaultPos, panelSize, screenProjection );
+                PanelResult panel = BeginPanel( guiContext, guiRenderer, textRenderer, font, glyphCache, "Inventory##InvPanel", defaultPos, panelSize, screenProjection );
 
                 glm::vec2 gridOrigin = panel.contentMin;
 
