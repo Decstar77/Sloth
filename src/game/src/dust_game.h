@@ -49,6 +49,7 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  shopMesh;
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
+        EntityId                        aiVehicleId = INVALID_ENTITY_ID;
 
         sloth::PhysicsWorld             physicsWorld;
     };

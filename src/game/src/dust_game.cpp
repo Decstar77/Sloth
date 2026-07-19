@@ -86,6 +86,24 @@ namespace dust {
             playerVehicleId = world.SpawnEntity( entity );
         }
 
+        // AI dune buggy.
+        {
+            VehicleData vehicleDefaults;
+            glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
+
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, { -3.0f, 3.0f, 0.0f } );
+            entity.renderModel = { shader.get(), buggyChassisMesh.get() };
+
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = chassisHalfExtents;
+            entity.rigidBodyData.restitution = 0.1f;
+            entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
+            entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
+            entity.rigidBodyData.restitution = 0.05f;
+
+            aiVehicleId = world.SpawnEntity( entity );
+        }
+
         // Ore nodes, one of each type.
         {
             struct OreNodeSpawn {

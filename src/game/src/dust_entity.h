@@ -45,6 +45,14 @@ namespace dust {
         f32                     restitution = 0.0f;
     };
 
+    enum VehicleChassisType {
+        VEHICLE_CHASSIS_TYPE_BUGGY,
+        VEHICLE_CHASSIS_TYPE_TRUCK,
+        VEHICLE_CHASSIS_TYPE_APC,
+        VEHICLE_CHASSIS_TYPE_TANK,
+        VEHICLE_CHASSIS_TYPE_CRAWLER, // Aircraft carrier but on wheels
+    };
+
     // Arcade-style vehicle: a single dynamic box-shaped chassis body, driven
     // by forces/torque applied directly to it (no wheel physics/constraints
     // yet). Wheels are purely visual, positioned/spun/steered from this data
@@ -131,6 +139,7 @@ namespace dust {
     enum EntityActionType {
         ENTITY_ACTION_TYPE_IDLE = 0,
         ENTITY_ACTION_TYPE_PLAYER_CONTROL,
+        ENTITY_ACTION_TYPE_TRAVELING,
         ENTITY_ACTION_TYPE_MINING_ORE,
         ENTITY_ACTION_TYPE_SELL_ORE,
     };

@@ -20,16 +20,20 @@ namespace dust {
     // to GetEntity() on the frame after it was requested.
     class DustWorld {
     public:
-        void                        Init(sloth::PhysicsWorld* physicsWorld);
+        void                        Init( sloth::PhysicsWorld * physicsWorld );
 
-        EntityId                    SpawnEntity(Entity entity);
-        void                        DestroyEntity(EntityId id);
+        EntityId                    SpawnEntity( Entity entity );
+        void                        DestroyEntity( EntityId id );
 
-        Entity*                     GetEntity(EntityId id);
-        const Entity*               GetEntity(EntityId id) const;
-        EntityId                    FindEntityByRigidBody(sloth::RigidBody body) const;
-        
-        const std::vector<Entity>&  GetEntities() const { return entities; }
+        Entity *                    GetEntity( EntityId id );
+        const Entity *              GetEntity( EntityId id ) const;
+        EntityId                    FindEntityByRigidBody( sloth::RigidBody body ) const;
+
+        Entity *                    QueryClosestOreNode( glm::vec3 pos, OreNodeType type );
+        Entity *                    QueryClosestShop( glm::vec3 pos );
+
+
+        const std::vector<Entity> & GetEntities() const { return entities; }
 
         void                        Update( f32 deltaTime );
         void                        SyncPhysicsTransforms();

@@ -66,6 +66,40 @@ namespace dust {
         return INVALID_ENTITY_ID;
     }
 
+    Entity * DustWorld::QueryClosestOreNode( glm::vec3 pos, OreNodeType type ) {
+        f32 maxDist = FLT_MAX;
+        Entity * found = nullptr;
+        for ( Entity & entity : entities ) {
+            if ( entity.type == ENTITY_TYPE_ORE_NODE ) {
+                if ( entity.oreNode.type == type ) {
+                    f32 dist = glm::distance( entity.position, pos );
+                    if ( dist < maxDist ) {
+                        maxDist = dist;
+                        found = &entity;
+                    }
+                }
+            }
+        }
+
+        return found;
+    }
+
+    Entity * DustWorld::QueryClosestShop( glm::vec3 pos ) {
+        f32 maxDist = FLT_MAX;
+        Entity * found = nullptr;
+        for ( Entity & entity : entities ) {
+            if ( entity.type == ENTITY_TYPE_SHOP ) {
+                f32 dist = glm::distance( entity.position, pos );
+                if ( dist < maxDist ) {
+                    maxDist = dist;
+                    found = &entity;
+                }
+            }
+        }
+
+        return found;
+    }
+
     void DustWorld::ApplySpawn( const PendingSpawn & spawn ) {
         Entity & entity = entities[spawn.id.index];
 
@@ -118,12 +152,50 @@ namespace dust {
 
     void DustWorld::Update( f32 deltaTime ) {
         // TODO: LOD simulation
-
         for ( Entity & entity : entities ) {
+
+            // Entity thinking
+            if ( entity.vehicle.playerControlled == false ) {
+                if ( entity.action.type == ENTITY_ACTION_TYPE_IDLE ) {
+                    if ( entity.inventory.items.IsEmpty() ) {
+                        Entity * oreNode = QueryClosestOreNode( entity.position, ORE_NODE_TYPE_IRON );
+                        if ( oreNode != nullptr ) {
+                            entity.action.progress = 0;
+                            entity.action.targetId = oreNode->id;
+                            if ( glm::distance( entity.position, oreNode->position ) <= 10 ) {
+                                entity.action.type = ENTITY_ACTION_TYPE_MINING_ORE;
+                            } else {
+                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                            }
+                        }
+                    }
+                    else {
+                        Entity * shop = QueryClosestShop( entity.position );
+                        if ( shop != nullptr ) {
+                            entity.action.progress = 0;
+                            entity.action.targetId = shop->id;
+                            if ( glm::distance( entity.position, shop->position ) <= 10 ) {
+                                entity.action.type = ENTITY_ACTION_TYPE_SELL_ORE;
+                            }
+                            else {
+                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Entity actions
             if ( entity.action.targetId != INVALID_ENTITY_ID ) {
                 Entity * targetEntity = GetEntity( entity.action.targetId );
                 if ( targetEntity != nullptr ) {
                     switch ( entity.action.type ) {
+                        //=================================
+                        case ENTITY_ACTION_TYPE_TRAVELING: {
+                            const f32 ArrivalCirlce = 7.0f; // Hack
+
+                        } break;
+                        //=================================
                         case ENTITY_ACTION_TYPE_MINING_ORE: {
                             if ( glm::distance( entity.position, targetEntity->position ) >= 10 ) {
                                 break;
@@ -137,6 +209,7 @@ namespace dust {
                                 entity.action.progress = result  == true ? 0.0f : 0.99f;
                             }
                         } break;
+                        //=================================
                         case ENTITY_ACTION_TYPE_SELL_ORE: {
                             if ( glm::distance( entity.position, targetEntity->position ) >= 10 ) {
                                 break;
