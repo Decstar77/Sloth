@@ -21,13 +21,12 @@ namespace dust {
         void                    Update(f32 deltaTime);
         void                    Render();
 
-        DustCamera&             GetCamera() { return camera; }
-        sloth::PhysicsWorld&    GetPhysicsWorld() { return physicsWorld; }
-        DustWorld&              GetWorld() { return world; }
+        DustCamera &            GetCamera() { return camera; }
+        sloth::PhysicsWorld &   GetPhysicsWorld() { return physicsWorld; }
+        DustWorld &             GetWorld() { return world; }
 
-        // The entity the player's vehicle currently has targeted (via
-        // left-click raycast), or nullptr if none/not yet resolved.
-        const Entity*           GetPlayerTarget() const;
+        const Entity *          GetPlayer() const;
+        const Entity *          GetPlayerTarget() const;
 
     private:
         void                    PlayerUpdateVehicleControl( f32 deltaTime );
@@ -45,7 +44,8 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  boxMesh;
         std::unique_ptr<sloth::StaticMesh>  buggyChassisMesh;
         std::unique_ptr<sloth::StaticMesh>  buggyWheelMesh;
-        std::unique_ptr<sloth::StaticMesh>  oreNode;
+        std::unique_ptr<sloth::StaticMesh>  oreNodeMesh;
+        std::unique_ptr<sloth::StaticMesh>  shopMesh;
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
 
@@ -53,3 +53,4 @@ namespace dust {
     };
 
 }
+

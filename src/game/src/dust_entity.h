@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/sloth_defines.h>
+#include <core/sloth_list.h>
 #include <physics/sloth_physics_world.h>
 #include <renderer/sloth_render_model.h>
 
@@ -16,8 +17,9 @@ namespace dust {
         ENTITY_TYPE_PROP,
         ENTITY_TYPE_VEHICLE,
         ENTITY_TYPE_ORE_NODE,
+        ENTITY_TYPE_SHOP,
     };
-     
+
     struct EntityId {
         i32 index      = -1;
         i32 generation = 0;
@@ -90,7 +92,7 @@ namespace dust {
 
     struct OreNode {
         OreNodeType type = ORE_NODE_TYPE_IRON;
-        i32         amount = 100;
+        i64         amount = 100;
     };
 
     enum InventoryItemType {
@@ -101,19 +103,42 @@ namespace dust {
 
     struct InventoryItem {
         InventoryItemType type;
-        i32 amount;
-        i32 weight;
+        i64 amount;
+        i32 flatIndex;
     };
 
     struct Inventory {
-        i32 count;
-        InventoryItem items[64];
+        i32 xSize;
+        i32 ySize;
+        FixedList<InventoryItem, 64>    items;
+    };
+
+    i64                     InvetoryGetItemCapacity( InventoryItemType type );
+    bool                    InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount );
+    InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
+    const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
+
+    enum EntityActionType {
+        ENTITY_ACTION_TYPE_IDLE = 0,
+        ENTITY_ACTION_TYPE_PLAYER_CONTROL,
+        ENTITY_ACTION_TYPE_MINING_ORE
+    };
+
+    struct EntityAction {
+        EntityActionType    type;
+        EntityId            targetId;
+
+        f32                 progress;
+    };
+
+    struct Shop {
+        i64 credits;
     };
 
     struct Entity {
         // Entity
-        EntityType type;
-        EntityId id;
+        EntityType  type;
+        EntityId    id;
 
         // Transform
         glm::vec3   position;
@@ -127,12 +152,16 @@ namespace dust {
         RigidBody          rigidBody;
         RigidBodySpawnData rigidBodyData;
 
-        // Interaction
-        EntityId targetId;
+        // Actions
+        EntityAction action;
+
+        // Inventory
+        Inventory inventory;
 
         union {
             VehicleData vehicle;
             OreNode     oreNode;
+            Shop        shop;
         };
     };
 

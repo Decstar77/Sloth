@@ -31,7 +31,7 @@ namespace dust {
         
         const std::vector<Entity>&  GetEntities() const { return entities; }
 
-        void                        Update( f32 dt );
+        void                        Update( f32 deltaTime );
         void                        SyncPhysicsTransforms();
         void                        FlushPendingChanges();
 

@@ -114,13 +114,29 @@ namespace dust {
 
         // Iron ore node
         {
-            glm::vec3 halfExtents( 3.0f, 2.3f, 3.0f );
-            oreNode = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f } ) );
+            glm::vec3 halfExtents( 4.0f, 2.3f, 4.0f );
+            oreNodeMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f } ) );
 
             Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, { 14, 0, -14 } );
-            entity.renderModel = { shader.get(), oreNode.get() };
+            entity.renderModel = { shader.get(), oreNodeMesh.get() };
             entity.oreNode.type = ORE_NODE_TYPE_IRON;
             entity.oreNode.amount = 2000;
+
+            entity.rigidBodyData.shape = RigidBodyShape::Box;
+            entity.rigidBodyData.halfExtents = halfExtents;
+            entity.rigidBodyData.motionType = BodyMotionType::Static;
+
+            world.SpawnEntity( entity );
+        }
+
+        // Shop
+        {
+            glm::vec3 halfExtents( 3.0f, 2.3f, 3.0f );
+            shopMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.3f, 0.7f, 0.3f } ) );
+
+            Entity entity = MakeEntity( ENTITY_TYPE_SHOP, { -14, 0, 25 } );
+            entity.renderModel = { shader.get(), shopMesh.get() };
+            entity.shop.credits = 1000;
 
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = halfExtents;
@@ -147,6 +163,7 @@ namespace dust {
 
         PlayerUpdateVehicleControl( deltaTime );
         PlayerUpdateTargeting();
+        world.Update( deltaTime );
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
 
@@ -182,17 +199,31 @@ namespace dust {
         glm::vec3 velocity = physicsWorld.GetLinearVelocity( entity->rigidBody );
         f32 forwardSpeed = glm::dot( velocity, forward );
 
+        bool hadInput = false;
         f32 throttle = 0.0f;
-        if ( input.IsKeyDown( Key::W ) )
+        if ( input.IsKeyDown( Key::W ) ) {
             throttle += 1.0f;
-        if ( input.IsKeyDown( Key::S ) )
+            hadInput = true;
+        }
+        if ( input.IsKeyDown( Key::S ) ) {
             throttle -= 1.0f;
+            hadInput = true;
+        }
 
         f32 steer = 0.0f;
-        if ( input.IsKeyDown( Key::A ) )
+        if ( input.IsKeyDown( Key::A ) ) {
             steer += 1.0f;
-        if ( input.IsKeyDown( Key::D ) )
+            hadInput = true;
+        }
+        if ( input.IsKeyDown( Key::D ) ) {
             steer -= 1.0f;
+            hadInput = true;
+        }
+
+        if ( hadInput == true ) {
+            entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
+            entity->action.progress = 0;
+        }
 
         if ( throttle != 0.0f && glm::abs( forwardSpeed ) < vehicle.maxSpeed ) {
             physicsWorld.AddForce( entity->rigidBody, forward * throttle * vehicle.enginePower );
@@ -260,8 +291,25 @@ namespace dust {
 
         EntityId hitId = world.FindEntityByRigidBody( hit.body );
         if ( hitId != INVALID_ENTITY_ID ) {
-            player->targetId = hitId;
+            player->action.targetId = hitId;
+
+            Entity * targetEntity = world.GetEntity( hitId );
+            SL_ASSERT( targetEntity );
+            if ( targetEntity != nullptr ) {
+                switch ( targetEntity->type ) {
+                    case ENTITY_TYPE_ORE_NODE: { player->action.type = ENTITY_ACTION_TYPE_MINING_ORE; } break;
+                }
+            }
         }
+    }
+
+    const Entity * DustGame::GetPlayer() const {
+        const Entity * player = world.GetEntity( playerVehicleId );
+        if ( !player ) {
+            return nullptr;
+        }
+
+        return player;
     }
 
     const Entity * DustGame::GetPlayerTarget() const {
@@ -270,7 +318,7 @@ namespace dust {
             return nullptr;
         }
 
-        return world.GetEntity( player->targetId );
+        return world.GetEntity( player->action.targetId );
     }
 
     void DustGame::Render() {
@@ -286,16 +334,16 @@ namespace dust {
 
             if ( entity.type == ENTITY_TYPE_VEHICLE ) {
                 DrawVehicle( entity, viewProjection );
-            } else // Generic draw
-            {
+            } else {
+                // Generic draw
                 glm::mat4 model = glm::translate( glm::mat4( 1.0f ), entity.position ) * glm::mat4_cast( entity.rotation );
                 entity.renderModel.shader->SetMat4( "uViewProjection", viewProjection );
                 entity.renderModel.shader->SetMat4( "uModel", model );
                 entity.renderModel.mesh->Draw();
             }
 
-            if ( entity.targetId != INVALID_ENTITY_ID ) {
-                if ( const Entity * target = world.GetEntity( entity.targetId ) ) {
+            if ( entity.action.targetId != INVALID_ENTITY_ID ) {
+                if ( const Entity * target = world.GetEntity( entity.action.targetId ) ) {
                     DebugRenderer::Get().DrawLine( entity.position, target->position, { 1.0f, 0.1f, 0.1f } );
                 }
             }

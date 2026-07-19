@@ -59,6 +59,10 @@ int main() {
     f64 lastFrameTime = glfwGetTime();
 
     while ( !window.ShouldClose() ) {
+        if ( engine.GetInput().IsKeyPressed( Key::Escape ) == true ) {
+            window.SetShouldClose( true );
+        }
+
         f64 currentFrameTime = glfwGetTime();
         f32 deltaTime = static_cast<f32>( currentFrameTime - lastFrameTime );
         lastFrameTime = currentFrameTime;
@@ -120,6 +124,16 @@ int main() {
             constexpr f32 rightMargin = 300.0f;
             glm::vec2 targetLabelPos { static_cast<f32>( window.GetWidth() ) - rightMargin, 32.0f };
             textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+
+
+            const dust::Entity * player = game.GetPlayer();
+
+            const dust::InventoryItem * item = dust::InvetoryFindItem( player->inventory, dust::INVENTORY_ITEM_TYPE_ORE_IRON );
+            if ( item != nullptr ) {
+                targetLabel.Format( "Iron %d", item->amount );
+                targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin, 64.0f };
+                textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+            }
         }
 
         // Clip-rect / scissor demo: a small "viewport" panel showing a list
