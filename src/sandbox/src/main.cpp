@@ -52,6 +52,7 @@ int main() {
 
     GuiContext guiContext;
     bool demoCheckboxValue = false;
+    bool inventoryOpen = false;
 
     dust::DustGame game;
     game.Init();
@@ -76,6 +77,10 @@ int main() {
 
         if ( engine.GetInput().IsKeyPressed( Key::T ) ) {
             audioWorld.PlaySound2D( "../../assets/sounds/button_click.wav" );
+        }
+
+        if ( engine.GetInput().IsKeyPressed( Key::I ) ) {
+            inventoryOpen = !inventoryOpen;
         }
 
         glm::mat4 screenProjection = MakeScreenProjection( static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ) );
@@ -151,6 +156,57 @@ int main() {
             targetLabel.Format( "Credits %d", game.GetPlayerCredits() );
             targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin / 2, 32.0f };
             textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+        }
+
+        // Inventory grid panel, toggled with 'I'. One button per slot,
+        // laid out from Inventory::xSize/ySize; slots beyond the current
+        // item count are drawn empty.
+        if ( inventoryOpen && font.IsLoaded() ) {
+            const dust::Entity * player = game.GetPlayer();
+            if ( player != nullptr ) {
+                const dust::Inventory & inventory = player->inventory;
+
+                i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
+                i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
+
+                constexpr f32 slotSize = 64.0f;
+                constexpr f32 slotGap = 8.0f;
+                constexpr f32 panelPadding = 16.0f;
+
+                f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
+                f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
+
+                glm::vec2 panelMin {
+                    ( static_cast<f32>( window.GetWidth() ) - gridWidth ) * 0.5f - panelPadding,
+                    ( static_cast<f32>( window.GetHeight() ) - gridHeight ) * 0.5f - panelPadding,
+                };
+                glm::vec2 panelMax = panelMin + glm::vec2( gridWidth, gridHeight ) + glm::vec2( panelPadding * 2.0f );
+
+                guiRenderer.DrawRect( panelMin, panelMax, { 0.1f, 0.1f, 0.13f, 0.92f }, 12.0f );
+                guiRenderer.Flush( screenProjection );
+
+                glm::vec2 gridOrigin = panelMin + glm::vec2( panelPadding, panelPadding );
+
+                i32 slotCount = gridCols * gridRows;
+                i32 itemCount = static_cast<i32>( inventory.items.GetCount() );
+                for ( i32 slot = 0; slot < slotCount; ++slot ) {
+                    i32 col = slot % gridCols;
+                    i32 row = slot / gridCols;
+
+                    glm::vec2 slotMin = gridOrigin + glm::vec2( static_cast<f32>( col ) * ( slotSize + slotGap ), static_cast<f32>( row ) * ( slotSize + slotGap ) );
+                    glm::vec2 slotMax = slotMin + glm::vec2( slotSize, slotSize );
+
+                    LargeString slotLabel;
+                    if ( slot < itemCount ) {
+                        const dust::InventoryItem & item = inventory.items[slot];
+                        slotLabel.Format( "%s (%d)##InvSlot%d", dust::ToShortCode( item.type ), item.amount, slot );
+                    } else {
+                        slotLabel.Format( "##InvSlot%d", slot );
+                    }
+
+                    Button( guiContext, guiRenderer, textRenderer, font, glyphCache, slotLabel.View(), slotMin, slotMax, screenProjection );
+                }
+            }
         }
 
         // Clip-rect / scissor demo: a small "viewport" panel showing a list

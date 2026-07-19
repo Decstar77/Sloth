@@ -126,6 +126,7 @@ namespace dust {
 
     InventoryItemType       OreNodeTypeToItemType( OreNodeType type );
     const char *            ToString( InventoryItemType type );
+    const char *            ToShortCode( InventoryItemType type );
 
     enum EntityActionType {
         ENTITY_ACTION_TYPE_IDLE = 0,

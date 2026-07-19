@@ -60,6 +60,25 @@ namespace dust {
         return "Unknown";
     }
 
+    const char * ToShortCode( InventoryItemType type ) {
+        switch ( type ) {
+            case INVENTORY_ITEM_TYPE_ORE_IRON:
+                return "Fe";
+            case INVENTORY_ITEM_TYPE_ORE_COPPER:
+                return "Cu";
+            case INVENTORY_ITEM_TYPE_ORE_COAL:
+                return "C";
+            case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
+                return "S";
+            case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
+                return "Al";
+            case INVENTORY_ITEM_TYPE_ORE_CHROME:
+                return "Cr";
+        }
+
+        return "?";
+    }
+
     bool InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount ) {
         SL_ASSERT_MSG( amount >= 0, "InvetoryAddItem called with negative amount" );
 
@@ -86,10 +105,9 @@ namespace dust {
             remaining -= add;
         }
 
-        // Spill any leftover into new stacks, splitting across as many as
-        // needed so no single stack ever exceeds its capacity.
+        const i64 slotCount = static_cast<i64>( inventory.xSize ) * static_cast<i64>( inventory.ySize );
         while ( remaining > 0 ) {
-            if ( inventory.items.IsFull() ) {
+            if ( inventory.items.IsFull() || static_cast<i64>( inventory.items.GetCount() ) >= slotCount ) {
                 return false;
             }
 
@@ -162,7 +180,7 @@ namespace dust {
             case ENTITY_TYPE_VEHICLE: {
                 entity.rigidBodyData.createRigidBody = true;
                 entity.vehicle = VehicleData();
-                entity.inventory.xSize = 1;
+                entity.inventory.xSize = 2;
                 entity.inventory.ySize = 1;
             } break;
             case ENTITY_TYPE_ORE_NODE: {
