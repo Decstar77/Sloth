@@ -86,21 +86,39 @@ namespace dust {
             playerVehicleId = world.SpawnEntity( entity );
         }
 
-        // Iron ore node
+        // Ore nodes, one of each type.
         {
+            struct OreNodeSpawn {
+                OreNodeType type;
+                glm::vec3   color;
+                glm::vec3   position;
+            };
+
+            const OreNodeSpawn spawns[] = {
+                { ORE_NODE_TYPE_IRON,     { 0.70f, 0.70f, 0.35f }, {  14, 0, -14 } },
+                { ORE_NODE_TYPE_COPPER,   { 0.80f, 0.45f, 0.20f }, {  26, 0, -14 } },
+                { ORE_NODE_TYPE_COAL,     { 0.15f, 0.15f, 0.15f }, {  38, 0, -14 } },
+                { ORE_NODE_TYPE_SULPHUR,  { 0.90f, 0.85f, 0.20f }, {  14, 0, -26 } },
+                { ORE_NODE_TYPE_ALUMINUM, { 0.75f, 0.78f, 0.80f }, {  26, 0, -26 } },
+                { ORE_NODE_TYPE_CHROME,   { 0.55f, 0.60f, 0.65f }, {  38, 0, -26 } },
+            };
+
             glm::vec3 halfExtents( 4.0f, 2.3f, 4.0f );
-            oreNodeMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.7f, 0.7f, 0.35f } ) );
+            for ( usize i = 0; i < sizeof( spawns ) / sizeof( spawns[0] ); i++ ) {
+                const OreNodeSpawn & spawn = spawns[i];
+                oreNodeMeshes[i] = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, spawn.color ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, { 14, 0, -14 } );
-            entity.renderModel = { shader.get(), oreNodeMesh.get() };
-            entity.oreNode.type = ORE_NODE_TYPE_IRON;
-            entity.oreNode.amount = 2000;
+                Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, spawn.position );
+                entity.renderModel = { shader.get(), oreNodeMeshes[i].get() };
+                entity.oreNode.type = spawn.type;
+                entity.oreNode.amount = 2000;
 
-            entity.rigidBodyData.shape = RigidBodyShape::Box;
-            entity.rigidBodyData.halfExtents = halfExtents;
-            entity.rigidBodyData.motionType = BodyMotionType::Static;
+                entity.rigidBodyData.shape = RigidBodyShape::Box;
+                entity.rigidBodyData.halfExtents = halfExtents;
+                entity.rigidBodyData.motionType = BodyMotionType::Static;
 
-            world.SpawnEntity( entity );
+                world.SpawnEntity( entity );
+            }
         }
 
         // Shop
@@ -129,6 +147,10 @@ namespace dust {
         boxMesh.reset();
         buggyChassisMesh.reset();
         buggyWheelMesh.reset();
+        for ( auto & mesh : oreNodeMeshes ) {
+            mesh.reset();
+        }
+        shopMesh.reset();
         shader.reset();
     }
 

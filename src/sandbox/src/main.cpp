@@ -128,11 +128,24 @@ int main() {
 
             const dust::Entity * player = game.GetPlayer();
 
-            const dust::InventoryItem * item = dust::InvetoryFindItem( player->inventory, dust::INVENTORY_ITEM_TYPE_ORE_IRON );
-            if ( item != nullptr ) {
-                targetLabel.Format( "Iron %d", item->amount );
-                targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin, 64.0f };
-                textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+            constexpr dust::InventoryItemType oreItemTypes[] = {
+                dust::INVENTORY_ITEM_TYPE_ORE_IRON,
+                dust::INVENTORY_ITEM_TYPE_ORE_COPPER,
+                dust::INVENTORY_ITEM_TYPE_ORE_COAL,
+                dust::INVENTORY_ITEM_TYPE_ORE_SULPHUR,
+                dust::INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
+                dust::INVENTORY_ITEM_TYPE_ORE_CHROME,
+            };
+
+            f32 oreLabelY = 64.0f;
+            for ( dust::InventoryItemType oreItemType : oreItemTypes ) {
+                const dust::InventoryItem * item = dust::InvetoryFindItem( player->inventory, oreItemType );
+                if ( item != nullptr ) {
+                    targetLabel.Format( "%s %d", dust::ToString( oreItemType ), item->amount );
+                    targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin, oreLabelY };
+                    textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+                    oreLabelY += 26.0f;
+                }
             }
 
             targetLabel.Format( "Credits %d", game.GetPlayerCredits() );

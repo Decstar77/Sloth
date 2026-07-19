@@ -129,11 +129,8 @@ namespace dust {
                                 break;
                             }
 
-                            InventoryItemType itemType = INVENTORY_ITEM_TYPE_ORE_IRON;
-                            if ( targetEntity->oreNode.type == ORE_NODE_TYPE_IRON ) {
-                                entity.action.progress += deltaTime;
-                                itemType = INVENTORY_ITEM_TYPE_ORE_IRON;
-                            }
+                            InventoryItemType itemType = OreNodeTypeToItemType( targetEntity->oreNode.type );
+                            entity.action.progress += deltaTime;
 
                             if ( entity.action.progress >= 0.5f ) {
                                 bool result = InvetoryAddItem( entity.inventory, itemType, 1 );
@@ -145,7 +142,18 @@ namespace dust {
                                 break;
                             }
 
-                            playerCredits += InvetoryRemoveItem( entity.inventory, INVENTORY_ITEM_TYPE_ORE_IRON ) * 2;
+                            constexpr InventoryItemType oreTypes[] = {
+                                INVENTORY_ITEM_TYPE_ORE_IRON,
+                                INVENTORY_ITEM_TYPE_ORE_COPPER,
+                                INVENTORY_ITEM_TYPE_ORE_COAL,
+                                INVENTORY_ITEM_TYPE_ORE_SULPHUR,
+                                INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
+                                INVENTORY_ITEM_TYPE_ORE_CHROME,
+                            };
+
+                            for ( InventoryItemType oreType : oreTypes ) {
+                                playerCredits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
+                            }
                         } break;
                     }
                 }

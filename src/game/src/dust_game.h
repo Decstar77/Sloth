@@ -45,7 +45,7 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  boxMesh;
         std::unique_ptr<sloth::StaticMesh>  buggyChassisMesh;
         std::unique_ptr<sloth::StaticMesh>  buggyWheelMesh;
-        std::unique_ptr<sloth::StaticMesh>  oreNodeMesh;
+        std::unique_ptr<sloth::StaticMesh>  oreNodeMeshes[6];
         std::unique_ptr<sloth::StaticMesh>  shopMesh;
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;

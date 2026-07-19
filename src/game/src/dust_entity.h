@@ -99,6 +99,9 @@ namespace dust {
         INVENTORY_ITEM_TYPE_ORE_IRON,
         INVENTORY_ITEM_TYPE_ORE_COPPER,
         INVENTORY_ITEM_TYPE_ORE_COAL,
+        INVENTORY_ITEM_TYPE_ORE_SULPHUR,
+        INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
+        INVENTORY_ITEM_TYPE_ORE_CHROME,
     };
 
     struct InventoryItem {
@@ -120,6 +123,9 @@ namespace dust {
     InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
     const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
     i64                     InvetoryRemoveItem( Inventory & inventory, InventoryItemType type );
+
+    InventoryItemType       OreNodeTypeToItemType( OreNodeType type );
+    const char *            ToString( InventoryItemType type );
 
     enum EntityActionType {
         ENTITY_ACTION_TYPE_IDLE = 0,
