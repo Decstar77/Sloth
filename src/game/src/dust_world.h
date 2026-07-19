@@ -35,6 +35,9 @@ namespace dust {
         void                        SyncPhysicsTransforms();
         void                        FlushPendingChanges();
 
+    public:
+        i64 playerCredits = 0; // @TEMP
+
     private:
         struct PendingSpawn {
             EntityId   id;
@@ -46,6 +49,7 @@ namespace dust {
         void        ApplyDestroy(EntityId id);
 
     private:
+
         sloth::PhysicsWorld* physicsWorld = nullptr;
 
         std::vector<Entity> entities;

@@ -107,21 +107,25 @@ namespace dust {
         i32 flatIndex;
     };
 
+    constexpr u32 INVENTORY_CAPACITY = 64;
+
     struct Inventory {
         i32 xSize;
         i32 ySize;
-        FixedList<InventoryItem, 64>    items;
+        FixedList<InventoryItem, INVENTORY_CAPACITY> items;
     };
 
     i64                     InvetoryGetItemCapacity( InventoryItemType type );
     bool                    InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount );
     InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
     const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
+    i64                     InvetoryRemoveItem( Inventory & inventory, InventoryItemType type );
 
     enum EntityActionType {
         ENTITY_ACTION_TYPE_IDLE = 0,
         ENTITY_ACTION_TYPE_PLAYER_CONTROL,
-        ENTITY_ACTION_TYPE_MINING_ORE
+        ENTITY_ACTION_TYPE_MINING_ORE,
+        ENTITY_ACTION_TYPE_SELL_ORE,
     };
 
     struct EntityAction {

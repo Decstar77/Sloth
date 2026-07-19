@@ -134,6 +134,10 @@ int main() {
                 targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin, 64.0f };
                 textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
             }
+
+            targetLabel.Format( "Credits %d", game.GetPlayerCredits() );
+            targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin / 2, 32.0f };
+            textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
         }
 
         // Clip-rect / scissor demo: a small "viewport" panel showing a list

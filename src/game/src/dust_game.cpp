@@ -298,6 +298,7 @@ namespace dust {
             if ( targetEntity != nullptr ) {
                 switch ( targetEntity->type ) {
                     case ENTITY_TYPE_ORE_NODE: { player->action.type = ENTITY_ACTION_TYPE_MINING_ORE; } break;
+                    case ENTITY_TYPE_SHOP: { player->action.type = ENTITY_ACTION_TYPE_SELL_ORE; } break;
                 }
             }
         }
@@ -319,6 +320,10 @@ namespace dust {
         }
 
         return world.GetEntity( player->action.targetId );
+    }
+
+    i64 DustGame::GetPlayerCredits() const {
+        return world.playerCredits;
     }
 
     void DustGame::Render() {

@@ -27,6 +27,7 @@ namespace dust {
 
         const Entity *          GetPlayer() const;
         const Entity *          GetPlayerTarget() const;
+        i64                     GetPlayerCredits() const;
 
     private:
         void                    PlayerUpdateVehicleControl( f32 deltaTime );

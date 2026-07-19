@@ -140,6 +140,13 @@ namespace dust {
                                 entity.action.progress = result  == true ? 0.0f : 0.99f;
                             }
                         } break;
+                        case ENTITY_ACTION_TYPE_SELL_ORE: {
+                            if ( glm::distance( entity.position, targetEntity->position ) >= 10 ) {
+                                break;
+                            }
+
+                            playerCredits += InvetoryRemoveItem( entity.inventory, INVENTORY_ITEM_TYPE_ORE_IRON ) * 2;
+                        } break;
                     }
                 }
             }

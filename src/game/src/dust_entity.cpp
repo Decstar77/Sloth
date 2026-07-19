@@ -16,14 +16,26 @@ namespace dust {
     }
 
     bool InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount ) {
+        const i64 cap = InvetoryGetItemCapacity( type );
         for ( InventoryItem & item : inventory.items ) {
-            if ( item.type == type ) {
-                i64 cap = InvetoryGetItemCapacity( type );
-                item.amount = glm::clamp<i64>( item.amount + amount, 0, cap );
-                return true;
+            if ( item.type == type && item.amount < cap ) {
+                // Surely we can simplify this
+                item.amount += amount;
+                if ( item.amount > cap ) {
+                    amount = item.amount - cap; // The amount remaining
+                    item.amount = cap;
+                } else {
+                    amount = 0;
+                }
+                
+                if ( amount == 0 ) {
+                    return true;
+                }
             }
         }
 
+        // Edge case here, what if the amount is more than the full cap of a invenotry block ?
+        
         if ( inventory.items.IsFull() ) {
             return false;
         }
@@ -56,6 +68,24 @@ namespace dust {
         return nullptr;
     }
 
+    i64 InvetoryRemoveItem( Inventory & inventory, InventoryItemType type ) {
+        i64 amount = 0;
+        FixedList<u32, INVENTORY_CAPACITY> removals;
+        const u32 count = inventory.items.GetCount();
+        for ( u32 i = 0; i < count; i++ ) {
+            if ( inventory.items[i].type == type ) {
+                amount += inventory.items[i].amount;
+                removals.Add( i );
+            }
+        }
+
+        for ( u32 i = 0; i < removals.GetCount(); i++ ) {
+            inventory.items.RemoveAt( removals[i] );
+        }
+
+        return amount;
+    }
+
     Entity MakeEntity( EntityType type, glm::vec3 position ) {
         Entity entity = {}; // Clear to zero
         entity.type = type;
@@ -80,6 +110,10 @@ namespace dust {
             case ENTITY_TYPE_ORE_NODE: {
                 entity.rigidBodyData.createRigidBody = true;
                 entity.oreNode = OreNode();
+            } break;
+            case ENTITY_TYPE_SHOP: {
+                entity.rigidBodyData.createRigidBody = true;
+                entity.shop = Shop();
             } break;
         }
 
