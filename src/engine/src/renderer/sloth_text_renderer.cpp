@@ -219,7 +219,7 @@ namespace sloth {
         instances.clear();
 
         f32 scale = font.GetScaleForPixelHeight( pixelHeight );
-        glm::vec2 cursor = baselinePos;
+        glm::vec2 cursor = glm::round( baselinePos );
 
         for ( usize i = 0; i < text.Length(); ++i ) {
             u32 codepoint = static_cast<u8>( text[i] );
@@ -230,8 +230,14 @@ namespace sloth {
                 GlyphInstance instance;
                 // Glyph-space Y grows up, screen-space Y grows down - flip
                 // when placing the quad so glyphs aren't rendered upside down.
-                instance.QuadMin = cursor + glm::vec2( glyph.xMin, -glyph.yMax ) * scale;
-                instance.QuadMax = cursor + glm::vec2( glyph.xMax, -glyph.yMin ) * scale;
+                glm::vec2 quadMin = cursor + glm::vec2( glyph.xMin, -glyph.yMax ) * scale;
+                glm::vec2 quadMax = cursor + glm::vec2( glyph.xMax, -glyph.yMin ) * scale;
+                // Snap the quad to the pixel grid (preserving its size) so
+                // identical glyphs rasterize at the same subpixel phase
+                // instead of some appearing bolder than others.
+                glm::vec2 snappedMin = glm::round( quadMin );
+                instance.QuadMin = snappedMin;
+                instance.QuadMax = quadMax + ( snappedMin - quadMin );
                 instance.CurveMin = glm::vec2( glyph.xMin, glyph.yMax );
                 instance.CurveMax = glm::vec2( glyph.xMax, glyph.yMin );
                 instance.CurveOffset = glyph.curveOffset;

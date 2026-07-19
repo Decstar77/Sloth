@@ -14,6 +14,9 @@ namespace sloth {
         glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
         glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
         glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+        // Size the window content area by the monitor's content scale so it
+        // isn't tiny on high-DPI displays.
+        glfwWindowHint( GLFW_SCALE_TO_MONITOR, GLFW_TRUE );
 
         windowHandle = glfwCreateWindow( width, height, title.c_str(), nullptr, nullptr );
         if ( !windowHandle ) {
@@ -22,7 +25,13 @@ namespace sloth {
             std::exit( EXIT_FAILURE );
         }
 
+        // GLFW_SCALE_TO_MONITOR may have resized the window - read back the
+        // actual size rather than trusting the requested one.
+        glfwGetWindowSize( windowHandle, &width, &height );
         glfwGetWindowPos( windowHandle, &posX, &posY );
+
+        f32 scaleY = 1.0f;
+        glfwGetWindowContentScale( windowHandle, &contentScale, &scaleY );
         windowedWidth = width;
         windowedHeight = height;
         windowedPosX = posX;
@@ -31,6 +40,7 @@ namespace sloth {
         glfwSetWindowUserPointer( windowHandle, this );
         glfwSetFramebufferSizeCallback( windowHandle, FramebufferSizeCallback );
         glfwSetWindowPosCallback( windowHandle, WindowPosCallback );
+        glfwSetWindowContentScaleCallback( windowHandle, WindowContentScaleCallback );
 
         glfwMakeContextCurrent( windowHandle );
 
@@ -196,5 +206,10 @@ namespace sloth {
         Window* self = static_cast<Window*>( glfwGetWindowUserPointer( window ) );
         self->posX = x;
         self->posY = y;
+    }
+
+    void Window::WindowContentScaleCallback( GLFWwindow* window, float scaleX, float scaleY ) {
+        Window* self = static_cast<Window*>( glfwGetWindowUserPointer( window ) );
+        self->contentScale = scaleX;
     }
 } // namespace sloth

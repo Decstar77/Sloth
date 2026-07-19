@@ -71,6 +71,10 @@ namespace sloth {
         bool IsMinimized() const;
         void Focus();
 
+        // Monitor content scale (1.0 at 100% DPI, 1.5 at 150%, ...). UI code
+        // should multiply logical sizes (e.g. text pixel heights) by this.
+        f32 GetContentScale() const { return contentScale; }
+
         // Screen / monitor queries. These describe the monitor the window currently lives on, not the window itself.
         void GetMonitorSize( i32 & outWidth, i32 & outHeight ) const;
         i32 GetMonitorRefreshRate() const;
@@ -80,6 +84,7 @@ namespace sloth {
       private:
         static void FramebufferSizeCallback( GLFWwindow * window, int newWidth, int newHeight );
         static void WindowPosCallback( GLFWwindow * window, int x, int y );
+        static void WindowContentScaleCallback( GLFWwindow * window, float scaleX, float scaleY );
 
       private:
         GLFWwindow * windowHandle = nullptr;
@@ -89,6 +94,7 @@ namespace sloth {
         i32 height = 0;
         i32 posX = 0;
         i32 posY = 0;
+        f32 contentScale = 1.0f;
         bool vsync = true;
         bool fullscreen = false;
         CursorMode cursorMode = CursorMode::Normal;

@@ -26,7 +26,7 @@ int main()
     Window& window = engine.GetWindow();
 
     Font font(&engine.GetPermanentArena());
-    font.Load("../../assets/fonts/kenvector_future.ttf");
+    font.Load("../../assets/fonts/roboto/Roboto-Regular.ttf");
     GlyphCache glyphCache;
     TextRenderer textRenderer;
     GuiRenderer guiRenderer;
@@ -129,7 +129,7 @@ int main()
 
         if (font.IsLoaded())
         {
-            textRenderer.DrawText(font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
+            textRenderer.DrawText(font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 28.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection);
         }
 
         // Clip-rect / scissor demo: a small "viewport" panel showing a list
