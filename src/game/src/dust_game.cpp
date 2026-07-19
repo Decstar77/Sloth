@@ -64,32 +64,6 @@ namespace dust {
             world.SpawnEntity( entity );
         }
 
-        // Falling sphere.
-        {
-            sphereMesh = UploadMesh( Geometry::CreateUVSphere( 1.0f, 16, 32, { 0.3f, 0.9f, 0.3f } ) );
-
-            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { -1.5f, 8.0f, 0.0f } );
-            entity.renderModel = { shader.get(), sphereMesh.get() };
-            entity.rigidBodyData.shape = RigidBodyShape::Sphere;
-            entity.rigidBodyData.radius = 1.0f;
-            entity.rigidBodyData.restitution = 0.4f;
-            world.SpawnEntity( entity );
-        }
-
-        // Falling, tumbling box.
-        {
-            glm::vec3 halfExtents( 0.75f, 0.75f, 0.75f );
-            boxMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.9f, 0.3f, 0.3f } ) );
-
-            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { 1.5f, 11.0f, 0.0f } );
-            entity.renderModel = { shader.get(), boxMesh.get() };
-            entity.rotation = glm::angleAxis( glm::radians( 25.0f ), glm::normalize( glm::vec3( 1.0f, 0.5f, 0.0f ) ) );
-            entity.rigidBodyData.shape = RigidBodyShape::Box;
-            entity.rigidBodyData.halfExtents = halfExtents;
-            entity.rigidBodyData.restitution = 0.1f;
-            world.SpawnEntity( entity );
-        }
-
         // Player dune buggy.
         {
             VehicleData vehicleDefaults;

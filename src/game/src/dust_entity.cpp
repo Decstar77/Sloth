@@ -16,34 +16,46 @@ namespace dust {
     }
 
     bool InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount ) {
+        SL_ASSERT_MSG( amount >= 0, "InvetoryAddItem called with negative amount" );
+
         const i64 cap = InvetoryGetItemCapacity( type );
+        i64 remaining = amount;
+
+        // Top up any existing partial stacks of this type first.
         for ( InventoryItem & item : inventory.items ) {
-            if ( item.type == type && item.amount < cap ) {
-                // Surely we can simplify this
-                item.amount += amount;
-                if ( item.amount > cap ) {
-                    amount = item.amount - cap; // The amount remaining
-                    item.amount = cap;
-                } else {
-                    amount = 0;
-                }
-                
-                if ( amount == 0 ) {
-                    return true;
-                }
+            if ( remaining == 0 ) {
+                break;
             }
+
+            if ( item.type != type ) {
+                continue;
+            }
+
+            const i64 space = cap - item.amount;
+            if ( space <= 0 ) {
+                continue;
+            }
+
+            const i64 add = space < remaining ? space : remaining;
+            item.amount += add;
+            remaining -= add;
         }
 
-        // Edge case here, what if the amount is more than the full cap of a invenotry block ?
-        
-        if ( inventory.items.IsFull() ) {
-            return false;
-        }
+        // Spill any leftover into new stacks, splitting across as many as
+        // needed so no single stack ever exceeds its capacity.
+        while ( remaining > 0 ) {
+            if ( inventory.items.IsFull() ) {
+                return false;
+            }
 
-        InventoryItem & item = inventory.items.Emplace();
-        item.type = type;
-        item.amount = amount;
-        item.flatIndex = inventory.items.GetCount();
+            const i64 add = cap < remaining ? cap : remaining;
+            InventoryItem & item = inventory.items.Emplace();
+            item.type = type;
+            item.amount = add;
+            item.flatIndex = inventory.items.GetCount() - 1;
+
+            remaining -= add;
+        }
 
         return true;
     }
@@ -79,8 +91,9 @@ namespace dust {
             }
         }
 
-        for ( u32 i = 0; i < removals.GetCount(); i++ ) {
-            inventory.items.RemoveAt( removals[i] );
+        // Remove back-to-front so earlier indices in `removals` stay valid
+        for ( u32 i = removals.GetCount(); i > 0; i-- ) {
+            inventory.items.RemoveAt( removals[i - 1] );
         }
 
         return amount;
