@@ -1,6 +1,7 @@
 #include <core/sloth_engine.h>
 #include <font/sloth_font.h>
 #include <gui/sloth_gui_context.h>
+#include <audio/sloth_audio_world.h>
 #include <renderer/sloth_glyph_cache.h>
 #include <renderer/sloth_gui_renderer.h>
 #include <renderer/sloth_text_renderer.h>
@@ -30,6 +31,8 @@ int main()
     GlyphCache glyphCache;
     TextRenderer textRenderer;
     GuiRenderer guiRenderer;
+    
+    AudioWorld audioWorld;
 
     // Small in-memory checkerboard, exercising Texture's raw-pixel
     // constructor (no image file needed) - a stand-in for a real icon.
@@ -62,10 +65,16 @@ int main()
         f32 deltaTime = static_cast<f32>(currentFrameTime - lastFrameTime);
         lastFrameTime = currentFrameTime;
 
+        audioWorld.Update();
+
         guiContext.NewFrame(engine.GetInput());
 
         game.Update(deltaTime);
         game.Render();
+
+        if ( engine.GetInput().IsKeyPressed( Key::T ) ) {
+            audioWorld.PlaySound2D( "../../assets/sounds/button_click.wav" );
+        }
 
         glm::mat4 screenProjection = MakeScreenProjection(static_cast<f32>(window.GetWidth()), static_cast<f32>(window.GetHeight()));
 

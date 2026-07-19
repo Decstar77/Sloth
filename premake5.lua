@@ -20,6 +20,7 @@ IncludeDir["GLAD"] = "vendor/GLAD/include"
 IncludeDir["GLM"] = "vendor"
 IncludeDir["JoltPhysics"] = "vendor/JoltPhysics"
 IncludeDir["stb"] = "vendor/stb"
+IncludeDir["miniaudio"] = "vendor/miniaudio"
 
 group "Dependencies"
     include "vendor/GLFW"
@@ -50,7 +51,8 @@ project "Engine"
         "%{IncludeDir.GLAD}",
         "%{IncludeDir.GLM}",
         "%{IncludeDir.JoltPhysics}",
-        "%{IncludeDir.stb}"
+        "%{IncludeDir.stb}",
+        "%{IncludeDir.miniaudio}"
     }
 
     defines
