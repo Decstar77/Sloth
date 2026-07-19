@@ -12,6 +12,7 @@ using namespace sloth;
 
 namespace dust {
 
+    struct Entity;
     enum EntityType {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
@@ -73,7 +74,7 @@ namespace dust {
         f32         enginePower = 18000.0f;    // N, forward/back drive force
         f32         turnTorque = 18000.0f;     // steering yaw torque
         f32         maxYawRateRadians = 2.2f;  // rad/s, clamps the turn once spun up
-        f32         maxSpeed = 30.0f;          // m/s, engine cuts out past this
+        f32         maxSpeed = 10.0f;          // m/s, engine cuts out past this
         f32         gripStrength = 6.0f;       // 1/s, how hard sideways slide is cancelled
         f32         maxSteerAngleDegrees = 30.0f;
 
@@ -82,6 +83,9 @@ namespace dust {
         f32         steerAngleDegrees = 0.0f;
         f32         wheelSpinRadians = 0.0f;
     };
+
+    void DriveVehicle( PhysicsWorld & physicsWorld, Entity & entity, f32 throttle, f32 steer, f32 deltaTime );
+    void DriveVehicleToward( PhysicsWorld & physicsWorld, Entity & entity, glm::vec3 targetPosition, f32 deltaTime );
 
     enum OreNodeType {
         ORE_NODE_TYPE_IRON,
@@ -188,4 +192,5 @@ namespace dust {
     Entity MakeEntity(EntityType type, glm::vec3 position);
 
     const char* ToString(EntityType type);
+
 }

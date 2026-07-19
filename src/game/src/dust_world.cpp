@@ -155,7 +155,7 @@ namespace dust {
         for ( Entity & entity : entities ) {
 
             // Entity thinking
-            if ( entity.vehicle.playerControlled == false ) {
+            if ( entity.type == ENTITY_TYPE_VEHICLE && entity.vehicle.playerControlled == false ) {
                 if ( entity.action.type == ENTITY_ACTION_TYPE_IDLE ) {
                     if ( entity.inventory.items.IsEmpty() ) {
                         Entity * oreNode = QueryClosestOreNode( entity.position, ORE_NODE_TYPE_IRON );
@@ -192,12 +192,18 @@ namespace dust {
                     switch ( entity.action.type ) {
                         //=================================
                         case ENTITY_ACTION_TYPE_TRAVELING: {
-                            const f32 ArrivalCirlce = 7.0f; // Hack
+                            const f32 ArrivalCirlce = 15.0f; // Hack
+                            if ( glm::distance( entity.position, targetEntity->position ) <= ArrivalCirlce ) {
+                                entity.action.type = ENTITY_ACTION_TYPE_IDLE;
+                                break;
+                            }
 
+                            DriveVehicleToward( *physicsWorld, entity, targetEntity->position, deltaTime );
                         } break;
                         //=================================
                         case ENTITY_ACTION_TYPE_MINING_ORE: {
-                            if ( glm::distance( entity.position, targetEntity->position ) >= 10 ) {
+                            if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
+                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
                                 break;
                             }
 
@@ -206,12 +212,17 @@ namespace dust {
 
                             if ( entity.action.progress >= 0.5f ) {
                                 bool result = InvetoryAddItem( entity.inventory, itemType, 1 );
-                                entity.action.progress = result  == true ? 0.0f : 0.99f;
+                                entity.action.progress = 0.0f;
+                                if ( result == false ) {
+                                    entity.action.type = ENTITY_ACTION_TYPE_IDLE;
+                                    entity.action.targetId = {};
+                                }
                             }
                         } break;
                         //=================================
                         case ENTITY_ACTION_TYPE_SELL_ORE: {
-                            if ( glm::distance( entity.position, targetEntity->position ) >= 10 ) {
+                            if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
+                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
                                 break;
                             }
 
@@ -227,6 +238,9 @@ namespace dust {
                             for ( InventoryItemType oreType : oreTypes ) {
                                 playerCredits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
                             }
+
+                            entity.action.type = ENTITY_ACTION_TYPE_IDLE;
+                            entity.action.targetId = {};
                         } break;
                     }
                 }
