@@ -89,10 +89,11 @@ namespace dust {
     enum OreNodeType {
         ORE_NODE_TYPE_IRON,
         ORE_NODE_TYPE_COPPER,
-        ORE_NODE_TYPE_COAL,
         ORE_NODE_TYPE_SULPHUR,
         ORE_NODE_TYPE_ALUMINUM,
-        ORE_NODE_TYPE_CHROME,
+        ORE_NODE_TYPE_CRUDE_OIL,
+        ORE_NODE_TYPE_WATER,
+        ORE_NODE_TYPE_SILICON,
     };
 
     enum DieselType {
@@ -109,10 +110,11 @@ namespace dust {
     enum InventoryItemType {
         INVENTORY_ITEM_TYPE_ORE_IRON,
         INVENTORY_ITEM_TYPE_ORE_COPPER,
-        INVENTORY_ITEM_TYPE_ORE_COAL,
         INVENTORY_ITEM_TYPE_ORE_SULPHUR,
         INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
-        INVENTORY_ITEM_TYPE_ORE_CHROME,
+        INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
+        INVENTORY_ITEM_TYPE_ORE_WATER,
+        INVENTORY_ITEM_TYPE_ORE_SILICON,
     };
 
     struct InventoryItem {

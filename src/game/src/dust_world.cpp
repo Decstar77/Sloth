@@ -299,10 +299,11 @@ namespace dust {
                             constexpr InventoryItemType oreTypes[] = {
                                 INVENTORY_ITEM_TYPE_ORE_IRON,
                                 INVENTORY_ITEM_TYPE_ORE_COPPER,
-                                INVENTORY_ITEM_TYPE_ORE_COAL,
                                 INVENTORY_ITEM_TYPE_ORE_SULPHUR,
                                 INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
-                                INVENTORY_ITEM_TYPE_ORE_CHROME,
+                                INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
+                                INVENTORY_ITEM_TYPE_ORE_WATER,
+                                INVENTORY_ITEM_TYPE_ORE_SILICON,
                             };
 
                             Faction & faction = GetFaction( entity.faction );

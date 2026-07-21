@@ -7,13 +7,15 @@ namespace dust {
                 return 10;
             case INVENTORY_ITEM_TYPE_ORE_COPPER:
                 return 100;
-            case INVENTORY_ITEM_TYPE_ORE_COAL:
-                return 100;
             case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
                 return 100;
             case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
                 return 100;
-            case INVENTORY_ITEM_TYPE_ORE_CHROME:
+            case INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_WATER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_SILICON:
                 return 100;
         }
 
@@ -27,14 +29,16 @@ namespace dust {
                 return INVENTORY_ITEM_TYPE_ORE_IRON;
             case ORE_NODE_TYPE_COPPER:
                 return INVENTORY_ITEM_TYPE_ORE_COPPER;
-            case ORE_NODE_TYPE_COAL:
-                return INVENTORY_ITEM_TYPE_ORE_COAL;
             case ORE_NODE_TYPE_SULPHUR:
                 return INVENTORY_ITEM_TYPE_ORE_SULPHUR;
             case ORE_NODE_TYPE_ALUMINUM:
                 return INVENTORY_ITEM_TYPE_ORE_ALUMINUM;
-            case ORE_NODE_TYPE_CHROME:
-                return INVENTORY_ITEM_TYPE_ORE_CHROME;
+            case ORE_NODE_TYPE_CRUDE_OIL:
+                return INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL;
+            case ORE_NODE_TYPE_WATER:
+                return INVENTORY_ITEM_TYPE_ORE_WATER;
+            case ORE_NODE_TYPE_SILICON:
+                return INVENTORY_ITEM_TYPE_ORE_SILICON;
         }
 
         SL_ASSERT( false );
@@ -47,14 +51,16 @@ namespace dust {
                 return "Iron";
             case INVENTORY_ITEM_TYPE_ORE_COPPER:
                 return "Copper";
-            case INVENTORY_ITEM_TYPE_ORE_COAL:
-                return "Coal";
             case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
                 return "Sulphur";
             case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
                 return "Aluminum";
-            case INVENTORY_ITEM_TYPE_ORE_CHROME:
-                return "Chrome";
+            case INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL:
+                return "Crude Oil";
+            case INVENTORY_ITEM_TYPE_ORE_WATER:
+                return "Water";
+            case INVENTORY_ITEM_TYPE_ORE_SILICON:
+                return "Silicon";
         }
 
         return "Unknown";
@@ -66,14 +72,16 @@ namespace dust {
                 return "Fe";
             case INVENTORY_ITEM_TYPE_ORE_COPPER:
                 return "Cu";
-            case INVENTORY_ITEM_TYPE_ORE_COAL:
-                return "C";
             case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
                 return "S";
             case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
                 return "Al";
-            case INVENTORY_ITEM_TYPE_ORE_CHROME:
-                return "Cr";
+            case INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL:
+                return "Oil";
+            case INVENTORY_ITEM_TYPE_ORE_WATER:
+                return "H2O";
+            case INVENTORY_ITEM_TYPE_ORE_SILICON:
+                return "Si";
         }
 
         return "?";

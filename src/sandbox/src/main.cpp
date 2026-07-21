@@ -160,10 +160,11 @@ int main() {
             constexpr dust::InventoryItemType oreItemTypes[] = {
                 dust::INVENTORY_ITEM_TYPE_ORE_IRON,
                 dust::INVENTORY_ITEM_TYPE_ORE_COPPER,
-                dust::INVENTORY_ITEM_TYPE_ORE_COAL,
                 dust::INVENTORY_ITEM_TYPE_ORE_SULPHUR,
                 dust::INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
-                dust::INVENTORY_ITEM_TYPE_ORE_CHROME,
+                dust::INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
+                dust::INVENTORY_ITEM_TYPE_ORE_WATER,
+                dust::INVENTORY_ITEM_TYPE_ORE_SILICON,
             };
 
             f32 oreLabelY = 64.0f;

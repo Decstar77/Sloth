@@ -95,12 +95,13 @@ namespace dust {
             };
 
             const OreNodeSpawn spawns[] = {
-                { ORE_NODE_TYPE_IRON,     { 0.70f, 0.70f, 0.35f }, { -12, 0,  -8 } },
-                { ORE_NODE_TYPE_COPPER,   { 0.80f, 0.45f, 0.20f }, {   0, 0,  -8 } },
-                { ORE_NODE_TYPE_COAL,     { 0.15f, 0.15f, 0.15f }, {  12, 0,  -8 } },
-                { ORE_NODE_TYPE_SULPHUR,  { 0.90f, 0.85f, 0.20f }, { -12, 0,   8 } },
-                { ORE_NODE_TYPE_ALUMINUM, { 0.75f, 0.78f, 0.80f }, {   0, 0,   8 } },
-                { ORE_NODE_TYPE_CHROME,   { 0.55f, 0.60f, 0.65f }, {  12, 0,   8 } },
+                { ORE_NODE_TYPE_IRON,      { 0.70f, 0.70f, 0.35f }, { -12, 0, -16 } },
+                { ORE_NODE_TYPE_COPPER,    { 0.80f, 0.45f, 0.20f }, {   0, 0, -16 } },
+                { ORE_NODE_TYPE_SULPHUR,   { 0.90f, 0.85f, 0.20f }, {  12, 0, -16 } },
+                { ORE_NODE_TYPE_ALUMINUM,  { 0.75f, 0.78f, 0.80f }, { -12, 0,  -8 } },
+                { ORE_NODE_TYPE_CRUDE_OIL, { 0.10f, 0.08f, 0.05f }, {   0, 0,  -8 } },
+                { ORE_NODE_TYPE_WATER,     { 0.20f, 0.45f, 0.85f }, {  12, 0,  -8 } },
+                { ORE_NODE_TYPE_SILICON,   { 0.60f, 0.60f, 0.65f }, {   0, 0,   8 } },
             };
 
             glm::vec3 halfExtents( 4.0f, 2.3f, 4.0f );
