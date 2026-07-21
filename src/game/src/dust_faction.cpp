@@ -9,6 +9,7 @@ namespace dust {
             case FACTION_TYPE_REMNANT:  return "Remnant";
             case FACTION_TYPE_RUSTBORN: return "Rustborn";
             case FACTION_TYPE_ZENITH:   return "Zenith";
+            case FACTION_TYPE_PLAYER:   return "Player";
         }
         return "Unknown";
     }

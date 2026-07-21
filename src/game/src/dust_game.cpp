@@ -72,9 +72,9 @@ namespace dust {
             buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.85f, 0.5f, 0.15f } ) );
             buggyWheelMesh = UploadMesh( Geometry::CreateCylinder( vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f } ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_REMNANT, { 0.0f, 3.0f, 0.0f } );
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_PLAYER, { 0.0f, 3.0f, 0.0f } );
+            entity.playerControlled = true;
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
-            entity.vehicle.playerControlled = true;
 
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = chassisHalfExtents;
@@ -200,7 +200,7 @@ namespace dust {
         }
 
         VehicleData & vehicle = entity->vehicle;
-        if ( !vehicle.playerControlled ) {
+        if ( entity->playerControlled == false ) {
             return;
         }
 
@@ -242,7 +242,7 @@ namespace dust {
         }
 
         Entity * player = world.GetEntity( playerVehicleId );
-        if ( !player ) {
+        if ( player == nullptr ) {
             return;
         }
 
@@ -268,6 +268,8 @@ namespace dust {
             SL_ASSERT( targetEntity );
             if ( targetEntity != nullptr ) {
                 switch ( targetEntity->type ) {
+                    case ENTITY_TYPE_PROP: { player->action.type = ENTITY_ACTION_TYPE_IDLE; } break;
+                    case ENTITY_TYPE_VEHICLE: {} break;
                     case ENTITY_TYPE_ORE_NODE: { player->action.type = ENTITY_ACTION_TYPE_MINING_ORE; } break;
                     case ENTITY_TYPE_SHOP: { player->action.type = ENTITY_ACTION_TYPE_SELL_ORE; } break;
                 }
@@ -294,7 +296,7 @@ namespace dust {
     }
 
     i64 DustGame::GetPlayerCredits() const {
-        return world.playerCredits;
+        return world.GetPlayerCredits();
     }
 
     void DustGame::Render() {

@@ -79,8 +79,6 @@ namespace dust {
         f32         gripStrength = 6.0f;       // 1/s, how hard sideways slide is cancelled
         f32         maxSteerAngleDegrees = 30.0f;
 
-        bool        playerControlled = false;
-
         f32         steerAngleDegrees = 0.0f;
         f32         wheelSpinRadians = 0.0f;
     };
@@ -178,7 +176,8 @@ namespace dust {
         RigidBodySpawnData rigidBodyData;
 
         // Actions
-        EntityAction action;
+        bool            playerControlled = false;
+        EntityAction    action;
 
         // Inventory
         Inventory inventory;

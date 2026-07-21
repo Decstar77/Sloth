@@ -33,14 +33,15 @@ namespace dust {
         Entity *                    QueryClosestShop( glm::vec3 pos );
 
 
+        void                        ActionTravelTo( Entity * entity, EntityId target );
+            
         const std::vector<Entity> & GetEntities() const { return entities; }
 
         void                        Update( f32 deltaTime );
         void                        SyncPhysicsTransforms();
         void                        FlushPendingChanges();
 
-    public:
-        i64 playerCredits = 0; // @TEMP
+        i64                         GetPlayerCredits() const { return factionPlayer.credits; }
 
     private:
         struct PendingSpawn {
@@ -61,6 +62,7 @@ namespace dust {
         Faction                     factionRemnant = {};
         Faction                     factionRustborn = {};
         Faction                     factionZenith = {};
+        Faction                     factionPlayer = {};
 
 
         std::vector<Entity>         entities;

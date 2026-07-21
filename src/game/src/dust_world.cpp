@@ -9,6 +9,7 @@ namespace dust {
         factionRemnant.type     = FACTION_TYPE_REMNANT;
         factionRustborn.type    = FACTION_TYPE_RUSTBORN;
         factionZenith.type      = FACTION_TYPE_ZENITH;
+        factionPlayer.type      = FACTION_TYPE_PLAYER;
     }
 
     i32 DustWorld::AllocateSlot() {
@@ -105,6 +106,17 @@ namespace dust {
         return found;
     }
 
+    void DustWorld::ActionTravelTo( Entity * entity, EntityId target ) {
+        SL_ASSERT( entity );
+        if ( entity->playerControlled == true ) {
+            return;
+        }
+
+        entity->action = {};
+        entity->action.type = ENTITY_ACTION_TYPE_TRAVELING;
+        entity->action.targetId = target;
+    }
+
     void DustWorld::ApplySpawn( const PendingSpawn & spawn ) {
         Entity & entity = entities[spawn.id.index];
 
@@ -172,6 +184,9 @@ namespace dust {
             case FACTION_TYPE_ZENITH: {
                 return factionZenith;
             } break;
+            case FACTION_TYPE_PLAYER: {
+                return factionPlayer;
+            } break;
             default: {
                 SL_ASSERT_MSG( false, "INVALID FACTION" );
             } break;
@@ -185,7 +200,7 @@ namespace dust {
         for ( Entity & entity : entities ) {
 
             // Entity thinking
-            if ( entity.type == ENTITY_TYPE_VEHICLE && entity.vehicle.playerControlled == false ) {
+            if ( entity.type == ENTITY_TYPE_VEHICLE && entity.playerControlled == false ) {
                 if ( entity.action.type == ENTITY_ACTION_TYPE_IDLE ) {
                     if ( entity.inventory.items.IsEmpty() ) {
                         Entity * oreNode = QueryClosestOreNode( entity.position, ORE_NODE_TYPE_IRON );
@@ -195,7 +210,7 @@ namespace dust {
                             if ( glm::distance( entity.position, oreNode->position ) <= 10 ) {
                                 entity.action.type = ENTITY_ACTION_TYPE_MINING_ORE;
                             } else {
-                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                                ActionTravelTo( &entity, oreNode->id );
                             }
                         }
                     }
@@ -208,7 +223,7 @@ namespace dust {
                                 entity.action.type = ENTITY_ACTION_TYPE_SELL_ORE;
                             }
                             else {
-                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                                ActionTravelTo( &entity, shop->id );
                             }
                         }
                     }
@@ -233,7 +248,7 @@ namespace dust {
                         //=================================
                         case ENTITY_ACTION_TYPE_MINING_ORE: {
                             if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
-                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                                ActionTravelTo( &entity, targetEntity->id );
                                 break;
                             }
 
@@ -252,7 +267,7 @@ namespace dust {
                         //=================================
                         case ENTITY_ACTION_TYPE_SELL_ORE: {
                             if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
-                                entity.action.type = ENTITY_ACTION_TYPE_TRAVELING;
+                                ActionTravelTo( &entity, targetEntity->id );
                                 break;
                             }
 
@@ -265,8 +280,10 @@ namespace dust {
                                 INVENTORY_ITEM_TYPE_ORE_CHROME,
                             };
 
+                            Faction & faction = GetFaction( entity.faction );
+
                             for ( InventoryItemType oreType : oreTypes ) {
-                                playerCredits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
+                                faction.credits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
                             }
 
                             entity.action.type = ENTITY_ACTION_TYPE_IDLE;

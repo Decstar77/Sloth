@@ -118,6 +118,7 @@ int main() {
                 dust::FACTION_TYPE_REMNANT,
                 dust::FACTION_TYPE_RUSTBORN,
                 dust::FACTION_TYPE_ZENITH,
+                dust::FACTION_TYPE_PLAYER
             };
 
             i32 factionCounts[SL_ARRAY_COUNT( factionTypes )] = {};
