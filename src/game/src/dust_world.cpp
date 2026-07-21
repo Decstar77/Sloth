@@ -173,7 +173,7 @@ namespace dust {
                 return factionZenith;
             } break;
             default: {
-                SL_ASSERT_MSG( "INVALID FACTION" );
+                SL_ASSERT_MSG( false, "INVALID FACTION" );
             } break;
         } 
 

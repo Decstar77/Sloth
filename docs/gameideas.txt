@@ -2,7 +2,7 @@
     Was some major war that lead to the creation of the 3 factions, well in the past. 
 
 - Factions:
-    - The Remnant
+    - The Remnant - Icon R
         Origin:
             - They are the humans that remained after The Struggle.
 
@@ -11,27 +11,61 @@
         - Petrol engines
         - Leather/chains/paint.
     
-    - The Rustborn
+    - The Rustborn - Icon B
         Origin: 
             - They are the robots / AI that remained after The Struggle.
             - They were created by The Zenith orignally.
+            - Turned on all humans, Remnant and Zenith.
 
         Visuals:
         - Salvaged plating, prefering rivots
         - Petrol and electric engines
         - Batteries/electronics
 
-    - The Zenith
+    - The Zenith - Icon Z
         Origin:
-            - They original elites from the Old War that created the robots.
+            - They original elites human from the Old War that created the robots.
 
         Visuals:
         - Smoother panels
         - Electric engines
         - Batteries/electronics however with a focus on solar power.
 
+- Economy:
+    Raw materials: 
+        - NOTES: Minor resource for the faction indicated by '~'
+        - Iron      (RBZ)
+        - Copper    (RBZ)
+        - Sulphur   (RBZ)
+        - Aluminum  (RBZ)
+        - Crude oil (RB~) -> ~Z would only need crude oil for plastics.
+        - Water     (R~Z) -> ~B would only need water for cooling purposes
+        - Silicon   (~BZ) -> ~R would only need silicon for basic electronics, eg targeting chips.
+
+    Refined materials:
+        - 
+
+    Components:
+        - 
+
+    Vehicles and parts(armour/turrets/tire,etc):
+        - 
+
+    Buildings:
+        - Mechanic:
+            - Repairs cars 
+        - Shop:
+        - Aromoury:
+        - City hall:
+        - Generic housing:
+        - Refinery:
+            - Refines ores into ingots.
+        - Farms:
 
 
+- Crafting 
+    - Everything found is this game is either crafted or bought or found. Mainly crafted / bought
+    
 - Vehicles
     - We are going have a couple base chassis then a whole ton of parts/attachments.
     - The idea then is each faction will favor certain parts and colors.

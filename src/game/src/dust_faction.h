@@ -20,4 +20,6 @@ namespace dust {
         std::vector<EntityId>   entities;
     };
 
+    const char * ToString( FactionType type );
+
 }

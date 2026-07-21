@@ -111,6 +111,33 @@ int main() {
         //    Checkbox( guiContext, guiRenderer, textRenderer, font, glyphCache, "Demo checkbox", { 32.0f, 400.0f }, demoCheckboxValue, screenProjection );
         //}
 
+        // Faction entity counts, top-left corner.
+        if ( font.IsLoaded() ) {
+            constexpr dust::FactionType factionTypes[] = {
+                dust::FACTION_TYPE_NEUTRAL,
+                dust::FACTION_TYPE_REMNANT,
+                dust::FACTION_TYPE_RUSTBORN,
+                dust::FACTION_TYPE_ZENITH,
+            };
+
+            i32 factionCounts[SL_ARRAY_COUNT( factionTypes )] = {};
+            for ( const dust::Entity & entity : game.GetWorld().GetEntities() ) {
+                if ( entity.type == dust::ENTITY_TYPE_INVALID ) {
+                    continue;
+                }
+                factionCounts[entity.faction]++;
+            }
+
+            LargeString factionLabel;
+            f32 factionLabelY = 32.0f;
+            for ( dust::FactionType factionType : factionTypes ) {
+                factionLabel.Format( "%s: %d", dust::ToString( factionType ), factionCounts[factionType] );
+                glm::vec2 factionLabelPos { 16.0f, factionLabelY };
+                textRenderer.DrawText( font, glyphCache, factionLabel.View(), factionLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
+                factionLabelY += 26.0f;
+            }
+        }
+
         // Player's current raycast target, top-right corner.
         if ( font.IsLoaded() ) {
             const dust::Entity * target = game.GetPlayerTarget();
