@@ -4,6 +4,11 @@ namespace dust {
 
     void DustWorld::Init( sloth::PhysicsWorld * newPhysicsWorld ) {
         physicsWorld = newPhysicsWorld;
+
+        factionNeutral.type     = FACTION_TYPE_NEUTRAL;
+        factionRemnant.type     = FACTION_TYPE_REMNANT;
+        factionRustborn.type    = FACTION_TYPE_RUSTBORN;
+        factionZenith.type      = FACTION_TYPE_ZENITH;
     }
 
     i32 DustWorld::AllocateSlot() {
@@ -106,6 +111,9 @@ namespace dust {
         // Copy over data
         entity = spawn.entity;
 
+        Faction & faction = GetFaction( entity.faction );
+        faction.entities.push_back( entity.id );
+
         if ( entity.rigidBodyData.createRigidBody == true ) {
             sloth::RigidBodyDesc bodyDesc;
             bodyDesc.position = entity.position;
@@ -148,6 +156,28 @@ namespace dust {
         entity.id = { id.index, nextGeneration };
 
         freeSlots.push_back( id.index );
+    }
+
+    Faction & DustWorld::GetFaction( FactionType faction ) {
+        switch ( faction ) {
+            case FACTION_TYPE_NEUTRAL: {
+                return factionNeutral;
+            } break;
+            case FACTION_TYPE_REMNANT: {
+                return factionRemnant;
+            } break;
+            case FACTION_TYPE_RUSTBORN: {
+                return factionRustborn;
+            } break;
+            case FACTION_TYPE_ZENITH: {
+                return factionZenith;
+            } break;
+            default: {
+                SL_ASSERT_MSG( "INVALID FACTION" );
+            } break;
+        } 
+
+        return factionNeutral;
     }
 
     void DustWorld::Update( f32 deltaTime ) {

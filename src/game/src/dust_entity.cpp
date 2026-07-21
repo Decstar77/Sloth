@@ -162,9 +162,10 @@ namespace dust {
         return amount;
     }
 
-    Entity MakeEntity( EntityType type, glm::vec3 position ) {
+    Entity MakeEntity( EntityType type, FactionType faction, glm::vec3 position ) {
         Entity entity = {}; // Clear to zero
         entity.type = type;
+        entity.faction = faction;
         entity.position = position;
         entity.rotation = glm::quat( 1, 0, 0, 0 );
         entity.scale = 1.0;

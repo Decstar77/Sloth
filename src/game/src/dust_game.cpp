@@ -56,7 +56,7 @@ namespace dust {
             glm::vec3 halfExtents( 70.0f, 0.5f, 70.0f );
             floorMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.5f, 0.5f, 0.55f } ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_PROP, { 0.0f, -0.5f, 0.0f } );
+            Entity entity = MakeEntity( ENTITY_TYPE_PROP, FACTION_TYPE_NEUTRAL, { 0.0f, -0.5f, 0.0f } );
             entity.renderModel = { shader.get(), floorMesh.get() };
             entity.rigidBodyData.shape = RigidBodyShape::Box;
             entity.rigidBodyData.halfExtents = halfExtents;
@@ -72,7 +72,7 @@ namespace dust {
             buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.85f, 0.5f, 0.15f } ) );
             buggyWheelMesh = UploadMesh( Geometry::CreateCylinder( vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f } ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, { 0.0f, 3.0f, 0.0f } );
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_REMNANT, { 0.0f, 3.0f, 0.0f } );
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
             entity.vehicle.playerControlled = true;
 
@@ -91,7 +91,7 @@ namespace dust {
             VehicleData vehicleDefaults;
             glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
 
-            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, { -3.0f, 3.0f, 0.0f } );
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_REMNANT, { -3.0f, 3.0f, 0.0f } );
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
 
             entity.rigidBodyData.shape = RigidBodyShape::Box;
@@ -126,7 +126,7 @@ namespace dust {
                 const OreNodeSpawn & spawn = spawns[i];
                 oreNodeMeshes[i] = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, spawn.color ) );
 
-                Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, spawn.position );
+                Entity entity = MakeEntity( ENTITY_TYPE_ORE_NODE, FACTION_TYPE_NEUTRAL, spawn.position );
                 entity.renderModel = { shader.get(), oreNodeMeshes[i].get() };
                 entity.oreNode.type = spawn.type;
                 entity.oreNode.amount = 2000;
@@ -144,7 +144,7 @@ namespace dust {
             glm::vec3 halfExtents( 3.0f, 2.3f, 3.0f );
             shopMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.3f, 0.7f, 0.3f } ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_SHOP, { -14, 0, 25 } );
+            Entity entity = MakeEntity( ENTITY_TYPE_SHOP, FACTION_TYPE_REMNANT, { -14, 0, 25 } );
             entity.renderModel = { shader.get(), shopMesh.get() };
             entity.shop.credits = 1000;
 

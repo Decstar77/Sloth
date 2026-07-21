@@ -49,18 +49,25 @@ namespace dust {
         };
 
         i32         AllocateSlot();
-        void        ApplySpawn(const PendingSpawn& spawn);
-        void        ApplyDestroy(EntityId id);
+        void        ApplySpawn( const PendingSpawn & spawn );
+        void        ApplyDestroy( EntityId id );
+        Faction &   GetFaction( FactionType faction );
 
     private:
 
         sloth::PhysicsWorld* physicsWorld = nullptr;
 
-        std::vector<Entity> entities;
-        std::vector<i32>    freeSlots;
+        Faction                     factionNeutral = {};
+        Faction                     factionRemnant = {};
+        Faction                     factionRustborn = {};
+        Faction                     factionZenith = {};
 
-        std::vector<PendingSpawn> pendingSpawns;
-        std::vector<EntityId>     pendingDestroys;
+
+        std::vector<Entity>         entities;
+        std::vector<i32>            freeSlots;
+
+        std::vector<PendingSpawn>   pendingSpawns;
+        std::vector<EntityId>       pendingDestroys;
 
         // Coarse simulation buckets, populated by future gameplay/LOD code.
         std::vector<EntityId> simHot;

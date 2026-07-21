@@ -111,10 +111,6 @@ int main() {
         //    Checkbox( guiContext, guiRenderer, textRenderer, font, glyphCache, "Demo checkbox", { 32.0f, 400.0f }, demoCheckboxValue, screenProjection );
         //}
 
-        if ( font.IsLoaded() ) {
-            textRenderer.DrawText( font, glyphCache, "Hello, Sloth! i am engine clicked", { 32.0f, 64.0f }, 28.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection );
-        }
-
         // Player's current raycast target, top-right corner.
         if ( font.IsLoaded() ) {
             const dust::Entity * target = game.GetPlayerTarget();

@@ -2,6 +2,7 @@
 
 #include <core/sloth_defines.h>
 #include <core/sloth_list.h>
+#include <dust_faction.h>
 #include <physics/sloth_physics_world.h>
 #include <renderer/sloth_render_model.h>
 
@@ -182,6 +183,9 @@ namespace dust {
         // Inventory
         Inventory inventory;
 
+        // Faction
+        FactionType faction;
+
         union {
             VehicleData vehicle;
             OreNode     oreNode;
@@ -189,8 +193,7 @@ namespace dust {
         };
     };
 
-    Entity MakeEntity(EntityType type, glm::vec3 position);
-
-    const char* ToString(EntityType type);
+    Entity          MakeEntity( EntityType type, FactionType faction, glm::vec3 position );
+    const char *    ToString( EntityType type );
 
 }
