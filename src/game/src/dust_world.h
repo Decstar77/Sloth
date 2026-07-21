@@ -33,8 +33,12 @@ namespace dust {
         Entity *                    QueryClosestShop( glm::vec3 pos );
 
 
+        void                        ActionIdle( Entity * entity );
         void                        ActionTravelTo( Entity * entity, EntityId target );
-            
+        void                        ActionMineOre( Entity * entity, EntityId oreNodeId );
+        void                        ActionSellOre( Entity * entity, EntityId shopId );
+        void                        ActionPlayerControl( Entity * entity );
+
         const std::vector<Entity> & GetEntities() const { return entities; }
 
         void                        Update( f32 deltaTime );

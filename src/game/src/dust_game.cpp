@@ -228,8 +228,7 @@ namespace dust {
         }
 
         if ( hadInput == true ) {
-            entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
-            entity->action.progress = 0;
+            world.ActionPlayerControl( entity );
         }
 
         DriveVehicle( physicsWorld, *entity, throttle, steer, deltaTime );
@@ -262,16 +261,14 @@ namespace dust {
 
         EntityId hitId = world.FindEntityByRigidBody( hit.body );
         if ( hitId != INVALID_ENTITY_ID ) {
-            player->action.targetId = hitId;
-
             Entity * targetEntity = world.GetEntity( hitId );
             SL_ASSERT( targetEntity );
             if ( targetEntity != nullptr ) {
                 switch ( targetEntity->type ) {
-                    case ENTITY_TYPE_PROP: { player->action.type = ENTITY_ACTION_TYPE_IDLE; } break;
-                    case ENTITY_TYPE_VEHICLE: {} break;
-                    case ENTITY_TYPE_ORE_NODE: { player->action.type = ENTITY_ACTION_TYPE_MINING_ORE; } break;
-                    case ENTITY_TYPE_SHOP: { player->action.type = ENTITY_ACTION_TYPE_SELL_ORE; } break;
+                    case ENTITY_TYPE_PROP: { world.ActionIdle( player ); } break;
+                    case ENTITY_TYPE_VEHICLE: { player->action.targetId = hitId; } break;
+                    case ENTITY_TYPE_ORE_NODE: { world.ActionMineOre( player, hitId ); } break;
+                    case ENTITY_TYPE_SHOP: { world.ActionSellOre( player, hitId ); } break;
                 }
             }
         }

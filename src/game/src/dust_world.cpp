@@ -106,6 +106,13 @@ namespace dust {
         return found;
     }
 
+    void DustWorld::ActionIdle( Entity * entity ) {
+        SL_ASSERT( entity );
+
+        entity->action = {};
+        entity->action.type = ENTITY_ACTION_TYPE_IDLE;
+    }
+
     void DustWorld::ActionTravelTo( Entity * entity, EntityId target ) {
         SL_ASSERT( entity );
         if ( entity->playerControlled == true ) {
@@ -115,6 +122,29 @@ namespace dust {
         entity->action = {};
         entity->action.type = ENTITY_ACTION_TYPE_TRAVELING;
         entity->action.targetId = target;
+    }
+
+    void DustWorld::ActionMineOre( Entity * entity, EntityId oreNodeId ) {
+        SL_ASSERT( entity );
+
+        entity->action = {};
+        entity->action.type = ENTITY_ACTION_TYPE_MINING_ORE;
+        entity->action.targetId = oreNodeId;
+    }
+
+    void DustWorld::ActionSellOre( Entity * entity, EntityId shopId ) {
+        SL_ASSERT( entity );
+
+        entity->action = {};
+        entity->action.type = ENTITY_ACTION_TYPE_SELL_ORE;
+        entity->action.targetId = shopId;
+    }
+
+    void DustWorld::ActionPlayerControl( Entity * entity ) {
+        SL_ASSERT( entity );
+
+        entity->action = {};
+        entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
     }
 
     void DustWorld::ApplySpawn( const PendingSpawn & spawn ) {
@@ -205,10 +235,8 @@ namespace dust {
                     if ( entity.inventory.items.IsEmpty() ) {
                         Entity * oreNode = QueryClosestOreNode( entity.position, ORE_NODE_TYPE_IRON );
                         if ( oreNode != nullptr ) {
-                            entity.action.progress = 0;
-                            entity.action.targetId = oreNode->id;
                             if ( glm::distance( entity.position, oreNode->position ) <= 10 ) {
-                                entity.action.type = ENTITY_ACTION_TYPE_MINING_ORE;
+                                ActionMineOre( &entity, oreNode->id );
                             } else {
                                 ActionTravelTo( &entity, oreNode->id );
                             }
@@ -217,10 +245,8 @@ namespace dust {
                     else {
                         Entity * shop = QueryClosestShop( entity.position );
                         if ( shop != nullptr ) {
-                            entity.action.progress = 0;
-                            entity.action.targetId = shop->id;
                             if ( glm::distance( entity.position, shop->position ) <= 10 ) {
-                                entity.action.type = ENTITY_ACTION_TYPE_SELL_ORE;
+                                ActionSellOre( &entity, shop->id );
                             }
                             else {
                                 ActionTravelTo( &entity, shop->id );
@@ -239,7 +265,7 @@ namespace dust {
                         case ENTITY_ACTION_TYPE_TRAVELING: {
                             const f32 ArrivalCirlce = 15.0f; // Hack
                             if ( glm::distance( entity.position, targetEntity->position ) <= ArrivalCirlce ) {
-                                entity.action.type = ENTITY_ACTION_TYPE_IDLE;
+                                ActionIdle( &entity );
                                 break;
                             }
 
@@ -259,8 +285,7 @@ namespace dust {
                                 bool result = InvetoryAddItem( entity.inventory, itemType, 1 );
                                 entity.action.progress = 0.0f;
                                 if ( result == false ) {
-                                    entity.action.type = ENTITY_ACTION_TYPE_IDLE;
-                                    entity.action.targetId = {};
+                                    ActionIdle( &entity );
                                 }
                             }
                         } break;
@@ -286,8 +311,7 @@ namespace dust {
                                 faction.credits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
                             }
 
-                            entity.action.type = ENTITY_ACTION_TYPE_IDLE;
-                            entity.action.targetId = {};
+                            ActionIdle( &entity );
                         } break;
                     }
                 }
