@@ -69,10 +69,10 @@ namespace dust {
             VehicleData vehicleDefaults;
             glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
 
-            buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.85f, 0.5f, 0.15f } ) );
+            buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.90f, 0.85f, 0.20f } ) );
             buggyWheelMesh = UploadMesh( Geometry::CreateCylinder( vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f } ) );
 
-            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_PLAYER, { 0.0f, 3.0f, 0.0f } );
+            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_PLAYER, { 0.0f, 3.0f, 55.0f } );
             entity.playerControlled = true;
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
 
@@ -86,25 +86,7 @@ namespace dust {
             playerVehicleId = world.SpawnEntity( entity );
         }
 
-        // AI dune buggy.
-        {
-            VehicleData vehicleDefaults;
-            glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
-
-            Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, FACTION_TYPE_REMNANT, { -3.0f, 3.0f, 0.0f } );
-            entity.renderModel = { shader.get(), buggyChassisMesh.get() };
-
-            entity.rigidBodyData.shape = RigidBodyShape::Box;
-            entity.rigidBodyData.halfExtents = chassisHalfExtents;
-            entity.rigidBodyData.restitution = 0.1f;
-            entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
-            entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
-            entity.rigidBodyData.restitution = 0.05f;
-
-            aiVehicleId = world.SpawnEntity( entity );
-        }
-
-        // Ore nodes, one of each type.
+        // Ore nodes, one of each type, clustered in the middle of the map.
         {
             struct OreNodeSpawn {
                 OreNodeType type;
@@ -113,12 +95,12 @@ namespace dust {
             };
 
             const OreNodeSpawn spawns[] = {
-                { ORE_NODE_TYPE_IRON,     { 0.70f, 0.70f, 0.35f }, {  14, 0, -14 } },
-                { ORE_NODE_TYPE_COPPER,   { 0.80f, 0.45f, 0.20f }, {  26, 0, -14 } },
-                { ORE_NODE_TYPE_COAL,     { 0.15f, 0.15f, 0.15f }, {  38, 0, -14 } },
-                { ORE_NODE_TYPE_SULPHUR,  { 0.90f, 0.85f, 0.20f }, {  14, 0, -26 } },
-                { ORE_NODE_TYPE_ALUMINUM, { 0.75f, 0.78f, 0.80f }, {  26, 0, -26 } },
-                { ORE_NODE_TYPE_CHROME,   { 0.55f, 0.60f, 0.65f }, {  38, 0, -26 } },
+                { ORE_NODE_TYPE_IRON,     { 0.70f, 0.70f, 0.35f }, { -12, 0,  -8 } },
+                { ORE_NODE_TYPE_COPPER,   { 0.80f, 0.45f, 0.20f }, {   0, 0,  -8 } },
+                { ORE_NODE_TYPE_COAL,     { 0.15f, 0.15f, 0.15f }, {  12, 0,  -8 } },
+                { ORE_NODE_TYPE_SULPHUR,  { 0.90f, 0.85f, 0.20f }, { -12, 0,   8 } },
+                { ORE_NODE_TYPE_ALUMINUM, { 0.75f, 0.78f, 0.80f }, {   0, 0,   8 } },
+                { ORE_NODE_TYPE_CHROME,   { 0.55f, 0.60f, 0.65f }, {  12, 0,   8 } },
             };
 
             glm::vec3 halfExtents( 4.0f, 2.3f, 4.0f );
@@ -139,24 +121,64 @@ namespace dust {
             }
         }
 
-        // Shop
+        // Factions: each gets a shop and 2 AI dune buggies that mine the
+        // shared ore cluster in the middle of the map and sell back home.
         {
-            glm::vec3 halfExtents( 3.0f, 2.3f, 3.0f );
-            shopMesh = UploadMesh( Geometry::CreateBox( halfExtents.x * 2.0f, halfExtents.y * 2.0f, halfExtents.z * 2.0f, { 0.3f, 0.7f, 0.3f } ) );
+            struct FactionSpawn {
+                FactionType type;
+                glm::vec3   color;
+                glm::vec3   shopPosition;
+                glm::vec3   aiPositions[2];
+            };
 
-            Entity entity = MakeEntity( ENTITY_TYPE_SHOP, FACTION_TYPE_REMNANT, { -14, 0, 25 } );
-            entity.renderModel = { shader.get(), shopMesh.get() };
-            entity.shop.credits = 1000;
+            const FactionSpawn factionSpawns[] = {
+                { FACTION_TYPE_REMNANT,  { 0.85f, 0.50f, 0.15f }, {   0.0f, 0.0f, -50.0f }, { { -6.0f, 3.0f, -45.0f }, {  6.0f, 3.0f, -45.0f } } },
+                { FACTION_TYPE_RUSTBORN, { 0.65f, 0.25f, 0.15f }, { -45.0f, 0.0f,  30.0f }, { { -50.0f, 3.0f, 24.0f }, { -40.0f, 3.0f, 24.0f } } },
+                { FACTION_TYPE_ZENITH,   { 0.20f, 0.60f, 0.85f }, {  45.0f, 0.0f,  30.0f }, { {  50.0f, 3.0f, 24.0f }, {  40.0f, 3.0f, 24.0f } } },
+            };
 
-            entity.rigidBodyData.shape = RigidBodyShape::Box;
-            entity.rigidBodyData.halfExtents = halfExtents;
-            entity.rigidBodyData.motionType = BodyMotionType::Static;
+            VehicleData vehicleDefaults;
+            glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
+            glm::vec3 shopHalfExtents( 3.0f, 2.3f, 3.0f );
 
-            world.SpawnEntity( entity );
+            for ( usize i = 0; i < sizeof( factionSpawns ) / sizeof( factionSpawns[0] ); i++ ) {
+                const FactionSpawn & fs = factionSpawns[i];
+
+                factionChassisMeshes[i] = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, fs.color ) );
+                factionShopMeshes[i] = UploadMesh( Geometry::CreateBox( shopHalfExtents.x * 2.0f, shopHalfExtents.y * 2.0f, shopHalfExtents.z * 2.0f, fs.color ) );
+
+                // Shop
+                {
+                    Entity entity = MakeEntity( ENTITY_TYPE_SHOP, fs.type, fs.shopPosition );
+                    entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
+                    entity.shop.credits = 1000;
+
+                    entity.rigidBodyData.shape = RigidBodyShape::Box;
+                    entity.rigidBodyData.halfExtents = shopHalfExtents;
+                    entity.rigidBodyData.motionType = BodyMotionType::Static;
+
+                    world.SpawnEntity( entity );
+                }
+
+                // AI dune buggies
+                for ( const glm::vec3 & aiPosition : fs.aiPositions ) {
+                    Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, fs.type, aiPosition );
+                    entity.renderModel = { shader.get(), factionChassisMeshes[i].get() };
+
+                    entity.rigidBodyData.shape = RigidBodyShape::Box;
+                    entity.rigidBodyData.halfExtents = chassisHalfExtents;
+                    entity.rigidBodyData.restitution = 0.1f;
+                    entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
+                    entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
+                    entity.rigidBodyData.restitution = 0.05f;
+
+                    world.SpawnEntity( entity );
+                }
+            }
         }
 
         camera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
-        camera.SetDistance( 20.0f );
+        camera.SetDistance( 30.0f );
     }
 
     void DustGame::Shutdown() {
@@ -168,7 +190,12 @@ namespace dust {
         for ( auto & mesh : oreNodeMeshes ) {
             mesh.reset();
         }
-        shopMesh.reset();
+        for ( auto & mesh : factionChassisMeshes ) {
+            mesh.reset();
+        }
+        for ( auto & mesh : factionShopMeshes ) {
+            mesh.reset();
+        }
         shader.reset();
     }
 

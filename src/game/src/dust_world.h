@@ -30,7 +30,7 @@ namespace dust {
         EntityId                    FindEntityByRigidBody( sloth::RigidBody body ) const;
 
         Entity *                    QueryClosestOreNode( glm::vec3 pos, OreNodeType type );
-        Entity *                    QueryClosestShop( glm::vec3 pos );
+        Entity *                    QueryClosestShop( glm::vec3 pos, FactionType faction );
 
 
         void                        ActionIdle( Entity * entity );

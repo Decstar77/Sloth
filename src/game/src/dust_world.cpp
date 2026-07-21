@@ -90,11 +90,11 @@ namespace dust {
         return found;
     }
 
-    Entity * DustWorld::QueryClosestShop( glm::vec3 pos ) {
+    Entity * DustWorld::QueryClosestShop( glm::vec3 pos, FactionType faction ) {
         f32 maxDist = FLT_MAX;
         Entity * found = nullptr;
         for ( Entity & entity : entities ) {
-            if ( entity.type == ENTITY_TYPE_SHOP ) {
+            if ( entity.type == ENTITY_TYPE_SHOP && entity.faction == faction ) {
                 f32 dist = glm::distance( entity.position, pos );
                 if ( dist < maxDist ) {
                     maxDist = dist;
@@ -243,7 +243,7 @@ namespace dust {
                         }
                     }
                     else {
-                        Entity * shop = QueryClosestShop( entity.position );
+                        Entity * shop = QueryClosestShop( entity.position, entity.faction );
                         if ( shop != nullptr ) {
                             if ( glm::distance( entity.position, shop->position ) <= 10 ) {
                                 ActionSellOre( &entity, shop->id );
