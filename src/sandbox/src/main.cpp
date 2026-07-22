@@ -1,6 +1,7 @@
 #include <core/sloth_engine.h>
 #include <font/sloth_font.h>
 #include <gui/sloth_gui_context.h>
+#include <gui/sloth_gui_frame.h>
 #include <gui/sloth_gui_widgets.h>
 #include <audio/sloth_audio_world.h>
 #include <renderer/sloth_glyph_cache.h>
@@ -70,7 +71,8 @@ int main() {
 
         audioWorld.Update();
 
-        guiContext.NewFrame( engine.GetInput() );
+        glm::mat4 screenProjection = MakeScreenProjection( static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ) );
+        GuiFrame guiFrame = BeginGuiFrame( guiContext, guiRenderer, textRenderer, font, glyphCache, engine.GetInput(), screenProjection );
 
         game.Update( deltaTime );
         game.Render();
@@ -83,7 +85,7 @@ int main() {
             inventoryOpen = !inventoryOpen;
         }
 
-        glm::mat4 screenProjection = MakeScreenProjection( static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ) );
+        game.RenderUI( guiFrame );
 
         //guiRenderer.DrawRect( { 32.0f, 96.0f }, { 320.0f, 280.0f }, { 0.15f, 0.15f, 0.18f, 0.9f }, 12.0f );
         //guiRenderer.DrawRect( { 48.0f, 112.0f }, { 140.0f, 144.0f }, { 0.2f, 0.55f, 0.9f, 1.0f }, 6.0f );
@@ -100,15 +102,15 @@ int main() {
         //    glm::vec2 buttonMin { 32.0f, 320.0f };
         //    glm::vec2 buttonMax { 232.0f, 368.0f };
         //    i32 & clickCount = guiContext.GetStorage().GetOrAddInt( guiContext.GetId( "DemoButton" ) );
-        //    if ( Button( guiContext, guiRenderer, textRenderer, font, glyphCache, "DemoButton", buttonMin, buttonMax, screenProjection ) ) {
+        //    if ( Button( guiFrame, "DemoButton", buttonMin, buttonMax ) ) {
         //        ++clickCount;
         //    }
 
         //    LargeString buttonLabel;
         //    buttonLabel.Format( "Clicked: %d", clickCount );
-        //    Label( textRenderer, font, glyphCache, buttonLabel.View(), { buttonMin.x, buttonMax.y + 24.0f }, 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection );
+        //    Label( guiFrame, buttonLabel.View(), { buttonMin.x, buttonMax.y + 24.0f }, 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
 
-        //    Checkbox( guiContext, guiRenderer, textRenderer, font, glyphCache, "Demo checkbox", { 32.0f, 400.0f }, demoCheckboxValue, screenProjection );
+        //    Checkbox( guiFrame, "Demo checkbox", { 32.0f, 400.0f }, demoCheckboxValue );
         //}
 
         // Faction entity counts, top-left corner.
@@ -234,7 +236,7 @@ int main() {
                     ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
                 };
 
-                PanelResult panel = BeginPanel( guiContext, guiRenderer, textRenderer, font, glyphCache, "Inventory##InvPanel", defaultPos, panelSize, screenProjection );
+                PanelResult panel = BeginPanel( guiFrame, "Inventory##InvPanel", defaultPos, panelSize );
 
                 glm::vec2 gridOrigin = panel.contentMin;
 
@@ -255,10 +257,10 @@ int main() {
                         slotLabel.Format( "##InvSlot%d", slot );
                     }
 
-                    Button( guiContext, guiRenderer, textRenderer, font, glyphCache, slotLabel.View(), slotMin, slotMax, screenProjection );
+                    Button( guiFrame, slotLabel.View(), slotMin, slotMax );
                 }
 
-                EndPanel( guiContext, guiRenderer, screenProjection );
+                EndPanel( guiFrame );
             }
         }
 
@@ -294,7 +296,7 @@ int main() {
         //    guiRenderer.Flush( screenProjection );
         //}
 
-        guiContext.EndFrame();
+        EndGuiFrame( guiFrame );
         engine.EndFrame();
         window.OnUpdate();
     }

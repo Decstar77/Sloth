@@ -147,6 +147,59 @@ namespace dust {
         entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
     }
 
+    bool DustWorld::PurchaseRefineryItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType ) {
+        SL_ASSERT( buyer );
+
+        Entity * refinery = GetEntity( refineryId );
+        if ( refinery == nullptr || refinery->type != ENTITY_TYPE_BUILDING || refinery->building.type != BUILDING_TYPE_REFINERY ) {
+            return false;
+        }
+
+        const Price price = RefineryPriceForItem( itemType );
+
+        Faction & buyerFaction = GetFaction( buyer->faction );
+        if ( buyerFaction.credits < price.credits ) {
+            return false;
+        }
+
+        constexpr InventoryItemType oreTypes[] = {
+            INVENTORY_ITEM_TYPE_ORE_IRON,
+            INVENTORY_ITEM_TYPE_ORE_COPPER,
+            INVENTORY_ITEM_TYPE_ORE_SULPHUR,
+            INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
+            INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
+            INVENTORY_ITEM_TYPE_ORE_WATER,
+            INVENTORY_ITEM_TYPE_ORE_SILICON,
+        };
+        const i64 oreCosts[] = {
+            price.oreIron, price.oreCopper, price.oreSulphur,
+            price.oreAluminum, price.oreCrudeOil, price.oreWater, price.oreSilicon,
+        };
+
+        for ( u32 i = 0; i < SL_ARRAY_COUNT( oreTypes ); i++ ) {
+            if ( InventoryGetTotalAmount( buyer->inventory, oreTypes[i] ) < oreCosts[i] ) {
+                return false;
+            }
+        }
+
+        // Check inventory space before touching any resources so a full
+        // inventory fails cleanly instead of charging without delivering.
+        if ( InvetoryAddItem( buyer->inventory, itemType, 1 ) == false ) {
+            return false;
+        }
+
+        for ( u32 i = 0; i < SL_ARRAY_COUNT( oreTypes ); i++ ) {
+            if ( oreCosts[i] > 0 ) {
+                InventoryRemoveAmount( buyer->inventory, oreTypes[i], oreCosts[i] );
+            }
+        }
+
+        buyerFaction.credits -= price.credits;
+        refinery->building.credits += price.credits;
+
+        return true;
+    }
+
     void DustWorld::ApplySpawn( const PendingSpawn & spawn ) {
         Entity & entity = entities[spawn.id.index];
 

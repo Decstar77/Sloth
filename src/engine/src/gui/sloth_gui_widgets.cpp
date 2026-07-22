@@ -49,8 +49,8 @@ namespace sloth {
         const glm::vec4 PanelTitleTextColor{ 0.92f, 0.92f, 0.95f, 1.0f };
     } // namespace
 
-    bool Button( GuiContext & ctx, GuiRenderer & renderer, TextRenderer & textRenderer, const Font & font,
-        GlyphCache & glyphCache, StringView label, glm::vec2 min, glm::vec2 max, const glm::mat4 & viewProjection ) {
+    bool Button( GuiFrame & frame, StringView label, glm::vec2 min, glm::vec2 max ) {
+        GuiContext & ctx = frame.ctx;
         GuiId id = ctx.GetId( label );
 
         bool hovered = GuiContext::IsPointInRect( ctx.GetMousePos(), min, max ) && ctx.IsPointVisible( ctx.GetMousePos() );
@@ -70,20 +70,20 @@ namespace sloth {
         }
 
         glm::vec4 color = ctx.IsActive( id ) ? ButtonColorActive : ctx.IsHot( id ) ? ButtonColorHot : ButtonColorNormal;
-        renderer.DrawRect( min, max, color, ButtonCornerRadius );
-        renderer.Flush( viewProjection );
+        frame.renderer.DrawRect( min, max, color, ButtonCornerRadius );
+        frame.renderer.Flush( frame.viewProjection );
 
-        if ( font.IsLoaded() ) {
+        if ( frame.font.IsLoaded() ) {
             StringView displayLabel = StripGuiLabelHash( label );
             glm::vec2 textPos{ min.x + ButtonTextPaddingX, ( min.y + max.y ) * 0.5f + TextBaselineMidpointOffset };
-            textRenderer.DrawText( font, glyphCache, displayLabel, textPos, ButtonTextPixelHeight, ButtonTextColor, viewProjection );
+            frame.textRenderer.DrawText( frame.font, frame.glyphCache, displayLabel, textPos, ButtonTextPixelHeight, ButtonTextColor, frame.viewProjection );
         }
 
         return clicked;
     }
 
-    bool Checkbox( GuiContext & ctx, GuiRenderer & renderer, TextRenderer & textRenderer, const Font & font,
-        GlyphCache & glyphCache, StringView label, glm::vec2 pos, bool & value, const glm::mat4 & viewProjection ) {
+    bool Checkbox( GuiFrame & frame, StringView label, glm::vec2 pos, bool & value ) {
+        GuiContext & ctx = frame.ctx;
         GuiId id = ctx.GetId( label );
         glm::vec2 boxMin = pos;
         glm::vec2 boxMax = pos + glm::vec2( CheckboxBoxSize, CheckboxBoxSize );
@@ -108,34 +108,32 @@ namespace sloth {
         }
 
         glm::vec4 boxColor = ctx.IsActive( id ) ? CheckboxColorActive : ctx.IsHot( id ) ? CheckboxColorHot : CheckboxColorNormal;
-        renderer.DrawRect( boxMin, boxMax, boxColor, CheckboxCornerRadius, CheckboxBorderWidth, CheckboxBorderColor );
+        frame.renderer.DrawRect( boxMin, boxMax, boxColor, CheckboxCornerRadius, CheckboxBorderWidth, CheckboxBorderColor );
         if ( value ) {
             glm::vec2 markMin = boxMin + glm::vec2( CheckboxMarkInset, CheckboxMarkInset );
             glm::vec2 markMax = boxMax - glm::vec2( CheckboxMarkInset, CheckboxMarkInset );
-            renderer.DrawRect( markMin, markMax, CheckboxMarkColor, CheckboxMarkCornerRadius );
+            frame.renderer.DrawRect( markMin, markMax, CheckboxMarkColor, CheckboxMarkCornerRadius );
         }
-        renderer.Flush( viewProjection );
+        frame.renderer.Flush( frame.viewProjection );
 
-        if ( font.IsLoaded() ) {
+        if ( frame.font.IsLoaded() ) {
             StringView displayLabel = StripGuiLabelHash( label );
             glm::vec2 textPos{ boxMax.x + CheckboxLabelGap, ( boxMin.y + boxMax.y ) * 0.5f + TextBaselineMidpointOffset };
-            textRenderer.DrawText( font, glyphCache, displayLabel, textPos, CheckboxTextPixelHeight, CheckboxTextColor, viewProjection );
+            frame.textRenderer.DrawText( frame.font, frame.glyphCache, displayLabel, textPos, CheckboxTextPixelHeight, CheckboxTextColor, frame.viewProjection );
         }
 
         return changed;
     }
 
-    void Label( TextRenderer & textRenderer, const Font & font, GlyphCache & glyphCache, StringView text, glm::vec2 baselinePos,
-        f32 pixelHeight, const glm::vec4 & color, const glm::mat4 & viewProjection ) {
-        if ( !font.IsLoaded() ) {
+    void Label( GuiFrame & frame, StringView text, glm::vec2 baselinePos, f32 pixelHeight, const glm::vec4 & color ) {
+        if ( !frame.font.IsLoaded() ) {
             return;
         }
-        textRenderer.DrawText( font, glyphCache, text, baselinePos, pixelHeight, color, viewProjection );
+        frame.textRenderer.DrawText( frame.font, frame.glyphCache, text, baselinePos, pixelHeight, color, frame.viewProjection );
     }
 
-    PanelResult BeginPanel( GuiContext & ctx, GuiRenderer & renderer, TextRenderer & textRenderer, const Font & font,
-        GlyphCache & glyphCache, StringView label, glm::vec2 defaultPos, glm::vec2 size, const glm::mat4 & viewProjection,
-        bool draggable ) {
+    PanelResult BeginPanel( GuiFrame & frame, StringView label, glm::vec2 defaultPos, glm::vec2 size, bool draggable ) {
+        GuiContext & ctx = frame.ctx;
         GuiId id = ctx.GetId( label );
 
         // Position is the one piece of panel state that must outlive the
@@ -195,17 +193,17 @@ namespace sloth {
         // this (and TextRenderer, which draws immediately rather than queuing)
         // must land on top - the same ordering workaround Button/Checkbox use
         // until draw layers exist (roadmap item 8).
-        renderer.DrawRect( panelMin, panelMax, PanelBodyColor, PanelCornerRadius );
+        frame.renderer.DrawRect( panelMin, panelMax, PanelBodyColor, PanelCornerRadius );
         glm::vec4 titleColor = ctx.IsActive( id ) ? PanelTitleColorActive : ( draggable && ctx.IsHot( id ) ) ? PanelTitleColorHot : PanelTitleColorNormal;
-        renderer.DrawRect( titleMin, titleMax, titleColor, PanelCornerRadius );
+        frame.renderer.DrawRect( titleMin, titleMax, titleColor, PanelCornerRadius );
         // Square off the title bar's lower corners against the body.
-        renderer.DrawRect( { titleMin.x, ( titleMin.y + titleMax.y ) * 0.5f }, titleMax, titleColor, 0.0f );
-        renderer.Flush( viewProjection );
+        frame.renderer.DrawRect( { titleMin.x, ( titleMin.y + titleMax.y ) * 0.5f }, titleMax, titleColor, 0.0f );
+        frame.renderer.Flush( frame.viewProjection );
 
-        if ( font.IsLoaded() ) {
+        if ( frame.font.IsLoaded() ) {
             StringView displayLabel = StripGuiLabelHash( label );
             glm::vec2 textPos{ titleMin.x + PanelTitleTextPaddingX, ( titleMin.y + titleMax.y ) * 0.5f + TextBaselineMidpointOffset };
-            textRenderer.DrawText( font, glyphCache, displayLabel, textPos, PanelTitleTextPixelHeight, PanelTitleTextColor, viewProjection );
+            frame.textRenderer.DrawText( frame.font, frame.glyphCache, displayLabel, textPos, PanelTitleTextPixelHeight, PanelTitleTextColor, frame.viewProjection );
         }
 
         PanelResult result;
@@ -217,19 +215,19 @@ namespace sloth {
         // overflowing widget is neither drawn nor clickable past the edge.
         glm::vec2 clipMin{ panelMin.x, titleMax.y };
         glm::vec2 clipMax = panelMax;
-        renderer.PushClipRect( clipMin, clipMax );
+        frame.renderer.PushClipRect( clipMin, clipMax );
         ctx.PushClipRect( clipMin, clipMax );
 
         return result;
     }
 
-    void EndPanel( GuiContext & ctx, GuiRenderer & renderer, const glm::mat4 & viewProjection ) {
+    void EndPanel( GuiFrame & frame ) {
         // Flush before popping so any content the caller queued (raw DrawRect
         // etc.) is drawn while the panel's clip rect is still on the stack;
         // otherwise it would inherit the wrong clip after the pop.
-        renderer.Flush( viewProjection );
-        renderer.PopClipRect();
-        ctx.PopClipRect();
+        frame.renderer.Flush( frame.viewProjection );
+        frame.renderer.PopClipRect();
+        frame.ctx.PopClipRect();
     }
 
 } // namespace sloth

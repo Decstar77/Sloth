@@ -170,6 +170,48 @@ namespace dust {
         return amount;
     }
 
+    i64 InventoryGetTotalAmount( const Inventory & inventory, InventoryItemType type ) {
+        i64 total = 0;
+        for ( const InventoryItem & item : inventory.items ) {
+            if ( item.type == type ) {
+                total += item.amount;
+            }
+        }
+
+        return total;
+    }
+
+    bool InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i64 amount ) {
+        if ( InventoryGetTotalAmount( inventory, type ) < amount ) {
+            return false;
+        }
+
+        i64 remaining = amount;
+        FixedList<u32, INVENTORY_CAPACITY> emptied;
+        const u32 count = inventory.items.GetCount();
+        for ( u32 i = 0; i < count && remaining > 0; i++ ) {
+            InventoryItem & item = inventory.items[i];
+            if ( item.type != type ) {
+                continue;
+            }
+
+            const i64 take = item.amount < remaining ? item.amount : remaining;
+            item.amount -= take;
+            remaining -= take;
+
+            if ( item.amount == 0 ) {
+                emptied.Add( i );
+            }
+        }
+
+        // Remove back-to-front so earlier indices in `emptied` stay valid.
+        for ( u32 i = emptied.GetCount(); i > 0; i-- ) {
+            inventory.items.RemoveAt( emptied[i - 1] );
+        }
+
+        return true;
+    }
+
     Price RefineryPriceForItem( InventoryItemType item ) {
         Price price = {};
         switch ( item ) {

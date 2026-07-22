@@ -154,6 +154,8 @@ namespace dust {
     InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
     const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
     i64                     InvetoryRemoveItem( Inventory & inventory, InventoryItemType type );
+    i64                     InventoryGetTotalAmount( const Inventory & inventory, InventoryItemType type );
+    bool                    InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i64 amount );
 
     InventoryItemType       OreNodeTypeToItemType( OreNodeType type );
     const char *            ToString( InventoryItemType type );

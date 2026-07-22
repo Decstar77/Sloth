@@ -11,6 +11,10 @@
 #include <memory>
 #include <vector>
 
+namespace sloth {
+    struct GuiFrame;
+}
+
 namespace dust {
 
     class DustGame {
@@ -20,6 +24,7 @@ namespace dust {
 
         void                    Update(f32 deltaTime);
         void                    Render();
+        void                    RenderUI( sloth::GuiFrame & guiFrame );
 
         DustCamera &            GetCamera() { return camera; }
         sloth::PhysicsWorld &   GetPhysicsWorld() { return physicsWorld; }
@@ -50,6 +55,9 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  factionShopMeshes[3];
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
+
+        // UI state
+        EntityId                        openRefineryPanelId = INVALID_ENTITY_ID;
 
         sloth::PhysicsWorld             physicsWorld;
     };

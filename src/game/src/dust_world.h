@@ -39,6 +39,8 @@ namespace dust {
         void                        ActionSellOre( Entity * entity, EntityId shopId );
         void                        ActionPlayerControl( Entity * entity );
 
+        bool                        PurchaseRefineryItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType );
+
         const std::vector<Entity> & GetEntities() const { return entities; }
 
         void                        Update( f32 deltaTime );
