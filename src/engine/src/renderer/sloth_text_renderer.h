@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace sloth {
+    class Camera;
     class Font;
     class GlyphCache;
     class Shader;
@@ -32,6 +33,19 @@ namespace sloth {
         // around the draw.
         void DrawText( const Font & font, GlyphCache & cache, StringView text, glm::vec2 baselinePos, f32 pixelHeight,
             const glm::vec4 & color, const glm::mat4 & viewProjection );
+
+        // Projects `worldPos` through `camera`'s view-projection into screen
+        // pixels (same y-down convention as MakeScreenProjection) and draws
+        // `text` centered horizontally on that point using the same
+        // screen-space glyph pipeline as DrawText - i.e. a Kenshi/X4-style
+        // nameplate that stays a constant pixel size regardless of distance.
+        // Returns false and draws nothing if `worldPos` is behind the camera.
+        bool DrawTextWorld( const Font & font, GlyphCache & cache, StringView text, glm::vec3 worldPos, const Camera & camera,
+            f32 screenWidth, f32 screenHeight, f32 pixelHeight, const glm::vec4 & color, const glm::mat4 & screenProjection );
+
+        // Sums glyph advance widths at `pixelHeight`; used to center world/HUD
+        // labels on a point rather than starting them at it.
+        f32 MeasureText( const Font & font, GlyphCache & cache, StringView text, f32 pixelHeight );
 
       private:
         struct GlyphInstance {

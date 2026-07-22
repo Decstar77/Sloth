@@ -139,6 +139,26 @@ int main() {
             }
         }
 
+        // World-space nameplates above each ore node, identifying its resource.
+        if ( font.IsLoaded() ) {
+            const sloth::Camera & camera = game.GetCamera().GetCamera();
+            constexpr f32 labelHeightAboveNode = 3.0f;
+
+            for ( const dust::Entity & entity : game.GetWorld().GetEntities() ) {
+                if ( entity.type != dust::ENTITY_TYPE_ORE_NODE ) {
+                    continue;
+                }
+
+                dust::InventoryItemType itemType = dust::OreNodeTypeToItemType( entity.oreNode.type );
+                LargeString label;
+                label.Assign( dust::ToString( itemType ) );
+
+                glm::vec3 worldPos = entity.position + glm::vec3( 0.0f, labelHeightAboveNode, 0.0f );
+                textRenderer.DrawTextWorld( font, glyphCache, label.View(), worldPos, camera,
+                    static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ), 20.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, screenProjection );
+            }
+        }
+
         // Player's current raycast target, top-right corner.
         if ( font.IsLoaded() ) {
             const dust::Entity * target = game.GetPlayerTarget();

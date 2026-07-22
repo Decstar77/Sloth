@@ -1,6 +1,7 @@
 #include "sloth_text_renderer.h"
 
 #include "font/sloth_font.h"
+#include "renderer/sloth_camera.h"
 #include "renderer/sloth_glyph_cache.h"
 #include "renderer/sloth_shader.h"
 
@@ -303,6 +304,40 @@ namespace sloth {
         if ( !blendWasEnabled ) {
             glDisable( GL_BLEND );
         }
+    }
+
+    f32 TextRenderer::MeasureText( const Font & font, GlyphCache & cache, StringView text, f32 pixelHeight ) {
+        f32 scale = font.GetScaleForPixelHeight( pixelHeight );
+        f32 width = 0.0f;
+
+        for ( usize i = 0; i < text.Length(); ++i ) {
+            u32 codepoint = static_cast<u8>( text[i] );
+            i32 glyphIndex = font.GetGlyphIndex( codepoint );
+            const CachedGlyph & glyph = cache.GetOrAddGlyph( font, glyphIndex );
+            width += static_cast<f32>( glyph.advanceWidth ) * scale;
+        }
+
+        return width;
+    }
+
+    bool TextRenderer::DrawTextWorld( const Font & font, GlyphCache & cache, StringView text, glm::vec3 worldPos, const Camera & camera,
+        f32 screenWidth, f32 screenHeight, f32 pixelHeight, const glm::vec4 & color, const glm::mat4 & screenProjection ) {
+        glm::vec4 clipPos = camera.GetViewProjectionMatrix() * glm::vec4( worldPos, 1.0f );
+        if ( clipPos.w <= 0.0f ) {
+            return false; // Behind the camera - perspective divide would flip it onscreen.
+        }
+
+        glm::vec3 ndc = glm::vec3( clipPos ) / clipPos.w;
+
+        glm::vec2 screenPos;
+        screenPos.x = ( ndc.x * 0.5f + 0.5f ) * screenWidth;
+        screenPos.y = ( 1.0f - ( ndc.y * 0.5f + 0.5f ) ) * screenHeight; // NDC y-up -> pixel y-down
+
+        f32 width = MeasureText( font, cache, text, pixelHeight );
+        glm::vec2 baselinePos = screenPos - glm::vec2( width * 0.5f, 0.0f );
+
+        DrawText( font, cache, text, baselinePos, pixelHeight, color, screenProjection );
+        return true;
     }
 
 } // namespace sloth
