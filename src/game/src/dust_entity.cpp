@@ -170,6 +170,40 @@ namespace dust {
         return amount;
     }
 
+    Price RefineryPriceForItem( InventoryItemType item ) {
+        Price price = {};
+        switch ( item ) {
+            case INVENTORY_ITEM_TYPE_STEEL_INGOT: {
+                price.credits = 10;
+                price.oreIron = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_COPPER_WIRE: {
+                price.credits = 10;
+                price.oreCopper = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE: {
+                price.credits = 10;
+                price.oreAluminum = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_PETROL: {
+                price.credits = 10;
+                price.oreCrudeOil = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_LUBRICANT: {
+                price.credits = 10;
+                price.oreCrudeOil = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_GLASS: {
+                price.credits = 10;
+                price.oreSilicon = 25;
+            } break;
+            default:
+                SL_ASSERT_MSG( false, "Unkown item for refinery" );
+                break;
+        }
+        return price;
+    }
+
     Entity MakeEntity( EntityType type, FactionType faction, glm::vec3 position ) {
         Entity entity = {}; // Clear to zero
         entity.type = type;
@@ -189,16 +223,16 @@ namespace dust {
             case ENTITY_TYPE_VEHICLE: {
                 entity.rigidBodyData.createRigidBody = true;
                 entity.vehicle = VehicleData();
-                entity.inventory.xSize = 2;
-                entity.inventory.ySize = 1;
+                entity.inventory.xSize = 5;
+                entity.inventory.ySize = 3;
             } break;
             case ENTITY_TYPE_ORE_NODE: {
                 entity.rigidBodyData.createRigidBody = true;
                 entity.oreNode = OreNode();
             } break;
-            case ENTITY_TYPE_SHOP: {
+            case ENTITY_TYPE_BUILDING: {
                 entity.rigidBodyData.createRigidBody = true;
-                entity.shop = Shop();
+                entity.building = {};
             } break;
         }
 
@@ -309,7 +343,7 @@ namespace dust {
                 return "Vehicle";
             case ENTITY_TYPE_ORE_NODE:
                 return "Ore Node";
-            case ENTITY_TYPE_SHOP:
+            case ENTITY_TYPE_BUILDING:
                 return "Shop";
         }
 

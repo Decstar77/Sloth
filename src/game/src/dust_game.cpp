@@ -150,9 +150,9 @@ namespace dust {
 
                 // Shop
                 {
-                    Entity entity = MakeEntity( ENTITY_TYPE_SHOP, fs.type, fs.shopPosition );
+                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition );
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
-                    entity.shop.credits = 1000;
+                    entity.building.credits = 1000;
 
                     entity.rigidBodyData.shape = RigidBodyShape::Box;
                     entity.rigidBodyData.halfExtents = shopHalfExtents;
@@ -296,7 +296,18 @@ namespace dust {
                     case ENTITY_TYPE_PROP: { world.ActionIdle( player ); } break;
                     case ENTITY_TYPE_VEHICLE: { player->action.targetId = hitId; } break;
                     case ENTITY_TYPE_ORE_NODE: { world.ActionMineOre( player, hitId ); } break;
-                    case ENTITY_TYPE_SHOP: { world.ActionSellOre( player, hitId ); } break;
+                    case ENTITY_TYPE_BUILDING: { 
+                        Building & building = targetEntity->building;
+                        switch ( building.type ) {
+                            case BUILDING_TYPE_SHOP: {
+                                world.ActionSellOre( player, hitId );
+                            } break;
+                            case BUILDING_TYPE_REFINERY: {
+                                // Open refinery item options panel.
+                            } break;
+                        }
+                        
+                    } break;
                 }
             }
         }

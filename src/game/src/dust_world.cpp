@@ -94,7 +94,7 @@ namespace dust {
         f32 maxDist = FLT_MAX;
         Entity * found = nullptr;
         for ( Entity & entity : entities ) {
-            if ( entity.type == ENTITY_TYPE_SHOP && entity.faction == faction ) {
+            if ( entity.type == ENTITY_TYPE_BUILDING && entity.building.type == BUILDING_TYPE_SHOP && entity.faction == faction ) {
                 f32 dist = glm::distance( entity.position, pos );
                 if ( dist < maxDist ) {
                     maxDist = dist;

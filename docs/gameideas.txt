@@ -43,7 +43,21 @@
         - Silicon   (~BZ) -> ~R would only need silicon for basic electronics, eg targeting chips.
 
     Refined materials:
-        - 
+        Refinery:
+            - Steel Ingot
+            - Copper wire 
+            - Aluminum Plate
+            - Petrol (Crude Oil)
+            - Lubricant Oil (Crude Oil)
+            - Glass (Silicon)
+
+        Chemical Plant
+            - Sulphuric Acid ( Sulphur + water )
+            - Gunpowder ( Sulphur )
+            - Rubber (Crude Oil)
+            - Plastic (Crude Oil)
+            - Silicon Wafer (Silicon)
+            - Purified Water (Water)
 
     Components:
         - 

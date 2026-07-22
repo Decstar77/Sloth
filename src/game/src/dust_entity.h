@@ -19,7 +19,7 @@ namespace dust {
         ENTITY_TYPE_PROP,
         ENTITY_TYPE_VEHICLE,
         ENTITY_TYPE_ORE_NODE,
-        ENTITY_TYPE_SHOP,
+        ENTITY_TYPE_BUILDING,
     };
 
     struct EntityId {
@@ -115,6 +115,24 @@ namespace dust {
         INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
         INVENTORY_ITEM_TYPE_ORE_WATER,
         INVENTORY_ITEM_TYPE_ORE_SILICON,
+
+        // Refinery
+        INVENTORY_ITEM_TYPE_STEEL_INGOT,
+        INVENTORY_ITEM_TYPE_COPPER_WIRE,
+        INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
+        INVENTORY_ITEM_TYPE_PETROL,
+        INVENTORY_ITEM_TYPE_LUBRICANT,
+        INVENTORY_ITEM_TYPE_GLASS,
+
+        // ChemicalPlant
+        INVENTORY_ITEM_TYPE_SULPHURIC_ACID,
+        INVENTORY_ITEM_TYPE_GUNPOWDER,
+        INVENTORY_ITEM_TYPE_RUBBER,
+        INVENTORY_ITEM_TYPE_PLASTIC,
+        INVENTORY_ITEM_TYPE_SILICON_WAFER,
+        INVENTORY_ITEM_TYPE_PURIFIED_WATER
+
+
     };
 
     struct InventoryItem {
@@ -156,9 +174,30 @@ namespace dust {
         f32                 progress;
     };
 
-    struct Shop {
+    enum BuildingType {
+        BUILDING_TYPE_SHOP = 0,
+        BUILDING_TYPE_REFINERY,
+        BUILDING_TYPE_CHEMICALPLANT,
+    };
+
+    struct Building {
+        BuildingType type;
         i64 credits;
     };
+
+    struct Price {
+        i64 credits;
+        i64 oreIron;
+        i64 oreCopper;
+        i64 oreSulphur;
+        i64 oreAluminum;
+        i64 oreCrudeOil;
+        i64 oreWater;
+        i64 oreSilicon;
+    };
+
+    Price RefineryPriceForItem( InventoryItemType item );
+    //Price ChemicalPlanePriceForItem( InventoryItemType item );
 
     struct Entity {
         // Entity
@@ -190,7 +229,7 @@ namespace dust {
         union {
             VehicleData vehicle;
             OreNode     oreNode;
-            Shop        shop;
+            Building    building;
         };
     };
 

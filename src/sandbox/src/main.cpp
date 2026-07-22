@@ -214,7 +214,7 @@ int main() {
                 i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
                 i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
 
-                constexpr f32 slotSize = 64.0f;
+                constexpr f32 slotSize = 48.0f;
                 constexpr f32 slotGap = 8.0f;
 
                 f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
@@ -230,7 +230,7 @@ int main() {
                     gridHeight + panelPadding * 2.0f + titleBarHeight,
                 };
                 glm::vec2 defaultPos {
-                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f,
+                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f + 600,
                     ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
                 };
 
