@@ -154,6 +154,22 @@ namespace dust {
                 {
                     Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition );
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
+                    entity.building.type = BUILDING_TYPE_SHOP;
+                    entity.building.credits = 1000;
+
+                    entity.rigidBodyData.shape = RigidBodyShape::Box;
+                    entity.rigidBodyData.halfExtents = shopHalfExtents;
+                    entity.rigidBodyData.motionType = BodyMotionType::Static;
+
+                    world.SpawnEntity( entity );
+                }
+
+                
+                // Refinery
+                {
+                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(15, 0, 0));
+                    entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
+                    entity.building.type = BUILDING_TYPE_REFINERY;
                     entity.building.credits = 1000;
 
                     entity.rigidBodyData.shape = RigidBodyShape::Box;
@@ -298,91 +314,75 @@ namespace dust {
                     case ENTITY_TYPE_PROP: { world.ActionIdle( player ); } break;
                     case ENTITY_TYPE_VEHICLE: { player->action.targetId = hitId; } break;
                     case ENTITY_TYPE_ORE_NODE: { world.ActionMineOre( player, hitId ); } break;
-                    case ENTITY_TYPE_BUILDING: { 
-                        Building & building = targetEntity->building;
-                        switch ( building.type ) {
-                            case BUILDING_TYPE_SHOP: {
-                                world.ActionSellOre( player, hitId );
-                            } break;
-                            case BUILDING_TYPE_REFINERY: {
-                                openRefineryPanelId = hitId;
-                            } break;
-                        }
-                        
-                    } break;
+                    case ENTITY_TYPE_BUILDING: { player->action.targetId = hitId; } break;
                 }
             }
         }
     }
 
     void DustGame::RenderUI( GuiFrame & guiFrame ) {
-        if ( openRefineryPanelId == INVALID_ENTITY_ID || !guiFrame.font.IsLoaded() ) {
+        if ( !guiFrame.font.IsLoaded() ) {
             return;
         }
-
-        Entity * refinery = world.GetEntity( openRefineryPanelId );
-        if ( refinery == nullptr || refinery->type != ENTITY_TYPE_BUILDING || refinery->building.type != BUILDING_TYPE_REFINERY ) {
-            openRefineryPanelId = INVALID_ENTITY_ID;
-            return;
-        }
-
+        
         Entity * player = world.GetEntity( playerVehicleId );
         if ( player == nullptr ) {
             return;
         }
 
-        constexpr InventoryItemType refineryItems[] = {
-            INVENTORY_ITEM_TYPE_STEEL_INGOT,
-            INVENTORY_ITEM_TYPE_COPPER_WIRE,
-            INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
-            INVENTORY_ITEM_TYPE_PETROL,
-            INVENTORY_ITEM_TYPE_LUBRICANT,
-            INVENTORY_ITEM_TYPE_GLASS,
-        };
+        Entity * target = world.GetEntity( player->action.targetId );
+        if ( target != nullptr && target->type == ENTITY_TYPE_BUILDING  ) {
+            const f32 InteractionDist = 15;
+            f32 dist = glm::distance( player->position, target->position );
+            if ( dist <= InteractionDist && target->building.type == BUILDING_TYPE_REFINERY ) {
+                constexpr InventoryItemType refineryItems[] = {
+                    INVENTORY_ITEM_TYPE_STEEL_INGOT,
+                    INVENTORY_ITEM_TYPE_COPPER_WIRE,
+                    INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
+                    INVENTORY_ITEM_TYPE_PETROL,
+                    INVENTORY_ITEM_TYPE_LUBRICANT,
+                    INVENTORY_ITEM_TYPE_GLASS,
+                };
 
-        constexpr f32 rowWidth = 260.0f;
-        constexpr f32 rowHeight = 36.0f;
-        constexpr f32 rowGap = 8.0f;
-        constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
-        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+                constexpr f32 rowWidth = 260.0f;
+                constexpr f32 rowHeight = 36.0f;
+                constexpr f32 rowGap = 8.0f;
+                constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
+                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
 
-        constexpr i32 rowCount = static_cast<i32>( SL_ARRAY_COUNT( refineryItems ) ) + 1; // +1 for the Close button.
-        glm::vec2 panelSize {
-            rowWidth + panelPadding * 2.0f,
-            static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
-        };
+                constexpr i32 rowCount = static_cast<i32>( SL_ARRAY_COUNT( refineryItems ) ) + 1; // +1 for the Close button.
+                glm::vec2 panelSize {
+                    rowWidth + panelPadding * 2.0f,
+                    static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
+                };
 
-        Window & window = Engine::Get().GetWindow();
-        glm::vec2 defaultPos {
-            ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f,
-            ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
-        };
+                Window & window = Engine::Get().GetWindow();
+                glm::vec2 defaultPos {
+                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
+                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+                };
 
-        PanelResult panel = BeginPanel( guiFrame, "Refinery##RefineryPanel", defaultPos, panelSize );
+                PanelResult panel = BeginPanel( guiFrame, "Refinery##RefineryPanel", defaultPos, panelSize );
 
-        glm::vec2 cursor = panel.contentMin;
-        for ( InventoryItemType itemType : refineryItems ) {
-            const Price price = RefineryPriceForItem( itemType );
+                glm::vec2 cursor = panel.contentMin;
+                for ( InventoryItemType itemType : refineryItems ) {
+                    const Price price = RefineryPriceForItem( itemType );
 
-            LargeString rowLabel;
-            rowLabel.Format( "%s - %dcr##RefineryBuy%d", ToString( itemType ), price.credits, static_cast<i32>( itemType ) );
+                    LargeString rowLabel;
+                    rowLabel.Format( "%s - %dcr##RefineryBuy%d", ToString( itemType ), price.credits, static_cast<i32>( itemType ) );
 
-            glm::vec2 rowMin = cursor;
-            glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
-            if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
-                world.PurchaseRefineryItem( player, openRefineryPanelId, itemType );
+                    glm::vec2 rowMin = cursor;
+                    glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
+                    if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
+                        world.PurchaseRefineryItem( player, target->id, itemType );
+                    }
+
+                    cursor.y += rowHeight + rowGap;
+                }
+
+                EndPanel( guiFrame );
             }
-
-            cursor.y += rowHeight + rowGap;
         }
-
-        glm::vec2 closeMin = cursor;
-        glm::vec2 closeMax = closeMin + glm::vec2( rowWidth, rowHeight );
-        if ( Button( guiFrame, "Close##RefineryPanelClose", closeMin, closeMax ) ) {
-            openRefineryPanelId = INVALID_ENTITY_ID;
-        }
-
-        EndPanel( guiFrame );
     }
 
     const Entity * DustGame::GetPlayer() const {

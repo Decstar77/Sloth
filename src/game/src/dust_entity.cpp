@@ -1,28 +1,6 @@
 #include "dust_entity.h"
 
 namespace dust {
-    i64 InvetoryGetItemCapacity( InventoryItemType type ) {
-        switch ( type ) {
-            case INVENTORY_ITEM_TYPE_ORE_IRON:
-                return 10;
-            case INVENTORY_ITEM_TYPE_ORE_COPPER:
-                return 100;
-            case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
-                return 100;
-            case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
-                return 100;
-            case INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL:
-                return 100;
-            case INVENTORY_ITEM_TYPE_ORE_WATER:
-                return 100;
-            case INVENTORY_ITEM_TYPE_ORE_SILICON:
-                return 100;
-        }
-
-        SL_ASSERT( false );
-        return 0;
-    }
-
     InventoryItemType OreNodeTypeToItemType( OreNodeType type ) {
         switch ( type ) {
             case ORE_NODE_TYPE_IRON:
@@ -45,6 +23,54 @@ namespace dust {
         return INVENTORY_ITEM_TYPE_ORE_IRON;
     }
 
+    i64 InvetoryGetItemCapacity( InventoryItemType type ) {
+        switch ( type ) {
+            case INVENTORY_ITEM_TYPE_ORE_IRON:
+                return 10;
+            case INVENTORY_ITEM_TYPE_ORE_COPPER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_SULPHUR:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_ALUMINUM:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_WATER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ORE_SILICON:
+                return 100;
+
+            case INVENTORY_ITEM_TYPE_STEEL_INGOT:
+                return 100;
+            case INVENTORY_ITEM_TYPE_COPPER_WIRE:
+                return 100;
+            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE:
+                return 100;
+            case INVENTORY_ITEM_TYPE_PETROL:
+                return 100;
+            case INVENTORY_ITEM_TYPE_LUBRICANT:
+                return 100;
+            case INVENTORY_ITEM_TYPE_GLASS:
+                return 100;
+
+            case INVENTORY_ITEM_TYPE_SULPHURIC_ACID:
+                return 100;
+            case INVENTORY_ITEM_TYPE_GUNPOWDER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_RUBBER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_PLASTIC:
+                return 100;
+            case INVENTORY_ITEM_TYPE_SILICON_WAFER:
+                return 100;
+            case INVENTORY_ITEM_TYPE_PURIFIED_WATER:
+                return 100;
+        }
+
+        SL_ASSERT( false );
+        return 0;
+    }
+
     const char * ToString( InventoryItemType type ) {
         switch ( type ) {
             case INVENTORY_ITEM_TYPE_ORE_IRON:
@@ -61,6 +87,32 @@ namespace dust {
                 return "Water";
             case INVENTORY_ITEM_TYPE_ORE_SILICON:
                 return "Silicon";
+
+            case INVENTORY_ITEM_TYPE_STEEL_INGOT:
+                return "Steel Ingot";
+            case INVENTORY_ITEM_TYPE_COPPER_WIRE:
+                return "Copper Wire";
+            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE:
+                return "Aluminum Plate";
+            case INVENTORY_ITEM_TYPE_PETROL:
+                return "Petrol";
+            case INVENTORY_ITEM_TYPE_LUBRICANT:
+                return "Lubricant";
+            case INVENTORY_ITEM_TYPE_GLASS:
+                return "Glass";
+
+            case INVENTORY_ITEM_TYPE_SULPHURIC_ACID:
+                return "Sulphuric Acid";
+            case INVENTORY_ITEM_TYPE_GUNPOWDER:
+                return "Gunpowder";
+            case INVENTORY_ITEM_TYPE_RUBBER:
+                return "Rubber";
+            case INVENTORY_ITEM_TYPE_PLASTIC:
+                return "Plastic";
+            case INVENTORY_ITEM_TYPE_SILICON_WAFER:
+                return "Silicon Wafer";
+            case INVENTORY_ITEM_TYPE_PURIFIED_WATER:
+                return "Purified Water";
         }
 
         return "Unknown";
@@ -82,6 +134,32 @@ namespace dust {
                 return "H2O";
             case INVENTORY_ITEM_TYPE_ORE_SILICON:
                 return "Si";
+
+            case INVENTORY_ITEM_TYPE_STEEL_INGOT:
+                return "Stl";
+            case INVENTORY_ITEM_TYPE_COPPER_WIRE:
+                return "CuW";
+            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE:
+                return "AlP";
+            case INVENTORY_ITEM_TYPE_PETROL:
+                return "Pet";
+            case INVENTORY_ITEM_TYPE_LUBRICANT:
+                return "Lub";
+            case INVENTORY_ITEM_TYPE_GLASS:
+                return "Gls";
+
+            case INVENTORY_ITEM_TYPE_SULPHURIC_ACID:
+                return "H2SO4";
+            case INVENTORY_ITEM_TYPE_GUNPOWDER:
+                return "Gun";
+            case INVENTORY_ITEM_TYPE_RUBBER:
+                return "Rub";
+            case INVENTORY_ITEM_TYPE_PLASTIC:
+                return "Pla";
+            case INVENTORY_ITEM_TYPE_SILICON_WAFER:
+                return "SiW";
+            case INVENTORY_ITEM_TYPE_PURIFIED_WATER:
+                return "pH2O";
         }
 
         return "?";
