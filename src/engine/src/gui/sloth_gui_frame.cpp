@@ -4,10 +4,9 @@
 
 namespace sloth {
 
-    GuiFrame BeginGuiFrame( GuiContext & ctx, GuiRenderer & renderer, TextRenderer & textRenderer, const Font & font,
-        GlyphCache & glyphCache, const Input & input, const glm::mat4 & viewProjection ) {
+    GuiFrame BeginGuiFrame( GuiContext & ctx, GuiRenderer & renderer, TextRenderer & textRenderer, const Font & font, GlyphCache & glyphCache, const Input & input, const glm::mat4 & viewProjection ) {
         ctx.NewFrame( input );
-        return GuiFrame{ ctx, renderer, textRenderer, font, glyphCache, viewProjection };
+        return GuiFrame { ctx, renderer, textRenderer, font, glyphCache, viewProjection };
     }
 
     void EndGuiFrame( GuiFrame & frame ) {
