@@ -140,10 +140,12 @@ namespace dust {
         entity->action.targetId = shopId;
     }
 
-    void DustWorld::ActionPlayerControl( Entity * entity ) {
+    void DustWorld::ActionPlayerControl( Entity * entity, EntityId target ) {
         SL_ASSERT( entity );
 
+        entity->action = {};
         entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
+        entity->action.targetId = target;
     }
 
     bool DustWorld::ShopSellItem( Entity * shop, Entity * seller, i32 sellingItemIndex ) {
@@ -177,7 +179,38 @@ namespace dust {
     }
 
     bool DustWorld::ShopBuyItem( Entity * shop, Entity * buyer, i32 shopItemIndex ) {
-        return false;
+        SL_ASSERT( shop );
+        SL_ASSERT( buyer );
+
+        if ( shop->type != ENTITY_TYPE_BUILDING || shop->building.type != BUILDING_TYPE_SHOP ) {
+            return false;
+        }
+
+        if ( shopItemIndex < 0 || static_cast<u32>( shopItemIndex ) >= shop->inventory.items.GetCount() ) {
+            return false;
+        }
+
+        const InventoryItem item = shop->inventory.items[shopItemIndex];
+
+        const i64 HackyItemPrice = 2;
+        const i64 finalPrice = HackyItemPrice * item.amount;
+
+        Faction & faction = GetFaction( buyer->faction );
+        if ( faction.credits < finalPrice ) {
+            return false;
+        }
+
+        if ( InvetoryAddItem( buyer->inventory, item.type, static_cast<i32>( item.amount ) ) == false ) {
+            return false;
+        }
+
+        InvetoryRemoveItemByIndex( shop->inventory, shopItemIndex );
+
+        // Important to up both the local entity credits and faction credits to keep things balanced / correctly audited
+        buyer->credits -= finalPrice;
+        faction.credits -= finalPrice;
+
+        return true;
     }
 
     bool DustWorld::RefineryPurchaseItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType ) {
@@ -359,6 +392,7 @@ namespace dust {
                         } break;
                         //=================================
                         case ENTITY_ACTION_TYPE_MINING_ORE: {
+                            SL_ASSERT( targetEntity->type == ENTITY_TYPE_ORE_NODE );
                             if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
                                 ActionTravelTo( &entity, targetEntity->id );
                                 break;
@@ -377,6 +411,7 @@ namespace dust {
                         } break;
                         //=================================
                         case ENTITY_ACTION_TYPE_SELL_ORE: {
+                            SL_ASSERT( targetEntity->type == ENTITY_TYPE_BUILDING && targetEntity->building.type == BUILDING_TYPE_SHOP );
                             if ( glm::distance( entity.position, targetEntity->position ) >= 15.0f ) {
                                 ActionTravelTo( &entity, targetEntity->id );
                                 break;

@@ -37,7 +37,7 @@ namespace dust {
         void                        ActionTravelTo( Entity * entity, EntityId target );
         void                        ActionMineOre( Entity * entity, EntityId oreNodeId );
         void                        ActionSellOre( Entity * entity, EntityId shopId );
-        void                        ActionPlayerControl( Entity * entity );
+        void                        ActionPlayerControl( Entity * entity, EntityId target );
 
         bool                        ShopSellItem( Entity * shop, Entity * seller, i32 sellingItemIndex );
         bool                        ShopBuyItem( Entity * shop, Entity * buyer, i32 shopItemIndex );

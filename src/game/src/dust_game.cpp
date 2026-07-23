@@ -193,7 +193,7 @@ namespace dust {
                     entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
                     entity.rigidBodyData.restitution = 0.05f;
 
-                    world.SpawnEntity( entity );
+                   // world.SpawnEntity( entity );
                 }
             }
         }
@@ -286,10 +286,6 @@ namespace dust {
             hadInput = true;
         }
 
-        if ( hadInput == true ) {
-            world.ActionPlayerControl( entity );
-        }
-
         DriveVehicle( physicsWorld, *entity, throttle, steer, deltaTime );
     }
 
@@ -329,9 +325,9 @@ namespace dust {
             if ( targetEntity != nullptr ) {
                 switch ( targetEntity->type ) {
                     case ENTITY_TYPE_PROP: { world.ActionIdle( player ); } break;
-                    case ENTITY_TYPE_VEHICLE: { player->action.targetId = hitId; } break;
+                    case ENTITY_TYPE_VEHICLE: { } break;
                     case ENTITY_TYPE_ORE_NODE: { world.ActionMineOre( player, hitId ); } break;
-                    case ENTITY_TYPE_BUILDING: { player->action.targetId = hitId; } break;
+                    case ENTITY_TYPE_BUILDING: { world.ActionPlayerControl( player, hitId ); } break;
                 }
             }
         }
