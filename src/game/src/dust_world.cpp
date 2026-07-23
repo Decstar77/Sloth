@@ -418,13 +418,19 @@ namespace dust {
                             }
 
                             const i32 inventoryCount = static_cast<i32>( entity.inventory.items.GetCount() );
+                            i32 rawMaterialItemIndex = -1;
                             for ( i32 itemIndex = 0; itemIndex < inventoryCount; itemIndex++ ) {
                                 if ( ItemIsRawMaterial( entity.inventory.items[itemIndex].type ) == true ) {
-                                    ShopSellItem( targetEntity, &entity, itemIndex );
+                                    rawMaterialItemIndex = itemIndex;
                                 }
                             }
 
-                            ActionIdle( &entity );
+                            if ( rawMaterialItemIndex != -1 ) {
+                                ShopSellItem( targetEntity, &entity, rawMaterialItemIndex );
+                            }
+                            else {
+                                ActionIdle( &entity );
+                            }
                         } break;
                     }
                 }

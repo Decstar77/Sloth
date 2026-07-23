@@ -348,7 +348,7 @@ namespace dust {
         }
         i32 playerInvetoryItemClicked = -1;
         if ( inventoryOpen ) {
-            playerInvetoryItemClicked = RenderInventoryGrid( guiFrame, player->inventory, "Inventory##InvPanel", 600.0f );
+            playerInvetoryItemClicked = RenderInventoryGrid( guiFrame, *player, "Inventory##InvPanel", 600.0f );
         }
 
         Entity * target = world.GetEntity( player->action.targetId );
@@ -362,7 +362,7 @@ namespace dust {
             if ( target->building.type == BUILDING_TYPE_REFINERY ) {
                 RenderRefineryPanel( guiFrame, player, target );
             } else if ( target->building.type == BUILDING_TYPE_SHOP ) {
-                const i32 shopInvetoryItemClicked = RenderInventoryGrid( guiFrame, target->inventory, "Shop##ShopPanel", -500.0f );
+                const i32 shopInvetoryItemClicked = RenderInventoryGrid( guiFrame, *target, "Shop##ShopPanel", -500.0f );
                 if ( shopInvetoryItemClicked != -1 ) {
                     world.ShopBuyItem( target, player, shopInvetoryItemClicked );
                 }
@@ -373,7 +373,9 @@ namespace dust {
         }
     }
 
-    i32 DustGame::RenderInventoryGrid( GuiFrame & guiFrame, const Inventory & inventory, StringView panelLabel, f32 centerOffsetX ) {
+    i32 DustGame::RenderInventoryGrid( GuiFrame & guiFrame, const Entity & entity, StringView panelLabel, f32 centerOffsetX ) {
+        const Inventory & inventory = entity.inventory;
+
         i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
         i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
 
@@ -383,12 +385,15 @@ namespace dust {
         f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
         f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
 
+        // Extra row above the grid for the entity's current credits.
+        constexpr f32 creditsRowHeight = 20.0f;
+        constexpr f32 creditsRowGap = 8.0f;
 
         constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
         constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
         glm::vec2 panelSize {
             gridWidth + panelPadding * 2.0f,
-            gridHeight + panelPadding * 2.0f + titleBarHeight,
+            gridHeight + creditsRowHeight + creditsRowGap + panelPadding * 2.0f + titleBarHeight,
         };
 
         Window & window = Engine::Get().GetWindow();
@@ -399,7 +404,11 @@ namespace dust {
 
         PanelResult panel = BeginPanel( guiFrame, panelLabel, defaultPos, panelSize );
 
-        glm::vec2 gridOrigin = panel.contentMin;
+        LargeString creditsLabel;
+        creditsLabel.Format( "Credits: %lld", entity.credits );
+        Label( guiFrame, creditsLabel.View(), { panel.contentMin.x, panel.contentMin.y + 14.0f }, 16.0f, { 1.0f, 0.9f, 0.4f, 1.0f } );
+
+        glm::vec2 gridOrigin = panel.contentMin + glm::vec2( 0.0f, creditsRowHeight + creditsRowGap );
 
         i32 slotCount = gridCols * gridRows;
         i32 itemCount = static_cast<i32>( inventory.items.GetCount() );

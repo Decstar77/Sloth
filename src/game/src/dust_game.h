@@ -38,7 +38,7 @@ namespace dust {
         void                    Render();
         void                    RenderUI( sloth::GuiFrame & guiFrame );
         void                    RenderRefineryPanel( sloth::GuiFrame & guiFrame, Entity * player, Entity * target );
-        static i32              RenderInventoryGrid( sloth::GuiFrame & guiFrame, const Inventory & inventory, sloth::StringView panelLabel, f32 centerOffsetX );
+        static i32              RenderInventoryGrid( sloth::GuiFrame & guiFrame, const Entity & entity, sloth::StringView panelLabel, f32 centerOffsetX );
         void                    PlayerUpdateVehicleControl( f32 deltaTime );
         void                    PlayerUpdateTargeting( sloth::GuiFrame & guiFrame );
         void                    DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection );
