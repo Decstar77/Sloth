@@ -22,9 +22,8 @@ namespace dust {
         void                    Init();
         void                    Shutdown();
 
-        void                    Update(f32 deltaTime);
-        void                    Render();
-        void                    RenderUI( sloth::GuiFrame & guiFrame );
+        void                    UpdateAndRender( f32 deltaTime, sloth::GuiFrame & guiFrame );
+        
 
         DustCamera &            GetCamera() { return camera; }
         sloth::PhysicsWorld &   GetPhysicsWorld() { return physicsWorld; }
@@ -35,8 +34,10 @@ namespace dust {
         i64                     GetPlayerCredits() const;
 
     private:
+        void                    Render();
+        void                    RenderUI( sloth::GuiFrame & guiFrame );
         void                    PlayerUpdateVehicleControl( f32 deltaTime );
-        void                    PlayerUpdateTargeting();
+        void                    PlayerUpdateTargeting( sloth::GuiFrame & guiFrame );
         void                    DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection );
 
     private:
@@ -55,9 +56,7 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  factionShopMeshes[3];
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
-
-        // UI state
-        EntityId                        openRefineryPanelId = INVALID_ENTITY_ID;
+        bool                             inventoryOpen = false;
 
         sloth::PhysicsWorld             physicsWorld;
     };

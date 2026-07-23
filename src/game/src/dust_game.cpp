@@ -3,6 +3,7 @@
 #include <core/sloth_engine.h>
 #include <font/sloth_font.h>
 #include <gui/sloth_gui_widgets.h>
+#include <gui/sloth_gui_context.h>
 #include <renderer/sloth_debug_renderer.h>
 #include <renderer/sloth_geometry.h>
 
@@ -218,11 +219,10 @@ namespace dust {
         shader.reset();
     }
 
-    void DustGame::Update( f32 deltaTime ) {
+    void DustGame::UpdateAndRender( f32 deltaTime, sloth::GuiFrame & guiFrame ) {
         camera.Update( deltaTime );
 
         PlayerUpdateVehicleControl( deltaTime );
-        PlayerUpdateTargeting();
         world.Update( deltaTime );
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
@@ -237,6 +237,18 @@ namespace dust {
         // Entity spawn/destroy requests buffered this frame are applied once
         // here, at the end of the frame's update.
         world.FlushPendingChanges();
+
+
+        Render();
+        RenderUI( guiFrame );
+
+        // Must run after RenderUI(): panels/buttons only claim
+        // guiFrame.ctx's hot/active id when they're actually submitted, which
+        // happens inside RenderUI(). Checking WantsMouseInput() any earlier
+        // in the frame would still see the id cleared by ctx.NewFrame(),
+        // making it always false and letting world-picking click straight
+        // through open panels.
+        PlayerUpdateTargeting( guiFrame );
     }
 
     void DustGame::PlayerUpdateVehicleControl( f32 deltaTime ) {
@@ -280,9 +292,13 @@ namespace dust {
         DriveVehicle( physicsWorld, *entity, throttle, steer, deltaTime );
     }
 
-    void DustGame::PlayerUpdateTargeting() {
+    void DustGame::PlayerUpdateTargeting( sloth::GuiFrame & guiFrame ) {
         Input & input = Engine::Get().GetInput();
         if ( !input.IsMouseButtonPressed( MouseButton::Left ) ) {
+            return;
+        }
+
+        if ( guiFrame.ctx.WantsMouseInput() == true ) {
             return;
         }
 
@@ -330,6 +346,68 @@ namespace dust {
             return;
         }
 
+        if ( Engine::Get().GetInput().IsKeyPressed( Key::I ) ) {
+            inventoryOpen = !inventoryOpen;
+        }
+
+        // Inventory grid panel, toggled with 'I'. One button per slot,
+        // laid out from Inventory::xSize/ySize; slots beyond the current
+        // item count are drawn empty.
+        if ( inventoryOpen ) {
+            const Inventory & inventory = player->inventory;
+
+            i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
+            i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
+
+            constexpr f32 slotSize = 48.0f;
+            constexpr f32 slotGap = 8.0f;
+
+            f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
+            f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
+
+            // Panel spans the grid plus BeginPanel's own content padding
+            // on all sides and its title bar up top; centred as the
+            // default first-open position, then draggable from there.
+            constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
+            constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+            glm::vec2 panelSize {
+                gridWidth + panelPadding * 2.0f,
+                gridHeight + panelPadding * 2.0f + titleBarHeight,
+            };
+
+            Window & window = Engine::Get().GetWindow();
+            glm::vec2 defaultPos {
+                ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f + 600,
+                ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+            };
+
+            PanelResult invPanel = BeginPanel( guiFrame, "Inventory##InvPanel", defaultPos, panelSize );
+
+            glm::vec2 gridOrigin = invPanel.contentMin;
+
+            i32 slotCount = gridCols * gridRows;
+            i32 slotItemCount = static_cast<i32>( inventory.items.GetCount() );
+            for ( i32 slot = 0; slot < slotCount; ++slot ) {
+                i32 col = slot % gridCols;
+                i32 row = slot / gridCols;
+
+                glm::vec2 slotMin = gridOrigin + glm::vec2( static_cast<f32>( col ) * ( slotSize + slotGap ), static_cast<f32>( row ) * ( slotSize + slotGap ) );
+                glm::vec2 slotMax = slotMin + glm::vec2( slotSize, slotSize );
+
+                LargeString slotLabel;
+                if ( slot < slotItemCount ) {
+                    const InventoryItem & item = inventory.items[slot];
+                    slotLabel.Format( "%s (%d)##InvSlot%d", ToShortCode( item.type ), item.amount, slot );
+                } else {
+                    slotLabel.Format( "##InvSlot%d", slot );
+                }
+
+                Button( guiFrame, slotLabel.View(), slotMin, slotMax );
+            }
+
+            EndPanel( guiFrame );
+        }
+
         Entity * target = world.GetEntity( player->action.targetId );
         if ( target != nullptr && target->type == ENTITY_TYPE_BUILDING  ) {
             const f32 InteractionDist = 15;
@@ -374,10 +452,55 @@ namespace dust {
                     glm::vec2 rowMin = cursor;
                     glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
                     if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
-                        world.PurchaseRefineryItem( player, target->id, itemType );
+                        world.RefineryPurchaseItem( player, target->id, itemType );
                     }
 
                     cursor.y += rowHeight + rowGap;
+                }
+
+                EndPanel( guiFrame );
+            } else if ( dist <= InteractionDist && target->building.type == BUILDING_TYPE_SHOP ) {
+                constexpr f32 rowWidth = 260.0f;
+                constexpr f32 rowHeight = 36.0f;
+                constexpr f32 rowGap = 8.0f;
+                constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
+                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+
+                const i32 itemCount = static_cast<i32>( player->inventory.items.GetCount() );
+                const i32 rowCount = itemCount > 0 ? itemCount : 1; // At least one row, for the "empty" message.
+                glm::vec2 panelSize {
+                    rowWidth + panelPadding * 2.0f,
+                    static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
+                };
+
+                Window & window = Engine::Get().GetWindow();
+                glm::vec2 defaultPos {
+                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
+                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+                };
+
+                PanelResult panel = BeginPanel( guiFrame, "Shop##ShopPanel", defaultPos, panelSize );
+
+                glm::vec2 cursor = panel.contentMin;
+                if ( itemCount == 0 ) {
+                    Label( guiFrame, "Inventory empty", cursor + glm::vec2( 0.0f, rowHeight * 0.5f ), 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
+                } else {
+                    // Selling mutates the player's inventory, which would invalidate the remaining indices/items this loop is iterating over
+                    bool sold = false;
+                    for ( i32 i = 0; i < itemCount && !sold; i++ ) {
+                        const InventoryItem & item = player->inventory.items[i];
+
+                        LargeString rowLabel;
+                        rowLabel.Format( "%s x%d##ShopSell%d", ToString( item.type ), static_cast<i32>( item.amount ), i );
+
+                        glm::vec2 rowMin = cursor;
+                        glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
+                        if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
+                            sold = world.ShopSellItem( target, player, i );
+                        }
+
+                        cursor.y += rowHeight + rowGap;
+                    }
                 }
 
                 EndPanel( guiFrame );
@@ -465,3 +588,4 @@ namespace dust {
     }
 
 } // namespace dust
+

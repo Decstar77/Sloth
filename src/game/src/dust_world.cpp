@@ -42,7 +42,7 @@ namespace dust {
     }
 
     Entity * DustWorld::GetEntity( EntityId id ) {
-        if ( id.index < 0 || id.index >= static_cast<i32>( entities.size() ) ) {
+        if ( id == INVALID_ENTITY_ID || id.index < 0 || id.index >= static_cast<i32>( entities.size() ) ) {
             return nullptr;
         }
 
@@ -143,11 +143,35 @@ namespace dust {
     void DustWorld::ActionPlayerControl( Entity * entity ) {
         SL_ASSERT( entity );
 
-        entity->action = {};
         entity->action.type = ENTITY_ACTION_TYPE_PLAYER_CONTROL;
     }
 
-    bool DustWorld::PurchaseRefineryItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType ) {
+    bool DustWorld::ShopSellItem( Entity * shop, Entity * seller, i32 sellingItemIndex ) {
+        SL_ASSERT( shop );
+        SL_ASSERT( seller );
+
+        if ( shop->type != ENTITY_TYPE_BUILDING || shop->building.type != BUILDING_TYPE_SHOP ) {
+            return false;
+        }
+
+        if ( sellingItemIndex < 0 || static_cast<u32>( sellingItemIndex ) >= seller->inventory.items.GetCount() ) {
+            return false;
+        }
+
+        const InventoryItem item = seller->inventory.items[sellingItemIndex];
+
+        // Check shop inventory space before touching the seller's inventory
+        // so a full shop fails cleanly instead of taking the item for nothing.
+        if ( InvetoryAddItem( shop->inventory, item.type, static_cast<i32>( item.amount ) ) == false ) {
+            return false;
+        }
+
+        seller->inventory.items.RemoveAt( static_cast<u32>( sellingItemIndex ) );
+
+        return true;
+    }
+
+    bool DustWorld::RefineryPurchaseItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType ) {
         SL_ASSERT( buyer );
 
         Entity * refinery = GetEntity( refineryId );

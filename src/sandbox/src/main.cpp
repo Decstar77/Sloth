@@ -53,7 +53,6 @@ int main() {
 
     GuiContext guiContext;
     bool demoCheckboxValue = false;
-    bool inventoryOpen = false;
 
     dust::DustGame game;
     game.Init();
@@ -74,18 +73,12 @@ int main() {
         glm::mat4 screenProjection = MakeScreenProjection( static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ) );
         GuiFrame guiFrame = BeginGuiFrame( guiContext, guiRenderer, textRenderer, font, glyphCache, engine.GetInput(), screenProjection );
 
-        game.Update( deltaTime );
-        game.Render();
+        game.UpdateAndRender( deltaTime, guiFrame );
 
         if ( engine.GetInput().IsKeyPressed( Key::T ) ) {
             audioWorld.PlaySound2D( "../../assets/sounds/button_click.wav" );
         }
 
-        if ( engine.GetInput().IsKeyPressed( Key::I ) ) {
-            inventoryOpen = !inventoryOpen;
-        }
-
-        game.RenderUI( guiFrame );
 
         //guiRenderer.DrawRect( { 32.0f, 96.0f }, { 320.0f, 280.0f }, { 0.15f, 0.15f, 0.18f, 0.9f }, 12.0f );
         //guiRenderer.DrawRect( { 48.0f, 112.0f }, { 140.0f, 144.0f }, { 0.2f, 0.55f, 0.9f, 1.0f }, 6.0f );
@@ -203,65 +196,6 @@ int main() {
             targetLabel.Format( "Credits %d", game.GetPlayerCredits() );
             targetLabelPos = { static_cast<f32>( window.GetWidth() ) - rightMargin / 2, 32.0f };
             textRenderer.DrawText( font, glyphCache, targetLabel.View(), targetLabelPos, 22.0f, { 1.0f, 0.9f, 0.4f, 1.0f }, screenProjection );
-        }
-
-        // Inventory grid panel, toggled with 'I'. One button per slot,
-        // laid out from Inventory::xSize/ySize; slots beyond the current
-        // item count are drawn empty.
-        if ( inventoryOpen && font.IsLoaded() ) {
-            const dust::Entity * player = game.GetPlayer();
-            if ( player != nullptr ) {
-                const dust::Inventory & inventory = player->inventory;
-
-                i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
-                i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
-
-                constexpr f32 slotSize = 48.0f;
-                constexpr f32 slotGap = 8.0f;
-
-                f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
-                f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
-
-                // Panel spans the grid plus BeginPanel's own content padding
-                // on all sides and its title bar up top; centred as the
-                // default first-open position, then draggable from there.
-                constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
-                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
-                glm::vec2 panelSize {
-                    gridWidth + panelPadding * 2.0f,
-                    gridHeight + panelPadding * 2.0f + titleBarHeight,
-                };
-                glm::vec2 defaultPos {
-                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f + 600,
-                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
-                };
-
-                PanelResult panel = BeginPanel( guiFrame, "Inventory##InvPanel", defaultPos, panelSize );
-
-                glm::vec2 gridOrigin = panel.contentMin;
-
-                i32 slotCount = gridCols * gridRows;
-                i32 itemCount = static_cast<i32>( inventory.items.GetCount() );
-                for ( i32 slot = 0; slot < slotCount; ++slot ) {
-                    i32 col = slot % gridCols;
-                    i32 row = slot / gridCols;
-
-                    glm::vec2 slotMin = gridOrigin + glm::vec2( static_cast<f32>( col ) * ( slotSize + slotGap ), static_cast<f32>( row ) * ( slotSize + slotGap ) );
-                    glm::vec2 slotMax = slotMin + glm::vec2( slotSize, slotSize );
-
-                    LargeString slotLabel;
-                    if ( slot < itemCount ) {
-                        const dust::InventoryItem & item = inventory.items[slot];
-                        slotLabel.Format( "%s (%d)##InvSlot%d", dust::ToShortCode( item.type ), item.amount, slot );
-                    } else {
-                        slotLabel.Format( "##InvSlot%d", slot );
-                    }
-
-                    Button( guiFrame, slotLabel.View(), slotMin, slotMax );
-                }
-
-                EndPanel( guiFrame );
-            }
         }
 
         // Clip-rect / scissor demo: a small "viewport" panel showing a list
