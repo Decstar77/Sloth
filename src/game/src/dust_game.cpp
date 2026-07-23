@@ -193,7 +193,7 @@ namespace dust {
                     entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
                     entity.rigidBodyData.restitution = 0.05f;
 
-                   // world.SpawnEntity( entity );
+                    world.SpawnEntity( entity );
                 }
             }
         }
@@ -439,7 +439,7 @@ namespace dust {
             INVENTORY_ITEM_TYPE_GLASS,
         };
 
-        constexpr f32 rowWidth = 260.0f;
+        constexpr f32 rowWidth = 340.0f;
         constexpr f32 rowHeight = 36.0f;
         constexpr f32 rowGap = 8.0f;
         constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
@@ -464,7 +464,38 @@ namespace dust {
             const Price price = RefineryPriceForItem( itemType );
 
             LargeString rowLabel;
-            rowLabel.Format( "%s - %dcr##RefineryBuy%d", ToString( itemType ), price.credits, static_cast<i32>( itemType ) );
+            rowLabel.Format( "%s - %dcr", ToString( itemType ), static_cast<i32>( price.credits ) );
+
+            // Append every non-zero ore requirement too - the price struct
+            // has one field per ore type, but only the credits cost used to
+            // make it into the label, silently hiding the ore cost of items
+            // that require it.
+            struct OreRequirement {
+                InventoryItemType type;
+                i64               amount;
+            };
+            const OreRequirement oreRequirements[] = {
+                { INVENTORY_ITEM_TYPE_ORE_IRON, price.oreIron },
+                { INVENTORY_ITEM_TYPE_ORE_COPPER, price.oreCopper },
+                { INVENTORY_ITEM_TYPE_ORE_SULPHUR, price.oreSulphur },
+                { INVENTORY_ITEM_TYPE_ORE_ALUMINUM, price.oreAluminum },
+                { INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL, price.oreCrudeOil },
+                { INVENTORY_ITEM_TYPE_ORE_WATER, price.oreWater },
+                { INVENTORY_ITEM_TYPE_ORE_SILICON, price.oreSilicon },
+            };
+            for ( const OreRequirement & req : oreRequirements ) {
+                if ( req.amount <= 0 ) {
+                    continue;
+                }
+
+                LargeString reqLabel;
+                reqLabel.Format( ", %d %s", static_cast<i32>( req.amount ), ToShortCode( req.type ) );
+                rowLabel.Append( reqLabel.View() );
+            }
+
+            LargeString idSuffix;
+            idSuffix.Format( "##RefineryBuy%d", static_cast<i32>( itemType ) );
+            rowLabel.Append( idSuffix.View() );
 
             glm::vec2 rowMin = cursor;
             glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
