@@ -159,16 +159,25 @@ namespace dust {
         }
 
         const InventoryItem item = seller->inventory.items[sellingItemIndex];
-
-        // Check shop inventory space before touching the seller's inventory
-        // so a full shop fails cleanly instead of taking the item for nothing.
         if ( InvetoryAddItem( shop->inventory, item.type, static_cast<i32>( item.amount ) ) == false ) {
             return false;
         }
 
-        seller->inventory.items.RemoveAt( static_cast<u32>( sellingItemIndex ) );
+        const i64 amountRemoved = InvetoryRemoveItemByIndex( seller->inventory, sellingItemIndex );
+        const i64 HackyItemPrice = 2;
+        const i64 finalPrice = HackyItemPrice * amountRemoved;
+
+        Faction & faction = GetFaction( seller->faction );
+
+        // Important to up both the local entity credits and faction credits to keep things balanced / correctly audited
+        seller->credits += finalPrice;
+        faction.credits += finalPrice;
 
         return true;
+    }
+
+    bool DustWorld::ShopBuyItem( Entity * shop, Entity * buyer, i32 shopItemIndex ) {
+        return false;
     }
 
     bool DustWorld::RefineryPurchaseItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType ) {
@@ -373,20 +382,11 @@ namespace dust {
                                 break;
                             }
 
-                            constexpr InventoryItemType oreTypes[] = {
-                                INVENTORY_ITEM_TYPE_ORE_IRON,
-                                INVENTORY_ITEM_TYPE_ORE_COPPER,
-                                INVENTORY_ITEM_TYPE_ORE_SULPHUR,
-                                INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
-                                INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
-                                INVENTORY_ITEM_TYPE_ORE_WATER,
-                                INVENTORY_ITEM_TYPE_ORE_SILICON,
-                            };
-
-                            Faction & faction = GetFaction( entity.faction );
-
-                            for ( InventoryItemType oreType : oreTypes ) {
-                                faction.credits += InvetoryRemoveItem( entity.inventory, oreType ) * 2;
+                            const i32 inventoryCount = static_cast<i32>( entity.inventory.items.GetCount() );
+                            for ( i32 itemIndex = 0; itemIndex < inventoryCount; itemIndex++ ) {
+                                if ( ItemIsRawMaterial( entity.inventory.items[itemIndex].type ) == true ) {
+                                    ShopSellItem( targetEntity, &entity, itemIndex );
+                                }
                             }
 
                             ActionIdle( &entity );

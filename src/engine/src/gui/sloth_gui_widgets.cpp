@@ -136,6 +136,13 @@ namespace sloth {
         GuiContext & ctx = frame.ctx;
         GuiId id = ctx.GetId( label );
 
+        // Scope every child widget's id to this panel, so two panels whose
+        // content happens to produce identical child labels (e.g. two
+        // inventory-grid panels both listing the same underlying Inventory)
+        // don't collide onto the same GuiId and cross-highlight each other.
+        // Balanced by EndPanel()'s PopId().
+        ctx.PushId( label );
+
         // Position is the one piece of panel state that must outlive the
         // frame: a dragged panel stays where the user left it. `defaultPos`
         // only seeds the slot the first frame this ID is seen.
@@ -228,6 +235,7 @@ namespace sloth {
         frame.renderer.Flush( frame.viewProjection );
         frame.renderer.PopClipRect();
         frame.ctx.PopClipRect();
+        frame.ctx.PopId();
     }
 
 } // namespace sloth

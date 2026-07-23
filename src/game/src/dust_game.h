@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/sloth_defines.h>
+#include <core/sloth_string.h>
 #include <physics/sloth_physics_world.h>
 #include <renderer/sloth_shader.h>
 #include <renderer/sloth_static_mesh.h>
@@ -36,6 +37,8 @@ namespace dust {
     private:
         void                    Render();
         void                    RenderUI( sloth::GuiFrame & guiFrame );
+        void                    RenderRefineryPanel( sloth::GuiFrame & guiFrame, Entity * player, Entity * target );
+        static i32              RenderInventoryGrid( sloth::GuiFrame & guiFrame, const Inventory & inventory, sloth::StringView panelLabel, f32 centerOffsetX );
         void                    PlayerUpdateVehicleControl( f32 deltaTime );
         void                    PlayerUpdateTargeting( sloth::GuiFrame & guiFrame );
         void                    DrawVehicle( const Entity & entity, const glm::mat4 & viewProjection );

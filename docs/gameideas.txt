@@ -75,6 +75,8 @@
         - Refinery:
             - Refines ores into ingots.
         - Farms:
+        -Bank:
+            To deposit into global credits ?
 
 
 - Crafting 

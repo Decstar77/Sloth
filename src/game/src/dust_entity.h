@@ -108,6 +108,7 @@ namespace dust {
     };
 
     enum InventoryItemType {
+        INVENTORY_ITEM_TYPE_RAW_MATERIAL_BEGIN,
         INVENTORY_ITEM_TYPE_ORE_IRON,
         INVENTORY_ITEM_TYPE_ORE_COPPER,
         INVENTORY_ITEM_TYPE_ORE_SULPHUR,
@@ -115,6 +116,7 @@ namespace dust {
         INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
         INVENTORY_ITEM_TYPE_ORE_WATER,
         INVENTORY_ITEM_TYPE_ORE_SILICON,
+        INVENTORY_ITEM_TYPE_RAW_MATERIAL_END,
 
         // Refinery
         INVENTORY_ITEM_TYPE_STEEL_INGOT,
@@ -153,9 +155,12 @@ namespace dust {
     bool                    InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount );
     InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
     const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
-    i64                     InvetoryRemoveItem( Inventory & inventory, InventoryItemType type );
+    i64                     InvetoryRemoveItemByIndex( Inventory & inventory, i32 index );
+    i64                     InvetoryRemoveItemByType( Inventory & inventory, InventoryItemType type );
     i64                     InventoryGetTotalAmount( const Inventory & inventory, InventoryItemType type );
     bool                    InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i64 amount );
+
+    bool                    ItemIsRawMaterial( InventoryItemType type );
 
     InventoryItemType       OreNodeTypeToItemType( OreNodeType type );
     const char *            ToString( InventoryItemType type );
@@ -227,6 +232,9 @@ namespace dust {
 
         // Faction
         FactionType faction;
+
+        // Local credits for this entity
+        i64 credits; 
 
         union {
             VehicleData vehicle;

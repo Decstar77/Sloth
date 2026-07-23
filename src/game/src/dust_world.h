@@ -40,6 +40,7 @@ namespace dust {
         void                        ActionPlayerControl( Entity * entity );
 
         bool                        ShopSellItem( Entity * shop, Entity * seller, i32 sellingItemIndex );
+        bool                        ShopBuyItem( Entity * shop, Entity * buyer, i32 shopItemIndex );
         bool                        RefineryPurchaseItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType );
 
         const std::vector<Entity> & GetEntities() const { return entities; }

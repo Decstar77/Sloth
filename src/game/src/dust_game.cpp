@@ -157,7 +157,8 @@ namespace dust {
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
                     entity.building.type = BUILDING_TYPE_SHOP;
                     entity.building.credits = 1000;
-
+                    entity.inventory.xSize = 4;
+                    entity.inventory.ySize = 4;
                     entity.rigidBodyData.shape = RigidBodyShape::Box;
                     entity.rigidBodyData.halfExtents = shopHalfExtents;
                     entity.rigidBodyData.motionType = BodyMotionType::Static;
@@ -340,7 +341,7 @@ namespace dust {
         if ( !guiFrame.font.IsLoaded() ) {
             return;
         }
-        
+
         Entity * player = world.GetEntity( playerVehicleId );
         if ( player == nullptr ) {
             return;
@@ -349,163 +350,136 @@ namespace dust {
         if ( Engine::Get().GetInput().IsKeyPressed( Key::I ) ) {
             inventoryOpen = !inventoryOpen;
         }
-
-        // Inventory grid panel, toggled with 'I'. One button per slot,
-        // laid out from Inventory::xSize/ySize; slots beyond the current
-        // item count are drawn empty.
+        i32 playerInvetoryItemClicked = -1;
         if ( inventoryOpen ) {
-            const Inventory & inventory = player->inventory;
-
-            i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
-            i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
-
-            constexpr f32 slotSize = 48.0f;
-            constexpr f32 slotGap = 8.0f;
-
-            f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
-            f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
-
-            // Panel spans the grid plus BeginPanel's own content padding
-            // on all sides and its title bar up top; centred as the
-            // default first-open position, then draggable from there.
-            constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
-            constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
-            glm::vec2 panelSize {
-                gridWidth + panelPadding * 2.0f,
-                gridHeight + panelPadding * 2.0f + titleBarHeight,
-            };
-
-            Window & window = Engine::Get().GetWindow();
-            glm::vec2 defaultPos {
-                ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f + 600,
-                ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
-            };
-
-            PanelResult invPanel = BeginPanel( guiFrame, "Inventory##InvPanel", defaultPos, panelSize );
-
-            glm::vec2 gridOrigin = invPanel.contentMin;
-
-            i32 slotCount = gridCols * gridRows;
-            i32 slotItemCount = static_cast<i32>( inventory.items.GetCount() );
-            for ( i32 slot = 0; slot < slotCount; ++slot ) {
-                i32 col = slot % gridCols;
-                i32 row = slot / gridCols;
-
-                glm::vec2 slotMin = gridOrigin + glm::vec2( static_cast<f32>( col ) * ( slotSize + slotGap ), static_cast<f32>( row ) * ( slotSize + slotGap ) );
-                glm::vec2 slotMax = slotMin + glm::vec2( slotSize, slotSize );
-
-                LargeString slotLabel;
-                if ( slot < slotItemCount ) {
-                    const InventoryItem & item = inventory.items[slot];
-                    slotLabel.Format( "%s (%d)##InvSlot%d", ToShortCode( item.type ), item.amount, slot );
-                } else {
-                    slotLabel.Format( "##InvSlot%d", slot );
-                }
-
-                Button( guiFrame, slotLabel.View(), slotMin, slotMax );
-            }
-
-            EndPanel( guiFrame );
+            playerInvetoryItemClicked = RenderInventoryGrid( guiFrame, player->inventory, "Inventory##InvPanel", 600.0f );
         }
 
         Entity * target = world.GetEntity( player->action.targetId );
-        if ( target != nullptr && target->type == ENTITY_TYPE_BUILDING  ) {
-            const f32 InteractionDist = 15;
-            f32 dist = glm::distance( player->position, target->position );
-            if ( dist <= InteractionDist && target->building.type == BUILDING_TYPE_REFINERY ) {
-                constexpr InventoryItemType refineryItems[] = {
-                    INVENTORY_ITEM_TYPE_STEEL_INGOT,
-                    INVENTORY_ITEM_TYPE_COPPER_WIRE,
-                    INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
-                    INVENTORY_ITEM_TYPE_PETROL,
-                    INVENTORY_ITEM_TYPE_LUBRICANT,
-                    INVENTORY_ITEM_TYPE_GLASS,
-                };
+        if ( target == nullptr || target->type != ENTITY_TYPE_BUILDING ) {
+            return;
+        }
 
-                constexpr f32 rowWidth = 260.0f;
-                constexpr f32 rowHeight = 36.0f;
-                constexpr f32 rowGap = 8.0f;
-                constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
-                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
-
-                constexpr i32 rowCount = static_cast<i32>( SL_ARRAY_COUNT( refineryItems ) ) + 1; // +1 for the Close button.
-                glm::vec2 panelSize {
-                    rowWidth + panelPadding * 2.0f,
-                    static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
-                };
-
-                Window & window = Engine::Get().GetWindow();
-                glm::vec2 defaultPos {
-                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
-                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
-                };
-
-                PanelResult panel = BeginPanel( guiFrame, "Refinery##RefineryPanel", defaultPos, panelSize );
-
-                glm::vec2 cursor = panel.contentMin;
-                for ( InventoryItemType itemType : refineryItems ) {
-                    const Price price = RefineryPriceForItem( itemType );
-
-                    LargeString rowLabel;
-                    rowLabel.Format( "%s - %dcr##RefineryBuy%d", ToString( itemType ), price.credits, static_cast<i32>( itemType ) );
-
-                    glm::vec2 rowMin = cursor;
-                    glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
-                    if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
-                        world.RefineryPurchaseItem( player, target->id, itemType );
-                    }
-
-                    cursor.y += rowHeight + rowGap;
+        constexpr f32 InteractionDist = 15.0f;
+        f32 dist = glm::distance( player->position, target->position );
+        if ( target->type == ENTITY_TYPE_BUILDING && dist < InteractionDist ) {
+            if ( target->building.type == BUILDING_TYPE_REFINERY ) {
+                RenderRefineryPanel( guiFrame, player, target );
+            } else if ( target->building.type == BUILDING_TYPE_SHOP ) {
+                const i32 shopInvetoryItemClicked = RenderInventoryGrid( guiFrame, target->inventory, "Shop##ShopPanel", -500.0f );
+                if ( shopInvetoryItemClicked != -1 ) {
+                    world.ShopBuyItem( target, player, shopInvetoryItemClicked );
                 }
-
-                EndPanel( guiFrame );
-            } else if ( dist <= InteractionDist && target->building.type == BUILDING_TYPE_SHOP ) {
-                constexpr f32 rowWidth = 260.0f;
-                constexpr f32 rowHeight = 36.0f;
-                constexpr f32 rowGap = 8.0f;
-                constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
-                constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
-
-                const i32 itemCount = static_cast<i32>( player->inventory.items.GetCount() );
-                const i32 rowCount = itemCount > 0 ? itemCount : 1; // At least one row, for the "empty" message.
-                glm::vec2 panelSize {
-                    rowWidth + panelPadding * 2.0f,
-                    static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
-                };
-
-                Window & window = Engine::Get().GetWindow();
-                glm::vec2 defaultPos {
-                    ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
-                    ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
-                };
-
-                PanelResult panel = BeginPanel( guiFrame, "Shop##ShopPanel", defaultPos, panelSize );
-
-                glm::vec2 cursor = panel.contentMin;
-                if ( itemCount == 0 ) {
-                    Label( guiFrame, "Inventory empty", cursor + glm::vec2( 0.0f, rowHeight * 0.5f ), 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
-                } else {
-                    // Selling mutates the player's inventory, which would invalidate the remaining indices/items this loop is iterating over
-                    bool sold = false;
-                    for ( i32 i = 0; i < itemCount && !sold; i++ ) {
-                        const InventoryItem & item = player->inventory.items[i];
-
-                        LargeString rowLabel;
-                        rowLabel.Format( "%s x%d##ShopSell%d", ToString( item.type ), static_cast<i32>( item.amount ), i );
-
-                        glm::vec2 rowMin = cursor;
-                        glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
-                        if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
-                            sold = world.ShopSellItem( target, player, i );
-                        }
-
-                        cursor.y += rowHeight + rowGap;
-                    }
+                else if ( playerInvetoryItemClicked != -1 ) {
+                    world.ShopSellItem( target, player, playerInvetoryItemClicked );
                 }
-
-                EndPanel( guiFrame );
             }
         }
+    }
+
+    i32 DustGame::RenderInventoryGrid( GuiFrame & guiFrame, const Inventory & inventory, StringView panelLabel, f32 centerOffsetX ) {
+        i32 gridCols = inventory.xSize > 0 ? inventory.xSize : 1;
+        i32 gridRows = inventory.ySize > 0 ? inventory.ySize : 1;
+
+        constexpr f32 slotSize = 48.0f;
+        constexpr f32 slotGap = 8.0f;
+
+        f32 gridWidth = static_cast<f32>( gridCols ) * slotSize + static_cast<f32>( gridCols - 1 ) * slotGap;
+        f32 gridHeight = static_cast<f32>( gridRows ) * slotSize + static_cast<f32>( gridRows - 1 ) * slotGap;
+
+
+        constexpr f32 panelPadding = 12.0f; // Matches BeginPanel's PanelContentPadding.
+        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+        glm::vec2 panelSize {
+            gridWidth + panelPadding * 2.0f,
+            gridHeight + panelPadding * 2.0f + titleBarHeight,
+        };
+
+        Window & window = Engine::Get().GetWindow();
+        glm::vec2 defaultPos {
+            ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f + centerOffsetX,
+            ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+        };
+
+        PanelResult panel = BeginPanel( guiFrame, panelLabel, defaultPos, panelSize );
+
+        glm::vec2 gridOrigin = panel.contentMin;
+
+        i32 slotCount = gridCols * gridRows;
+        i32 itemCount = static_cast<i32>( inventory.items.GetCount() );
+        i32 clickedIndex = -1;
+        for ( i32 slot = 0; slot < slotCount; ++slot ) {
+            i32 col = slot % gridCols;
+            i32 row = slot / gridCols;
+
+            glm::vec2 slotMin = gridOrigin + glm::vec2( static_cast<f32>( col ) * ( slotSize + slotGap ), static_cast<f32>( row ) * ( slotSize + slotGap ) );
+            glm::vec2 slotMax = slotMin + glm::vec2( slotSize, slotSize );
+
+            LargeString slotLabel;
+            if ( slot < itemCount ) {
+                const InventoryItem & item = inventory.items[slot];
+                slotLabel.Format( "%s (%d)##InvSlot%d", ToShortCode( item.type ), item.amount, slot );
+            } else {
+                slotLabel.Format( "##InvSlot%d", slot );
+            }
+
+            if ( Button( guiFrame, slotLabel.View(), slotMin, slotMax ) && slot < itemCount ) {
+                clickedIndex = slot;
+            }
+        }
+
+        EndPanel( guiFrame );
+
+        return clickedIndex;
+    }
+
+    void DustGame::RenderRefineryPanel( GuiFrame & guiFrame, Entity * player, Entity * target ) {
+        constexpr InventoryItemType refineryItems[] = {
+            INVENTORY_ITEM_TYPE_STEEL_INGOT,
+            INVENTORY_ITEM_TYPE_COPPER_WIRE,
+            INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
+            INVENTORY_ITEM_TYPE_PETROL,
+            INVENTORY_ITEM_TYPE_LUBRICANT,
+            INVENTORY_ITEM_TYPE_GLASS,
+        };
+
+        constexpr f32 rowWidth = 260.0f;
+        constexpr f32 rowHeight = 36.0f;
+        constexpr f32 rowGap = 8.0f;
+        constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
+        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+
+        constexpr i32 rowCount = static_cast<i32>( SL_ARRAY_COUNT( refineryItems ) ) + 1; // +1 for the Close button.
+        glm::vec2 panelSize {
+            rowWidth + panelPadding * 2.0f,
+            static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
+        };
+
+        Window & window = Engine::Get().GetWindow();
+        glm::vec2 defaultPos {
+            ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
+            ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+        };
+
+        PanelResult panel = BeginPanel( guiFrame, "Refinery##RefineryPanel", defaultPos, panelSize );
+
+        glm::vec2 cursor = panel.contentMin;
+        for ( InventoryItemType itemType : refineryItems ) {
+            const Price price = RefineryPriceForItem( itemType );
+
+            LargeString rowLabel;
+            rowLabel.Format( "%s - %dcr##RefineryBuy%d", ToString( itemType ), price.credits, static_cast<i32>( itemType ) );
+
+            glm::vec2 rowMin = cursor;
+            glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
+            if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
+                world.RefineryPurchaseItem( player, target->id, itemType );
+            }
+
+            cursor.y += rowHeight + rowGap;
+        }
+
+        EndPanel( guiFrame );
     }
 
     const Entity * DustGame::GetPlayer() const {

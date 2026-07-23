@@ -229,7 +229,13 @@ namespace dust {
         return nullptr;
     }
 
-    i64 InvetoryRemoveItem( Inventory & inventory, InventoryItemType type ) {
+    i64 InvetoryRemoveItemByIndex( Inventory & inventory, i32 index ) {
+        const i64 amount = inventory.items[index].amount;
+        inventory.items.RemoveAt( index );
+        return amount;
+    }
+
+    i64 InvetoryRemoveItemByType( Inventory & inventory, InventoryItemType type ) {
         i64 amount = 0;
         FixedList<u32, INVENTORY_CAPACITY> removals;
         const u32 count = inventory.items.GetCount();
@@ -288,6 +294,10 @@ namespace dust {
         }
 
         return true;
+    }
+
+    bool ItemIsRawMaterial( InventoryItemType type ) {
+        return type > INVENTORY_ITEM_TYPE_RAW_MATERIAL_BEGIN && type < INVENTORY_ITEM_TYPE_RAW_MATERIAL_END;
     }
 
     Price RefineryPriceForItem( InventoryItemType item ) {
