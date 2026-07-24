@@ -1,5 +1,6 @@
 #pragma once
 
+#include <audio/sloth_audio_world.h>
 #include <core/sloth_defines.h>
 #include <core/sloth_string.h>
 #include <physics/sloth_physics_world.h>
@@ -62,6 +63,7 @@ namespace dust {
         bool                             inventoryOpen = false;
 
         sloth::PhysicsWorld             physicsWorld;
+        sloth::AudioWorld                audioWorld;
     };
 
 }

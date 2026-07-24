@@ -1,5 +1,6 @@
 #include "sloth_gui_widgets.h"
 
+#include "audio/sloth_audio_world.h"
 #include "font/sloth_font.h"
 #include "gui/sloth_gui_context.h"
 #include "renderer/sloth_gui_renderer.h"
@@ -8,6 +9,9 @@
 namespace sloth {
 
     namespace {
+        const char * ButtonHoverSoundPath = "../../assets/sounds/button_hover.wav";
+        const char * ButtonClickSoundPath = "../../assets/sounds/button_click.wav";
+
         constexpr f32 ButtonCornerRadius = 8.0f;
         constexpr f32 ButtonTextPixelHeight = 16.0f;
         constexpr f32 ButtonTextPaddingX = 12.0f;
@@ -67,6 +71,21 @@ namespace sloth {
         if ( ctx.IsActive( id ) && ctx.IsMouseReleased() ) {
             clicked = ctx.IsHot( id );
             ctx.ClearActive();
+        }
+
+        // Hover sound fires only on the not-hovered -> hovered transition
+        // (tracked per-id in GuiStorage), not every frame the mouse sits
+        // over the button.
+        if ( frame.audioWorld != nullptr ) {
+            bool & wasHovered = ctx.GetStorage().GetOrAddBool( HashGuiId( "##hoverSound", id ) );
+            if ( hovered && !wasHovered ) {
+                frame.audioWorld->PlaySound2D( ButtonHoverSoundPath );
+            }
+            wasHovered = hovered;
+
+            if ( clicked ) {
+                frame.audioWorld->PlaySound2D( ButtonClickSoundPath );
+            }
         }
 
         glm::vec4 color = ctx.IsActive( id ) ? ButtonColorActive : ctx.IsHot( id ) ? ButtonColorHot : ButtonColorNormal;

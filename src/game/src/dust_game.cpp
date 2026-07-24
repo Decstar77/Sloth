@@ -221,6 +221,9 @@ namespace dust {
     }
 
     void DustGame::UpdateAndRender( f32 deltaTime, sloth::GuiFrame & guiFrame ) {
+        audioWorld.Update();
+        guiFrame.audioWorld = &audioWorld;
+
         camera.Update( deltaTime );
 
         PlayerUpdateVehicleControl( deltaTime );

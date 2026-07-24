@@ -3,7 +3,6 @@
 #include <gui/sloth_gui_context.h>
 #include <gui/sloth_gui_frame.h>
 #include <gui/sloth_gui_widgets.h>
-#include <audio/sloth_audio_world.h>
 #include <renderer/sloth_glyph_cache.h>
 #include <renderer/sloth_gui_renderer.h>
 #include <renderer/sloth_text_renderer.h>
@@ -32,8 +31,6 @@ int main() {
     GlyphCache glyphCache;
     TextRenderer textRenderer;
     GuiRenderer guiRenderer;
-
-    AudioWorld audioWorld;
 
     // Small in-memory checkerboard, exercising Texture's raw-pixel
     // constructor (no image file needed) - a stand-in for a real icon.
@@ -68,17 +65,10 @@ int main() {
         f32 deltaTime = static_cast<f32>( currentFrameTime - lastFrameTime );
         lastFrameTime = currentFrameTime;
 
-        audioWorld.Update();
-
         glm::mat4 screenProjection = MakeScreenProjection( static_cast<f32>( window.GetWidth() ), static_cast<f32>( window.GetHeight() ) );
         GuiFrame guiFrame = BeginGuiFrame( guiContext, guiRenderer, textRenderer, font, glyphCache, engine.GetInput(), screenProjection );
 
         game.UpdateAndRender( deltaTime, guiFrame );
-
-        if ( engine.GetInput().IsKeyPressed( Key::T ) ) {
-            audioWorld.PlaySound2D( "../../assets/sounds/button_click.wav" );
-        }
-
 
         //guiRenderer.DrawRect( { 32.0f, 96.0f }, { 320.0f, 280.0f }, { 0.15f, 0.15f, 0.18f, 0.9f }, 12.0f );
         //guiRenderer.DrawRect( { 48.0f, 112.0f }, { 140.0f, 144.0f }, { 0.2f, 0.55f, 0.9f, 1.0f }, 6.0f );
