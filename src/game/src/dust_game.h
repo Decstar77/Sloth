@@ -39,6 +39,7 @@ namespace dust {
         void                    Render();
         void                    RenderUI( sloth::GuiFrame & guiFrame );
         void                    RenderRefineryPanel( sloth::GuiFrame & guiFrame, Entity * player, Entity * target );
+        void                    RenderVehiclePanel( sloth::GuiFrame & guiFrame, const Entity & player );
         static i32              RenderInventoryGrid( sloth::GuiFrame & guiFrame, const Entity & entity, sloth::StringView panelLabel, f32 centerOffsetX );
         void                    PlayerUpdateVehicleControl( f32 deltaTime );
         void                    PlayerUpdateTargeting( sloth::GuiFrame & guiFrame );
@@ -61,6 +62,7 @@ namespace dust {
 
         EntityId                        playerVehicleId = INVALID_ENTITY_ID;
         bool                             inventoryOpen = false;
+        bool                             vehiclePanelOpen = false;
 
         sloth::PhysicsWorld             physicsWorld;
         sloth::AudioWorld                audioWorld;

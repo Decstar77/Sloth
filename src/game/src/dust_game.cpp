@@ -354,6 +354,13 @@ namespace dust {
             playerInvetoryItemClicked = RenderInventoryGrid( guiFrame, *player, "Inventory##InvPanel", 600.0f );
         }
 
+        if ( Engine::Get().GetInput().IsKeyPressed( Key::C ) ) {
+            vehiclePanelOpen = !vehiclePanelOpen;
+        }
+        if ( vehiclePanelOpen ) {
+            RenderVehiclePanel( guiFrame, *player );
+        }
+
         Entity * target = world.GetEntity( player->action.targetId );
         if ( target == nullptr || target->type != ENTITY_TYPE_BUILDING ) {
             return;
@@ -439,6 +446,87 @@ namespace dust {
         EndPanel( guiFrame );
 
         return clickedIndex;
+    }
+
+    void DustGame::RenderVehiclePanel( GuiFrame & guiFrame, const Entity & player ) {
+        if ( player.type != ENTITY_TYPE_VEHICLE ) {
+            return;
+        }
+
+        const VehicleChassisDefinition & def = player.vehicle.definition;
+
+        struct SlotRow {
+            const char *      label;
+            InventoryItemType item;
+        };
+
+        SlotRow slots[8];
+        i32 slotCount = 0;
+        switch ( def.chassisType ) {
+            case VEHICLE_CHASSIS_TYPE_BUGGY:
+                slots[slotCount++] = { "Engine", def.buggy.engineSlot };
+                slots[slotCount++] = { "Tires", def.buggy.tireSlot };
+                slots[slotCount++] = { "Turret", def.buggy.turretSlot };
+                slots[slotCount++] = { "Power", def.buggy.powerSlot };
+                slots[slotCount++] = { "General 1", def.buggy.generalSlot1 };
+                slots[slotCount++] = { "General 2", def.buggy.generalSlot2 };
+                break;
+            case VEHICLE_CHASSIS_TYPE_TRUCK:
+                slots[slotCount++] = { "Engine", def.truck.engineSlot };
+                slots[slotCount++] = { "Tires", def.truck.tireSlot };
+                slots[slotCount++] = { "Turret", def.truck.turretSlot };
+                slots[slotCount++] = { "Power", def.truck.powerSlot };
+                slots[slotCount++] = { "General 1", def.truck.generalSlot1 };
+                slots[slotCount++] = { "General 2", def.truck.generalSlot2 };
+                slots[slotCount++] = { "General 3", def.truck.generalSlot3 };
+                slots[slotCount++] = { "General 4", def.truck.generalSlot4 };
+                break;
+            default:
+                break; // APC/Tank/Crawler chassis types have no part data yet.
+        }
+
+        constexpr f32 rowWidth = 260.0f;
+        constexpr f32 rowHeight = 24.0f;
+        constexpr f32 rowGap = 4.0f;
+        constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
+        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+
+        i32 rowCount = slotCount + 1; // +1 for the chassis type row.
+        glm::vec2 panelSize {
+            rowWidth + panelPadding * 2.0f,
+            static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
+        };
+
+        Window & window = Engine::Get().GetWindow();
+        glm::vec2 defaultPos {
+            static_cast<f32>( window.GetWidth() ) - panelSize.x - 20.0f,
+            20.0f,
+        };
+
+        PanelResult panel = BeginPanel( guiFrame, "Vehicle##VehiclePanel", defaultPos, panelSize );
+
+        glm::vec2 cursor = panel.contentMin;
+
+        LargeString chassisLabel;
+        chassisLabel.Format( "Chassis: %s", ToString( def.chassisType ) );
+        Label( guiFrame, chassisLabel.View(), { cursor.x, cursor.y + 14.0f }, 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
+        cursor.y += rowHeight + rowGap;
+
+        for ( i32 i = 0; i < slotCount; ++i ) {
+            const SlotRow & slot = slots[i];
+
+            LargeString rowLabel;
+            if ( slot.item == INVENTORY_ITEM_TYPE_NONE ) {
+                rowLabel.Format( "%s: (empty)", slot.label );
+            } else {
+                rowLabel.Format( "%s: %s", slot.label, ToString( slot.item ) );
+            }
+
+            Label( guiFrame, rowLabel.View(), { cursor.x, cursor.y + 14.0f }, 16.0f, { 0.85f, 0.85f, 0.85f, 1.0f } );
+            cursor.y += rowHeight + rowGap;
+        }
+
+        EndPanel( guiFrame );
     }
 
     void DustGame::RenderRefineryPanel( GuiFrame & guiFrame, Entity * player, Entity * target ) {

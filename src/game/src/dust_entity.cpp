@@ -113,6 +113,34 @@ namespace dust {
                 return "Silicon Wafer";
             case INVENTORY_ITEM_TYPE_PURIFIED_WATER:
                 return "Purified Water";
+
+            case INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS:
+                return "Wood Plank Armour";
+            case INVENTORY_ITEM_TYPE_ARMOUR_STEEL_PLATING:
+                return "Steel Plate Armour";
+
+            case INVENTORY_ITEM_TYPE_POWER_FUEL_TANK:
+                return "Fuel Tank";
+            case INVENTORY_ITEM_TYPE_POWER_BATTERY:
+                return "Battery";
+
+            case INVENTORY_ITEM_TYPE_ENGINE_PETROL:
+                return "Petrol Engine";
+            case INVENTORY_ITEM_TYPE_ENGINE_ELECTRIC:
+                return "Electric Engine";
+
+            case INVENTORY_ITEM_TYPE_TIRE_SHRUB:
+                return "Shrub Tires";
+            case INVENTORY_ITEM_TYPE_TIRE_RUBBER:
+                return "Rubber Tires";
+
+            case INVENTORY_ITEM_TYPE_TURRET_MINING_LASER:
+                return "Mining Laser";
+            case INVENTORY_ITEM_TYPE_TURRET_BULLET_GUN:
+                return "Bullet Gun";
+
+            default:
+                break;
         }
 
         return "Unknown";
@@ -160,9 +188,54 @@ namespace dust {
                 return "SiW";
             case INVENTORY_ITEM_TYPE_PURIFIED_WATER:
                 return "pH2O";
+
+            case INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS:
+                return "WdArm";
+            case INVENTORY_ITEM_TYPE_ARMOUR_STEEL_PLATING:
+                return "StArm";
+
+            case INVENTORY_ITEM_TYPE_POWER_FUEL_TANK:
+                return "Fuel";
+            case INVENTORY_ITEM_TYPE_POWER_BATTERY:
+                return "Batt";
+
+            case INVENTORY_ITEM_TYPE_ENGINE_PETROL:
+                return "PEng";
+            case INVENTORY_ITEM_TYPE_ENGINE_ELECTRIC:
+                return "EEng";
+
+            case INVENTORY_ITEM_TYPE_TIRE_SHRUB:
+                return "STire";
+            case INVENTORY_ITEM_TYPE_TIRE_RUBBER:
+                return "RTire";
+
+            case INVENTORY_ITEM_TYPE_TURRET_MINING_LASER:
+                return "MLsr";
+            case INVENTORY_ITEM_TYPE_TURRET_BULLET_GUN:
+                return "MGun";
+
+            default:
+                break;
         }
 
         return "?";
+    }
+
+    const char * ToString( VehicleChassisType type ) {
+        switch ( type ) {
+            case VEHICLE_CHASSIS_TYPE_BUGGY:
+                return "Buggy";
+            case VEHICLE_CHASSIS_TYPE_TRUCK:
+                return "Truck";
+            case VEHICLE_CHASSIS_TYPE_APC:
+                return "APC";
+            case VEHICLE_CHASSIS_TYPE_TANK:
+                return "Tank";
+            case VEHICLE_CHASSIS_TYPE_CRAWLER:
+                return "Crawler";
+        }
+
+        return "Unknown";
     }
 
     bool InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount ) {
@@ -355,6 +428,15 @@ namespace dust {
                 entity.vehicle = VehicleData();
                 entity.inventory.xSize = 5;
                 entity.inventory.ySize = 3;
+
+                entity.vehicle.definition.chassisType        = VEHICLE_CHASSIS_TYPE_BUGGY;
+                entity.vehicle.definition.buggy.engineSlot   = INVENTORY_ITEM_TYPE_ENGINE_PETROL;
+                entity.vehicle.definition.buggy.powerSlot    = INVENTORY_ITEM_TYPE_POWER_FUEL_TANK;
+                entity.vehicle.definition.buggy.tireSlot     = INVENTORY_ITEM_TYPE_TIRE_SHRUB;
+                entity.vehicle.definition.buggy.turretSlot   = INVENTORY_ITEM_TYPE_TURRET_MINING_LASER;
+                entity.vehicle.definition.buggy.generalSlot1 = INVENTORY_ITEM_TYPE_NONE;
+                entity.vehicle.definition.buggy.generalSlot2 = INVENTORY_ITEM_TYPE_NONE;
+
             } break;
             case ENTITY_TYPE_ORE_NODE: {
                 entity.rigidBodyData.createRigidBody = true;
