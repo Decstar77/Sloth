@@ -23,7 +23,7 @@ namespace dust {
         return INVENTORY_ITEM_TYPE_ORE_IRON;
     }
 
-    i64 InvetoryGetItemCapacity( InventoryItemType type ) {
+    i32 InvetoryGetItemCapacity( InventoryItemType type ) {
         switch ( type ) {
             case INVENTORY_ITEM_TYPE_ORE_IRON:
                 return 10;
@@ -241,8 +241,8 @@ namespace dust {
     bool InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount ) {
         SL_ASSERT_MSG( amount >= 0, "InvetoryAddItem called with negative amount" );
 
-        const i64 cap = InvetoryGetItemCapacity( type );
-        i64 remaining = amount;
+        const i32 cap = InvetoryGetItemCapacity( type );
+        i32 remaining = amount;
 
         // Top up any existing partial stacks of this type first.
         for ( InventoryItem & item : inventory.items ) {
@@ -254,23 +254,23 @@ namespace dust {
                 continue;
             }
 
-            const i64 space = cap - item.amount;
+            const i32 space = cap - item.amount;
             if ( space <= 0 ) {
                 continue;
             }
 
-            const i64 add = space < remaining ? space : remaining;
+            const i32 add = space < remaining ? space : remaining;
             item.amount += add;
             remaining -= add;
         }
 
-        const i64 slotCount = static_cast<i64>( inventory.xSize ) * static_cast<i64>( inventory.ySize );
+        const i32 slotCount = static_cast<i32>( inventory.xSize ) * static_cast<i32>( inventory.ySize );
         while ( remaining > 0 ) {
-            if ( inventory.items.IsFull() || static_cast<i64>( inventory.items.GetCount() ) >= slotCount ) {
+            if ( inventory.items.IsFull() || static_cast<i32>( inventory.items.GetCount() ) >= slotCount ) {
                 return false;
             }
 
-            const i64 add = cap < remaining ? cap : remaining;
+            const i32 add = cap < remaining ? cap : remaining;
             InventoryItem & item = inventory.items.Emplace();
             item.type = type;
             item.amount = add;
@@ -338,12 +338,12 @@ namespace dust {
         return total;
     }
 
-    bool InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i64 amount ) {
+    bool InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i32 amount ) {
         if ( InventoryGetTotalAmount( inventory, type ) < amount ) {
             return false;
         }
 
-        i64 remaining = amount;
+        i32 remaining = amount;
         FixedList<u32, INVENTORY_CAPACITY> emptied;
         const u32 count = inventory.items.GetCount();
         for ( u32 i = 0; i < count && remaining > 0; i++ ) {
@@ -352,7 +352,7 @@ namespace dust {
                 continue;
             }
 
-            const i64 take = item.amount < remaining ? item.amount : remaining;
+            const i32 take = item.amount < remaining ? item.amount : remaining;
             item.amount -= take;
             remaining -= take;
 
@@ -373,7 +373,7 @@ namespace dust {
         return type > INVENTORY_ITEM_TYPE_RAW_MATERIAL_BEGIN && type < INVENTORY_ITEM_TYPE_RAW_MATERIAL_END;
     }
 
-    Price RefineryPriceForItem( InventoryItemType item ) {
+    Price BuildingRefineryPriceForItem( InventoryItemType item ) {
         Price price = {};
         switch ( item ) {
             case INVENTORY_ITEM_TYPE_STEEL_INGOT: {
@@ -403,6 +403,31 @@ namespace dust {
             default:
                 SL_ASSERT_MSG( false, "Unkown item for refinery" );
                 break;
+        }
+        return price;
+    }
+
+    Price BuildingFactoryPriceForItem( InventoryItemType item ) {
+        Price price = {};
+        switch ( item ) {
+            case INVENTORY_ITEM_TYPE_STEEL_INGOT: {
+                price.credits = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_COPPER_WIRE: {
+                price.credits = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE: {
+                price.credits = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_PETROL: {
+                price.credits = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_LUBRICANT: {
+                price.credits = 25;
+            } break;
+            case INVENTORY_ITEM_TYPE_GLASS: {
+                price.credits = 25;
+            } break;
         }
         return price;
     }

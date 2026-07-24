@@ -6,6 +6,7 @@
 #include <gui/sloth_gui_context.h>
 #include <renderer/sloth_debug_renderer.h>
 #include <renderer/sloth_geometry.h>
+#include <renderer/sloth_text_renderer.h>
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -156,7 +157,7 @@ namespace dust {
                     Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition );
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
                     entity.building.type = BUILDING_TYPE_SHOP;
-                    entity.building.credits = 1000;
+                    entity.credits = 1000;
                     entity.inventory.xSize = 4;
                     entity.inventory.ySize = 4;
                     entity.rigidBodyData.shape = RigidBodyShape::Box;
@@ -172,7 +173,7 @@ namespace dust {
                     Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(15, 0, 0));
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
                     entity.building.type = BUILDING_TYPE_REFINERY;
-                    entity.building.credits = 1000;
+                    entity.credits = 1000;
 
                     entity.rigidBodyData.shape = RigidBodyShape::Box;
                     entity.rigidBodyData.halfExtents = shopHalfExtents;
@@ -380,6 +381,9 @@ namespace dust {
                     world.ShopSellItem( target, player, playerInvetoryItemClicked );
                 }
             }
+            else if (target->building.type == BUILDING_TYPE_FACTORY) {
+                RenderFactoryPanel( guiFrame, player, target );
+            }
         }
     }
 
@@ -448,6 +452,30 @@ namespace dust {
         return clickedIndex;
     }
 
+    // Lays out one side's slot buttons top-to-bottom, bowing outward at the
+    // midpoint and tapering back in at the top/bottom - a cheap stand-in for
+    // tracing the left/right half of an ellipse until real garage art exists.
+    static void RenderVehicleSlotColumn( GuiFrame & guiFrame, const InventoryItemType * items, const char * const * labels, i32 count,
+                                         glm::vec2 center, f32 sideSign, f32 ellipseRadiusX, f32 topY, f32 bottomY, glm::vec2 slotSize ) {
+        for ( i32 i = 0; i < count; ++i ) {
+            f32 u = count > 1 ? static_cast<f32>( i ) / static_cast<f32>( count - 1 ) : 0.5f;
+            f32 y = topY + u * ( bottomY - topY );
+            f32 x = center.x + sideSign * ellipseRadiusX * sinf( u * 3.14159265f );
+
+            glm::vec2 slotMin { sideSign > 0.0f ? x : x - slotSize.x, y - slotSize.y * 0.5f };
+            glm::vec2 slotMax = slotMin + slotSize;
+
+            LargeString label;
+            if ( items[i] == INVENTORY_ITEM_TYPE_NONE ) {
+                label.Format( "%s: (empty)##VehSlot%s%d", labels[i], sideSign > 0.0f ? "R" : "L", i );
+            } else {
+                label.Format( "%s: %s##VehSlot%s%d", labels[i], ToString( items[i] ), sideSign > 0.0f ? "R" : "L", i );
+            }
+
+            Button( guiFrame, label.View(), slotMin, slotMax );
+        }
+    }
+
     void DustGame::RenderVehiclePanel( GuiFrame & guiFrame, const Entity & player ) {
         if ( player.type != ENTITY_TYPE_VEHICLE ) {
             return;
@@ -455,78 +483,86 @@ namespace dust {
 
         const VehicleChassisDefinition & def = player.vehicle.definition;
 
-        struct SlotRow {
-            const char *      label;
-            InventoryItemType item;
-        };
+        // Right side: engine / tires / power. Left side: turret + general slots.
+        InventoryItemType rightItems[3];
+        static const char * RightLabels[3] = { "Engine", "Tires", "Power" };
 
-        SlotRow slots[8];
-        i32 slotCount = 0;
+        InventoryItemType leftItems[5];
+        static const char * LeftLabels[5] = { "Turret", "General 1", "General 2", "General 3", "General 4" };
+        i32 leftCount = 0;
+
         switch ( def.chassisType ) {
             case VEHICLE_CHASSIS_TYPE_BUGGY:
-                slots[slotCount++] = { "Engine", def.buggy.engineSlot };
-                slots[slotCount++] = { "Tires", def.buggy.tireSlot };
-                slots[slotCount++] = { "Turret", def.buggy.turretSlot };
-                slots[slotCount++] = { "Power", def.buggy.powerSlot };
-                slots[slotCount++] = { "General 1", def.buggy.generalSlot1 };
-                slots[slotCount++] = { "General 2", def.buggy.generalSlot2 };
+                rightItems[0] = def.buggy.engineSlot;
+                rightItems[1] = def.buggy.tireSlot;
+                rightItems[2] = def.buggy.powerSlot;
+                leftItems[leftCount++] = def.buggy.turretSlot;
+                leftItems[leftCount++] = def.buggy.generalSlot1;
+                leftItems[leftCount++] = def.buggy.generalSlot2;
                 break;
             case VEHICLE_CHASSIS_TYPE_TRUCK:
-                slots[slotCount++] = { "Engine", def.truck.engineSlot };
-                slots[slotCount++] = { "Tires", def.truck.tireSlot };
-                slots[slotCount++] = { "Turret", def.truck.turretSlot };
-                slots[slotCount++] = { "Power", def.truck.powerSlot };
-                slots[slotCount++] = { "General 1", def.truck.generalSlot1 };
-                slots[slotCount++] = { "General 2", def.truck.generalSlot2 };
-                slots[slotCount++] = { "General 3", def.truck.generalSlot3 };
-                slots[slotCount++] = { "General 4", def.truck.generalSlot4 };
+                rightItems[0] = def.truck.engineSlot;
+                rightItems[1] = def.truck.tireSlot;
+                rightItems[2] = def.truck.powerSlot;
+                leftItems[leftCount++] = def.truck.turretSlot;
+                leftItems[leftCount++] = def.truck.generalSlot1;
+                leftItems[leftCount++] = def.truck.generalSlot2;
+                leftItems[leftCount++] = def.truck.generalSlot3;
+                leftItems[leftCount++] = def.truck.generalSlot4;
                 break;
             default:
-                break; // APC/Tank/Crawler chassis types have no part data yet.
+                // APC/Tank/Crawler chassis types have no part data yet.
+                return;
         }
 
-        constexpr f32 rowWidth = 260.0f;
-        constexpr f32 rowHeight = 24.0f;
-        constexpr f32 rowGap = 4.0f;
-        constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
-        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
-
-        i32 rowCount = slotCount + 1; // +1 for the chassis type row.
-        glm::vec2 panelSize {
-            rowWidth + panelPadding * 2.0f,
-            static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
-        };
+        constexpr f32 panelWidth = 620.0f;
+        constexpr f32 panelHeight = 440.0f;
+        constexpr glm::vec2 slotSize { 150.0f, 32.0f };
 
         Window & window = Engine::Get().GetWindow();
         glm::vec2 defaultPos {
-            static_cast<f32>( window.GetWidth() ) - panelSize.x - 20.0f,
-            20.0f,
+            ( static_cast<f32>( window.GetWidth() ) - panelWidth ) * 0.5f,
+            ( static_cast<f32>( window.GetHeight() ) - panelHeight ) * 0.5f,
         };
 
-        PanelResult panel = BeginPanel( guiFrame, "Vehicle##VehiclePanel", defaultPos, panelSize );
+        PanelResult panel = BeginPanel( guiFrame, "Vehicle##VehiclePanel", defaultPos, { panelWidth, panelHeight } );
 
-        glm::vec2 cursor = panel.contentMin;
+        f32 centerX = ( panel.contentMin.x + panel.contentMax.x ) * 0.5f;
+        f32 chassisY = panel.contentMin.y + 14.0f;
+        f32 topY = panel.contentMin.y + 60.0f;
+        f32 bottomY = panel.contentMax.y - 30.0f;
+
+        // Derived from the panel's own content width (minus slot width and a
+        // small margin) rather than a fixed constant, so the columns always
+        // stay squished inside the panel regardless of its size.
+        f32 contentWidth = panel.contentMax.x - panel.contentMin.x;
+        f32 ellipseRadiusX = contentWidth * 0.5f - slotSize.x - 10.0f;
+
+        RenderVehicleSlotColumn( guiFrame, rightItems, RightLabels, 3, { centerX, 0.0f }, 1.0f, ellipseRadiusX, topY, bottomY, slotSize );
+        RenderVehicleSlotColumn( guiFrame, leftItems, LeftLabels, leftCount, { centerX, 0.0f }, -1.0f, ellipseRadiusX, topY, bottomY, slotSize );
 
         LargeString chassisLabel;
         chassisLabel.Format( "Chassis: %s", ToString( def.chassisType ) );
-        Label( guiFrame, chassisLabel.View(), { cursor.x, cursor.y + 14.0f }, 16.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
-        cursor.y += rowHeight + rowGap;
+        f32 chassisWidth = guiFrame.textRenderer.MeasureText( guiFrame.font, guiFrame.glyphCache, chassisLabel.View(), 18.0f );
+        Label( guiFrame, chassisLabel.View(), { centerX - chassisWidth * 0.5f, chassisY + 14.0f }, 18.0f, { 1.0f, 1.0f, 1.0f, 1.0f } );
 
-        for ( i32 i = 0; i < slotCount; ++i ) {
-            const SlotRow & slot = slots[i];
-
-            LargeString rowLabel;
-            if ( slot.item == INVENTORY_ITEM_TYPE_NONE ) {
-                rowLabel.Format( "%s: (empty)", slot.label );
-            } else {
-                rowLabel.Format( "%s: %s", slot.label, ToString( slot.item ) );
-            }
-
-            Label( guiFrame, rowLabel.View(), { cursor.x, cursor.y + 14.0f }, 16.0f, { 0.85f, 0.85f, 0.85f, 1.0f } );
-            cursor.y += rowHeight + rowGap;
-        }
+        StringView centerText = "Awesome Car";
+        f32 centerWidth = guiFrame.textRenderer.MeasureText( guiFrame.font, guiFrame.glyphCache, centerText, 26.0f );
+        Label( guiFrame, centerText, { centerX - centerWidth * 0.5f, ( topY + bottomY ) * 0.5f }, 26.0f, { 1.0f, 0.85f, 0.3f, 1.0f } );
 
         EndPanel( guiFrame );
+    }
+
+    void DustGame::RenderFactoryPanel( sloth::GuiFrame & guiFrame, Entity * player, Entity * factory ) {
+        constexpr InventoryItemType factoryItems[] = {
+            INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BUGGY,
+            INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS,
+            INVENTORY_ITEM_TYPE_POWER_FUEL_TANK,
+            INVENTORY_ITEM_TYPE_ENGINE_PETROL,
+            INVENTORY_ITEM_TYPE_TIRE_SHRUB,
+            INVENTORY_ITEM_TYPE_TURRET_MINING_LASER,
+        };
+
     }
 
     void DustGame::RenderRefineryPanel( GuiFrame & guiFrame, Entity * player, Entity * target ) {
@@ -561,7 +597,7 @@ namespace dust {
 
         glm::vec2 cursor = panel.contentMin;
         for ( InventoryItemType itemType : refineryItems ) {
-            const Price price = RefineryPriceForItem( itemType );
+            const Price price = BuildingRefineryPriceForItem( itemType );
 
             LargeString rowLabel;
             rowLabel.Format( "%s - %dcr", ToString( itemType ), static_cast<i32>( price.credits ) );

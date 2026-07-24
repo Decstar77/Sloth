@@ -61,6 +61,15 @@ namespace dust {
         INVENTORY_ITEM_TYPE_SILICON_WAFER,
         INVENTORY_ITEM_TYPE_PURIFIED_WATER,
 
+        // Vechicle Chassis
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BEGIN,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BUGGY,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_TRUCK,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_APC,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_TANK,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_CRAWLER,
+        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_END,
+
         // Vechicle Armour Parts
         INVENTORY_ITEM_TYPE_ARMOUR_BEGIN,
         INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS,
@@ -93,7 +102,7 @@ namespace dust {
 
     struct InventoryItem {
         InventoryItemType type;
-        i64 amount;
+        i32 amount;
         i32 flatIndex;
     };
 
@@ -199,14 +208,14 @@ namespace dust {
         i64         amount = 100;
     };
 
-    i64                     InvetoryGetItemCapacity( InventoryItemType type );
+    i32                     InvetoryGetItemCapacity( InventoryItemType type );
     bool                    InvetoryAddItem( Inventory & inventory, InventoryItemType type, i32 amount );
     InventoryItem *         InvetoryFindItem( Inventory & inventory, InventoryItemType type );
     const InventoryItem *   InvetoryFindItem( const Inventory & inventory, InventoryItemType type );
     i64                     InvetoryRemoveItemByIndex( Inventory & inventory, i32 index );
     i64                     InvetoryRemoveItemByType( Inventory & inventory, InventoryItemType type );
     i64                     InventoryGetTotalAmount( const Inventory & inventory, InventoryItemType type );
-    bool                    InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i64 amount );
+    bool                    InventoryRemoveAmount( Inventory & inventory, InventoryItemType type, i32 amount );
 
     bool                    ItemIsRawMaterial( InventoryItemType type );
 
@@ -233,26 +242,41 @@ namespace dust {
     enum BuildingType {
         BUILDING_TYPE_SHOP = 0,
         BUILDING_TYPE_REFINERY,
-        BUILDING_TYPE_CHEMICALPLANT,
+        BUILDING_TYPE_CHEMICAL_PLANT,
+        BUILDING_TYPE_FACTORY,
+        BUILDING_TYPE_WORKSHOP,
     };
 
     struct Building {
         BuildingType type;
-        i64 credits;
     };
 
     struct Price {
         i64 credits;
-        i64 oreIron;
-        i64 oreCopper;
-        i64 oreSulphur;
-        i64 oreAluminum;
-        i64 oreCrudeOil;
-        i64 oreWater;
-        i64 oreSilicon;
+        i32 oreIron;
+        i32 oreCopper;
+        i32 oreSulphur;
+        i32 oreAluminum;
+        i32 oreCrudeOil;
+        i32 oreWater;
+        i32 oreSilicon;
+
+        i32 steelIngot;
+        i32 copperWire;
+        i32 aluminumPlate;
+        i32 petrol;
+        i32 lubricant;
+        i32 glass;
+        i32 sulphuricAcid;
+        i32 gunPowder;
+        i32 rubber;
+        i32 plastic;
+        i32 siliconWafer;
+        i32 purifiedWater;
     };
 
-    Price RefineryPriceForItem( InventoryItemType item );
+    Price BuildingRefineryPriceForItem( InventoryItemType item );
+    Price BuildingFactoryPriceForItem( InventoryItemType item );
     //Price ChemicalPlanePriceForItem( InventoryItemType item );
 
     struct Entity {

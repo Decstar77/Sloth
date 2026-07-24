@@ -221,7 +221,7 @@ namespace dust {
             return false;
         }
 
-        const Price price = RefineryPriceForItem( itemType );
+        const Price price = BuildingRefineryPriceForItem( itemType );
 
         Faction & buyerFaction = GetFaction( buyer->faction );
         if ( buyerFaction.credits < price.credits ) {
@@ -261,7 +261,7 @@ namespace dust {
         }
 
         buyerFaction.credits -= price.credits;
-        refinery->building.credits += price.credits;
+        refinery->credits += price.credits;
 
         return true;
     }
