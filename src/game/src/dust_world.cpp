@@ -237,7 +237,7 @@ namespace dust {
             INVENTORY_ITEM_TYPE_ORE_WATER,
             INVENTORY_ITEM_TYPE_ORE_SILICON,
         };
-        const i64 oreCosts[] = {
+        const i32 oreCosts[] = {
             price.oreIron, price.oreCopper, price.oreSulphur,
             price.oreAluminum, price.oreCrudeOil, price.oreWater, price.oreSilicon,
         };
@@ -262,6 +262,66 @@ namespace dust {
 
         buyerFaction.credits -= price.credits;
         refinery->credits += price.credits;
+
+        return true;
+    }
+
+    bool DustWorld::FactoryPurchaseItem( Entity * buyer, EntityId factoryId, InventoryItemType itemType ) {
+        SL_ASSERT( buyer );
+
+        Entity * factory = GetEntity( factoryId );
+        if ( factory == nullptr || factory->type != ENTITY_TYPE_BUILDING || factory->building.type != BUILDING_TYPE_FACTORY ) {
+            return false;
+        }
+
+        const Price price = BuildingFactoryPriceForItem( itemType );
+
+        Faction & buyerFaction = GetFaction( buyer->faction );
+        if ( buyerFaction.credits < price.credits ) {
+            return false;
+        }
+
+        constexpr InventoryItemType materialTypes[] = {
+            INVENTORY_ITEM_TYPE_STEEL_INGOT,
+            INVENTORY_ITEM_TYPE_COPPER_WIRE,
+            INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
+            INVENTORY_ITEM_TYPE_PETROL,
+            INVENTORY_ITEM_TYPE_LUBRICANT,
+            INVENTORY_ITEM_TYPE_GLASS,
+            INVENTORY_ITEM_TYPE_SULPHURIC_ACID,
+            INVENTORY_ITEM_TYPE_GUNPOWDER,
+            INVENTORY_ITEM_TYPE_RUBBER,
+            INVENTORY_ITEM_TYPE_PLASTIC,
+            INVENTORY_ITEM_TYPE_SILICON_WAFER,
+            INVENTORY_ITEM_TYPE_PURIFIED_WATER,
+        };
+        const i32 materialCosts[] = {
+            price.steelIngot, price.copperWire, price.aluminumPlate,
+            price.petrol, price.lubricant, price.glass,
+            price.sulphuricAcid, price.gunPowder, price.rubber,
+            price.plastic, price.siliconWafer, price.purifiedWater,
+        };
+
+        for ( u32 i = 0; i < SL_ARRAY_COUNT( materialTypes ); i++ ) {
+            if ( InventoryGetTotalAmount( buyer->inventory, materialTypes[i] ) < materialCosts[i] ) {
+                return false;
+            }
+        }
+
+        // Check inventory space before touching any resources so a full
+        // inventory fails cleanly instead of charging without delivering.
+        if ( InvetoryAddItem( buyer->inventory, itemType, 1 ) == false ) {
+            return false;
+        }
+
+        for ( u32 i = 0; i < SL_ARRAY_COUNT( materialTypes ); i++ ) {
+            if ( materialCosts[i] > 0 ) {
+                InventoryRemoveAmount( buyer->inventory, materialTypes[i], materialCosts[i] );
+            }
+        }
+
+        buyerFaction.credits -= price.credits;
+        factory->credits += price.credits;
 
         return true;
     }

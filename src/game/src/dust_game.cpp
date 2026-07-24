@@ -182,6 +182,20 @@ namespace dust {
                     world.SpawnEntity( entity );
                 }
 
+                // Factory
+                {
+                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(30, 0, 0));
+                    entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
+                    entity.building.type = BUILDING_TYPE_FACTORY;
+                    entity.credits = 1000;
+
+                    entity.rigidBodyData.shape = RigidBodyShape::Box;
+                    entity.rigidBodyData.halfExtents = shopHalfExtents;
+                    entity.rigidBodyData.motionType = BodyMotionType::Static;
+
+                    world.SpawnEntity( entity );
+                }
+
                 // AI dune buggies
                 for ( const glm::vec3 & aiPosition : fs.aiPositions ) {
                     Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, fs.type, aiPosition );
@@ -563,6 +577,79 @@ namespace dust {
             INVENTORY_ITEM_TYPE_TURRET_MINING_LASER,
         };
 
+        constexpr f32 rowWidth = 340.0f;
+        constexpr f32 rowHeight = 36.0f;
+        constexpr f32 rowGap = 8.0f;
+        constexpr f32 panelPadding = 12.0f;   // Matches BeginPanel's PanelContentPadding.
+        constexpr f32 titleBarHeight = 28.0f; // Matches BeginPanel's PanelTitleBarHeight.
+
+        constexpr i32 rowCount = static_cast<i32>( SL_ARRAY_COUNT( factoryItems ) ) + 1; // +1 for the Close button.
+        glm::vec2 panelSize {
+            rowWidth + panelPadding * 2.0f,
+            static_cast<f32>( rowCount ) * ( rowHeight + rowGap ) - rowGap + panelPadding * 2.0f + titleBarHeight,
+        };
+
+        Window & window = Engine::Get().GetWindow();
+        glm::vec2 defaultPos {
+            ( static_cast<f32>( window.GetWidth() ) - panelSize.x ) * 0.5f - 500,
+            ( static_cast<f32>( window.GetHeight() ) - panelSize.y ) * 0.5f,
+        };
+
+        PanelResult panel = BeginPanel( guiFrame, "Factory##FactoryPanel", defaultPos, panelSize );
+
+        glm::vec2 cursor = panel.contentMin;
+        for ( InventoryItemType itemType : factoryItems ) {
+            const Price price = BuildingFactoryPriceForItem( itemType );
+
+            LargeString rowLabel;
+            rowLabel.Format( "%s - %dcr", ToString( itemType ), static_cast<i32>( price.credits ) );
+
+            // Append every non-zero refined-material requirement too - the
+            // price struct has one field per material type, but only the
+            // credits cost used to make it into the label, silently hiding
+            // the material cost of items that require it.
+            struct MaterialRequirement {
+                InventoryItemType type;
+                i64               amount;
+            };
+            const MaterialRequirement materialRequirements[] = {
+                { INVENTORY_ITEM_TYPE_STEEL_INGOT, price.steelIngot },
+                { INVENTORY_ITEM_TYPE_COPPER_WIRE, price.copperWire },
+                { INVENTORY_ITEM_TYPE_ALUMINUM_PLATE, price.aluminumPlate },
+                { INVENTORY_ITEM_TYPE_PETROL, price.petrol },
+                { INVENTORY_ITEM_TYPE_LUBRICANT, price.lubricant },
+                { INVENTORY_ITEM_TYPE_GLASS, price.glass },
+                { INVENTORY_ITEM_TYPE_SULPHURIC_ACID, price.sulphuricAcid },
+                { INVENTORY_ITEM_TYPE_GUNPOWDER, price.gunPowder },
+                { INVENTORY_ITEM_TYPE_RUBBER, price.rubber },
+                { INVENTORY_ITEM_TYPE_PLASTIC, price.plastic },
+                { INVENTORY_ITEM_TYPE_SILICON_WAFER, price.siliconWafer },
+                { INVENTORY_ITEM_TYPE_PURIFIED_WATER, price.purifiedWater },
+            };
+            for ( const MaterialRequirement & req : materialRequirements ) {
+                if ( req.amount <= 0 ) {
+                    continue;
+                }
+
+                LargeString reqLabel;
+                reqLabel.Format( ", %d %s", static_cast<i32>( req.amount ), ToShortCode( req.type ) );
+                rowLabel.Append( reqLabel.View() );
+            }
+
+            LargeString idSuffix;
+            idSuffix.Format( "##FactoryBuy%d", static_cast<i32>( itemType ) );
+            rowLabel.Append( idSuffix.View() );
+
+            glm::vec2 rowMin = cursor;
+            glm::vec2 rowMax = rowMin + glm::vec2( rowWidth, rowHeight );
+            if ( Button( guiFrame, rowLabel.View(), rowMin, rowMax ) ) {
+                world.FactoryPurchaseItem( player, factory->id, itemType );
+            }
+
+            cursor.y += rowHeight + rowGap;
+        }
+
+        EndPanel( guiFrame );
     }
 
     void DustGame::RenderRefineryPanel( GuiFrame & guiFrame, Entity * player, Entity * target ) {

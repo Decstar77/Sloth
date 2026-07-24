@@ -410,23 +410,23 @@ namespace dust {
     Price BuildingFactoryPriceForItem( InventoryItemType item ) {
         Price price = {};
         switch ( item ) {
-            case INVENTORY_ITEM_TYPE_STEEL_INGOT: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BUGGY: {
+                price.credits = 10;
             } break;
-            case INVENTORY_ITEM_TYPE_COPPER_WIRE: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS: {
+                price.credits = 10;
             } break;
-            case INVENTORY_ITEM_TYPE_ALUMINUM_PLATE: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_POWER_FUEL_TANK: {
+                price.credits = 10;
             } break;
-            case INVENTORY_ITEM_TYPE_PETROL: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_ENGINE_PETROL: {
+                price.credits = 10;
             } break;
-            case INVENTORY_ITEM_TYPE_LUBRICANT: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_TIRE_SHRUB: {
+                price.credits = 10;
             } break;
-            case INVENTORY_ITEM_TYPE_GLASS: {
-                price.credits = 25;
+            case INVENTORY_ITEM_TYPE_TURRET_MINING_LASER: {
+                price.credits = 10;
             } break;
         }
         return price;

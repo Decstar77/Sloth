@@ -42,6 +42,7 @@ namespace dust {
         bool                        ShopSellItem( Entity * shop, Entity * seller, i32 sellingItemIndex );
         bool                        ShopBuyItem( Entity * shop, Entity * buyer, i32 shopItemIndex );
         bool                        RefineryPurchaseItem( Entity * buyer, EntityId refineryId, InventoryItemType itemType );
+        bool                        FactoryPurchaseItem( Entity * buyer, EntityId factoryId, InventoryItemType itemType );
 
         const std::vector<Entity> & GetEntities() const { return entities; }
 
