@@ -10,6 +10,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -347,15 +348,29 @@ namespace sloth {
         auto * controller = static_cast<JPH::WheeledVehicleController *>( record.constraint->GetController() );
         controller->SetDriverInput( inForward, inRight, inBrake, inHandBrake );
 
-        // A stationary vehicle falls asleep like any other rigid body; once
-        // asleep, PhysicsSystem::Update() stops integrating its transform even
-        // though the wheels keep visually spinning (WheelWV::Update() runs
-        // every step off engine RPM alone, independent of body activation).
-        // Wake it whenever the driver actually wants it to move, otherwise
-        // input silently does nothing until something else nudges it awake.
         if ( inForward != 0.0f || inBrake != 0.0f || inHandBrake != 0.0f ) {
             impl->bodyInterface->ActivateBody( record.carBody->GetID() );
         }
+    }
+
+    RigidBody PhysicsWorld::CreatePlayerCapsule( const glm::vec3 & position, f32 height, f32 radius ) {
+
+        f32 cylinderHalfHeight = ( height - 2.0f * radius ) * 0.5f;
+        SL_ASSERT_MSG( cylinderHalfHeight > 0.0f, "PhysicsWorld: player capsule height must exceed 2*radius" );
+
+        JPH::ShapeSettings::ShapeResult shapeResult = JPH::CapsuleShapeSettings( cylinderHalfHeight, radius ).Create();
+        SL_ASSERT_MSG( !shapeResult.HasError(), "PhysicsWorld: failed to create capsule shape: %s", shapeResult.GetError().c_str() );
+
+        JPH::BodyCreationSettings settings( shapeResult.Get(), ToJolt( position ), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::Moving );
+        settings.mAllowedDOFs = JPH::EAllowedDOFs::TranslationX | JPH::EAllowedDOFs::TranslationY | JPH::EAllowedDOFs::TranslationZ;
+        settings.mFriction = 0.0f; // Velocity-driven movement; friction would just fight against wall/floor contacts.
+
+        JPH::Body * body = impl->bodyInterface->CreateBody( settings );
+        SL_ASSERT_MSG( body != nullptr, "PhysicsWorld: failed to create player capsule body (max body count reached?)" );
+
+        impl->bodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
+
+        return RigidBody { body->GetID().GetIndexAndSequenceNumber() };
     }
 
     glm::mat4 PhysicsWorld::GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const {

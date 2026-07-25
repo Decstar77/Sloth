@@ -36,9 +36,6 @@ namespace sloth {
         glm::vec3 point { 0.0f, 0.0f, 0.0f };
     };
 
-    // Opaque handle to a wheeled vehicle created via PhysicsWorld::CreateVehicle.
-    // Indexes into PhysicsWorld's internal vehicle list; not valid across
-    // different PhysicsWorld instances or after DestroyVehicle().
     struct VehicleHandle {
         static constexpr u32 InvalidId = 0xFFFFFFFF;
 
@@ -73,14 +70,22 @@ namespace sloth {
 
         void Update( f32 deltaTime );
 
-        RigidBody   CreateBoxBody( const glm::vec3 & halfExtents, const RigidBodyDesc & desc );
-        RigidBody   CreateSphereBody( f32 radius, const RigidBodyDesc & desc );
-        void        DestroyBody( RigidBody body );
+        RigidBody       CreateBoxBody( const glm::vec3 & halfExtents, const RigidBodyDesc & desc );
+        RigidBody       CreateSphereBody( f32 radius, const RigidBodyDesc & desc );
+        void            DestroyBody( RigidBody body );
 
-        VehicleHandle CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents, f32 wheelRad, f32 wheelWidth );
-        void          DestroyVehicle( VehicleHandle vehicle );
-        RigidBody     GetVehicleBody( VehicleHandle vehicle ) const;
-        void          SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
+        VehicleHandle   CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents, f32 wheelRad, f32 wheelWidth );
+        void            DestroyVehicle( VehicleHandle vehicle );
+        RigidBody       GetVehicleBody( VehicleHandle vehicle ) const;
+        void            SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
+
+        // Creates a simple "kinematic-feeling" player controller: a dynamic
+        // capsule body with all rotational degrees of freedom locked, so it
+        // never tips over and stays upright regardless of collision impacts.
+        // Movement is driven by setting linear velocity directly (see
+        // SetLinearVelocity) - gravity still applies on Y, so falling/jumping
+        // works, but nothing ever rotates the capsule.
+        RigidBody       CreatePlayerCapsule( const glm::vec3 & position, f32 height, f32 radius );
 
         // Wheel transform relative to the vehicle's chassis body (including
         // current suspension compression, steer angle, and roll) - multiply

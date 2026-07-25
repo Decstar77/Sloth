@@ -18,6 +18,14 @@ namespace tower {
                 entity.rigidBodyData.createRigidBody = true;
                 entity.prop = PropData();
             } break;
+            case ENTITY_TYPE_PLAYER: {
+                entity.rigidBodyData.createRigidBody = true;
+                entity.rigidBodyData.shape = RigidBodyShape::PlayerCapsule;
+                entity.rigidBodyData.height = 1.8f;
+                entity.rigidBodyData.radius = 0.35f;
+                entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
+                entity.player = PlayerData();
+            } break;
         }
 
         return entity;
@@ -29,6 +37,8 @@ namespace tower {
                 return "Invalid";
             case ENTITY_TYPE_PROP:
                 return "Prop";
+            case ENTITY_TYPE_PLAYER:
+                return "Player";
         }
 
         return "Unknown";

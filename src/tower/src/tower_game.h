@@ -27,8 +27,12 @@ namespace tower {
         TowerWorld &            GetWorld() { return world; }
 
     private:
+        void                    UpdatePlayerMovement( f32 deltaTime );
+
+    private:
         TowerWorld                          world;
         TowerCamera                         camera;
+        EntityId                            playerId;
 
         // Rendering stuff, need a better place to put all this
         std::unique_ptr<sloth::Shader>      shader;

@@ -13,6 +13,7 @@ namespace tower {
     enum EntityType {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
+        ENTITY_TYPE_PLAYER,
     };
 
     struct EntityId {
@@ -28,6 +29,7 @@ namespace tower {
     enum class RigidBodyShape {
         Box,
         Sphere,
+        PlayerCapsule,
     };
 
     struct RigidBodySpawnData {
@@ -35,12 +37,18 @@ namespace tower {
         RigidBodyShape          shape = RigidBodyShape::Box;
         glm::vec3               halfExtents = { 0.5f, 0.5f, 0.5f };
         f32                     radius = 0.5f;
+        f32                     height = 1.8f; // PlayerCapsule only: total capsule height (including hemisphere caps).
         BodyMotionType          motionType = BodyMotionType::Dynamic;
         f32                     friction = 0.5f;
         f32                     restitution = 0.0f;
     };
 
     struct PropData {
+    };
+
+    struct PlayerData {
+        f32 eyeHeight = 0.7f;   // Offset above the capsule's center (its origin) the FPS camera sits at.
+        f32 moveSpeed = 5.0f;   // Walk speed in m/s.
     };
 
     struct Entity {
@@ -62,6 +70,7 @@ namespace tower {
 
         union {
             PropData    prop;
+            PlayerData  player;
         };
     };
 

@@ -77,6 +77,12 @@ namespace tower {
                 world.SpawnEntity( entity );
             }
         }
+
+        // Player capsule - no render model, since it's viewed in first person.
+        {
+            Entity entity = MakeEntity( ENTITY_TYPE_PLAYER, { 0.0f, 3.0f, 10.0f } );
+            playerId = world.SpawnEntity( entity );
+        }
     }
 
     void TowerGame::Shutdown() {
@@ -84,11 +90,51 @@ namespace tower {
 
     void TowerGame::Update( f32 deltaTime ) {
         camera.Update( deltaTime );
+        UpdatePlayerMovement( deltaTime );
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
 
+        // Camera follows the player capsule's eye position - must run after
+        // SyncPhysicsTransforms() so entity.position reflects this frame's
+        // physics step, not last frame's.
+        if ( Entity * player = world.GetEntity( playerId ) ) {
+            camera.SetPosition( player->position + glm::vec3( 0.0f, player->player.eyeHeight, 0.0f ) );
+        }
+
         world.FlushPendingChanges();
+    }
+
+    void TowerGame::UpdatePlayerMovement( f32 deltaTime ) {
+        Entity * player = world.GetEntity( playerId );
+        if ( player == nullptr || !player->rigidBody.IsValid() ) {
+            return;
+        }
+
+        Input & input = Engine::Get().GetInput();
+
+        // Walk relative to the camera's flat (yaw-only) facing direction, so
+        // "forward" always means "the way you're looking" regardless of pitch.
+        f32 yawRadians = glm::radians( camera.GetYaw() );
+        glm::vec3 flatForward = glm::normalize( glm::vec3( glm::cos( yawRadians ), 0.0f, glm::sin( yawRadians ) ) );
+        glm::vec3 flatRight( -flatForward.z, 0.0f, flatForward.x );
+
+        glm::vec3 movement( 0.0f );
+        if ( input.IsKeyDown( Key::W ) ) movement += flatForward;
+        if ( input.IsKeyDown( Key::S ) ) movement -= flatForward;
+        if ( input.IsKeyDown( Key::D ) ) movement += flatRight;
+        if ( input.IsKeyDown( Key::A ) ) movement -= flatRight;
+
+        if ( glm::length( movement ) > 0.0f ) {
+            movement = glm::normalize( movement ) * player->player.moveSpeed;
+        }
+
+        // Only drive the horizontal velocity directly - the vertical
+        // component is left alone so gravity (and, later, jumping) keeps
+        // working through the physics simulation rather than being
+        // overwritten every frame.
+        glm::vec3 currentVelocity = physicsWorld.GetLinearVelocity( player->rigidBody );
+        physicsWorld.SetLinearVelocity( player->rigidBody, { movement.x, currentVelocity.y, movement.z } );
     }
 
     void TowerGame::Render() {
@@ -107,6 +153,10 @@ namespace tower {
         for ( const Entity & entity : world.GetEntities() ) {
             if ( entity.type == ENTITY_TYPE_INVALID ) {
                 continue;
+            }
+
+            if ( !entity.renderModel.shader || !entity.renderModel.mesh ) {
+                continue; // e.g. the player capsule, which has no mesh since it's viewed in first person.
             }
 
             glm::mat4 model = glm::translate( glm::mat4( 1.0f ), entity.position ) * glm::mat4_cast( entity.rotation ) * glm::scale( glm::mat4( 1.0f ), glm::vec3( entity.scale ) );

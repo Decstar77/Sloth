@@ -73,16 +73,20 @@ namespace tower {
         entity = spawn.entity;
 
         if ( entity.rigidBodyData.createRigidBody == true ) {
-            sloth::RigidBodyDesc bodyDesc;
-            bodyDesc.position = entity.position;
-            bodyDesc.rotation = entity.rotation;
-            bodyDesc.motionType = entity.rigidBodyData.motionType;
-            bodyDesc.friction = entity.rigidBodyData.friction;
-            bodyDesc.restitution = entity.rigidBodyData.restitution;
+            if ( entity.rigidBodyData.shape == RigidBodyShape::PlayerCapsule ) {
+                entity.rigidBody = physicsWorld->CreatePlayerCapsule( entity.position, entity.rigidBodyData.height, entity.rigidBodyData.radius );
+            } else {
+                sloth::RigidBodyDesc bodyDesc;
+                bodyDesc.position = entity.position;
+                bodyDesc.rotation = entity.rotation;
+                bodyDesc.motionType = entity.rigidBodyData.motionType;
+                bodyDesc.friction = entity.rigidBodyData.friction;
+                bodyDesc.restitution = entity.rigidBodyData.restitution;
 
-            entity.rigidBody = ( entity.rigidBodyData.shape == RigidBodyShape::Box )
-                                   ? physicsWorld->CreateBoxBody( entity.rigidBodyData.halfExtents, bodyDesc )
-                                   : physicsWorld->CreateSphereBody( entity.rigidBodyData.radius, bodyDesc );
+                entity.rigidBody = ( entity.rigidBodyData.shape == RigidBodyShape::Box )
+                                       ? physicsWorld->CreateBoxBody( entity.rigidBodyData.halfExtents, bodyDesc )
+                                       : physicsWorld->CreateSphereBody( entity.rigidBodyData.radius, bodyDesc );
+            }
         }
     }
 
