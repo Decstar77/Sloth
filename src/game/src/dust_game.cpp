@@ -200,7 +200,7 @@ namespace dust {
                 for ( const glm::vec3 & aiPosition : fs.aiPositions ) {
                     Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, fs.type, aiPosition );
                     entity.renderModel = { shader.get(), factionChassisMeshes[i].get() };
-                    //world.SpawnEntity( entity );
+                    world.SpawnEntity( entity );
                 }
             }
         }

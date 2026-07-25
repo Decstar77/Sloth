@@ -342,8 +342,20 @@ namespace sloth {
 
     void PhysicsWorld::SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake ) {
         SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
-        auto * controller = static_cast<JPH::WheeledVehicleController *>( impl->vehicles[vehicle.Id].constraint->GetController() );
+        Impl::VehicleRecord & record = impl->vehicles[vehicle.Id];
+
+        auto * controller = static_cast<JPH::WheeledVehicleController *>( record.constraint->GetController() );
         controller->SetDriverInput( inForward, inRight, inBrake, inHandBrake );
+
+        // A stationary vehicle falls asleep like any other rigid body; once
+        // asleep, PhysicsSystem::Update() stops integrating its transform even
+        // though the wheels keep visually spinning (WheelWV::Update() runs
+        // every step off engine RPM alone, independent of body activation).
+        // Wake it whenever the driver actually wants it to move, otherwise
+        // input silently does nothing until something else nudges it awake.
+        if ( inForward != 0.0f || inBrake != 0.0f || inHandBrake != 0.0f ) {
+            impl->bodyInterface->ActivateBody( record.carBody->GetID() );
+        }
     }
 
     glm::mat4 PhysicsWorld::GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const {
