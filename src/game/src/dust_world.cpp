@@ -346,6 +346,14 @@ namespace dust {
             entity.rigidBody = ( entity.rigidBodyData.shape == RigidBodyShape::Box )
                                    ? physicsWorld->CreateBoxBody( entity.rigidBodyData.halfExtents, bodyDesc )
                                    : physicsWorld->CreateSphereBody( entity.rigidBodyData.radius, bodyDesc );
+        } else if ( entity.type == ENTITY_TYPE_VEHICLE ) {
+            entity.vehicle.handle = physicsWorld->CreateVehicle( entity.position, entity.vehicle.halfExtents, entity.vehicle.wheelRadius, entity.vehicle.wheelWidth );
+
+            // Alias the vehicle's chassis body as entity.rigidBody too, so the
+            // existing rigidBody-keyed paths (transform sync below, raycast
+            // picking via FindEntityByRigidBody, destroy-on-despawn) work for
+            // vehicles without duplicating that logic per entity type.
+            entity.rigidBody = physicsWorld->GetVehicleBody( entity.vehicle.handle );
         }
     }
 
@@ -368,7 +376,14 @@ namespace dust {
             return; // Stale id: already destroyed, or never existed.
         }
 
-        if ( entity.rigidBody.IsValid() ) {
+        // Vehicles own more than just the raw body (VehicleConstraint,
+        // wheels, collision tester) - DestroyVehicle() tears all of that
+        // down together. Destroying just entity.rigidBody would remove the
+        // chassis body while leaving the constraint registered against it,
+        // a dangling reference the next physics step would touch.
+        if ( entity.type == ENTITY_TYPE_VEHICLE && entity.vehicle.handle.IsValid() ) {
+            physicsWorld->DestroyVehicle( entity.vehicle.handle );
+        } else if ( entity.rigidBody.IsValid() ) {
             physicsWorld->DestroyBody( entity.rigidBody );
         }
 
@@ -506,6 +521,12 @@ namespace dust {
 
             entity.position = physicsWorld->GetPosition( entity.rigidBody );
             entity.rotation = physicsWorld->GetRotation( entity.rigidBody );
+
+            if ( entity.type == ENTITY_TYPE_VEHICLE && entity.vehicle.handle.IsValid() ) {
+                for ( i32 i = 0; i < 4; ++i ) {
+                    entity.vehicle.wheelLocalTransforms[i] = physicsWorld->GetVehicleWheelTransform( entity.vehicle.handle, i );
+                }
+            }
         }
     }
 

@@ -95,6 +95,15 @@ namespace sloth {
     static glm::vec3 FromJolt( JPH::Vec3Arg v ) { return glm::vec3( v.GetX(), v.GetY(), v.GetZ() ); }
     static glm::quat FromJolt( JPH::QuatArg q ) { return glm::quat( q.GetW(), q.GetX(), q.GetY(), q.GetZ() ); }
 
+    static glm::mat4 FromJolt( const JPH::Mat44 & m ) {
+        glm::mat4 result;
+        for ( u32 col = 0; col < 4; col++ ) {
+            JPH::Vec4 c = m.GetColumn4( col );
+            result[col] = glm::vec4( c.GetX(), c.GetY(), c.GetZ(), c.GetW() );
+        }
+        return result;
+    }
+
     static JPH::EMotionType ToJolt( BodyMotionType motionType ) {
         switch ( motionType ) {
             case BodyMotionType::Static:
@@ -335,6 +344,16 @@ namespace sloth {
         SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
         auto * controller = static_cast<JPH::WheeledVehicleController *>( impl->vehicles[vehicle.Id].constraint->GetController() );
         controller->SetDriverInput( inForward, inRight, inBrake, inHandBrake );
+    }
+
+    glm::mat4 PhysicsWorld::GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const {
+        SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
+        // Mesh convention: roll axis (axle) along model +Y, so the wheel spins
+        // as JPH rotates about that axis; +Z picked as "up" for the neutral
+        // pose since it's just used to disambiguate roll for a symmetric
+        // cylinder mesh - doesn't affect how it looks.
+        JPH::Mat44 local = impl->vehicles[vehicle.Id].constraint->GetWheelLocalTransform( static_cast<JPH::uint>( wheelIndex ), JPH::Vec3::sAxisY(), JPH::Vec3::sAxisZ() );
+        return FromJolt( local );
     }
 
     glm::vec3 PhysicsWorld::GetPosition( RigidBody body ) const {

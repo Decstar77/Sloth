@@ -42,30 +42,18 @@ namespace dust {
         };
     };
 
-    struct VehicleComputedStats {
-        glm::vec3 chassisHalfExtents = { 0.9f, 0.35f, 1.7f };
-        glm::vec3 wheelOffsets[4] = { { 0.9f, 0.10f, 1.3f }, { -0.9f, 0.10f, 1.3f }, { 0.9f, 0.10f, -1.3f }, { -0.9f, 0.10f, -1.3f } };
-        f32 wheelRadius = 0.45f;
-        f32 wheelWidth = 0.3f;
-        f32 enginePower = 18000.0f;   // N, forward/back drive force
-        f32 turnTorque = 18000.0f;    // steering yaw torque
-        f32 maxYawRateRadians = 2.2f; // rad/s, clamps the turn once spun up
-        f32 maxSpeed = 10.0f;         // m/s, engine cuts out past this
-        f32 gripStrength = 6.0f;      // 1/s, how hard sideways slide is cancelled
-        f32 maxSteerAngleDegrees = 30.0f;
-        f32 steerAngleDegrees = 0.0f;
-        f32 wheelSpinRadians = 0.0f;
-    };
-
-    struct VehiclePhysicsObjects {
-        RigidBody body;
-
-    };
-
     struct VehicleData {
+        VehicleHandle               handle;
+        glm::vec3                   halfExtents = { 0.9f, 0.35f, 1.7f };
+        f32                         wheelRadius = 0.45f;
+        f32                         wheelWidth = 0.3f;
         VehicleChassisDefinition    definition;
-        VehiclePhysicsObjects       physics;
-        VehicleComputedStats        stats;
+
+        // Wheel transforms relative to the chassis body, refreshed each
+        // frame from the physics wheel state (suspension/steer/roll) by
+        // DustWorld::SyncPhysicsTransforms(). Order matches CreateVehicle's
+        // wheel order: left front, right front, left rear, right rear.
+        glm::mat4                   wheelLocalTransforms[4];
     };
 
     void DriveVehicle( PhysicsWorld & physicsWorld, Entity & entity, f32 throttle, f32 steer, f32 deltaTime );

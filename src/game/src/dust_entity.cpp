@@ -432,7 +432,6 @@ namespace dust {
                 entity.rigidBodyData.createRigidBody = true;
             } break;
             case ENTITY_TYPE_VEHICLE: {
-                entity.rigidBodyData.createRigidBody = true;
                 entity.vehicle = VehicleData();
                 entity.inventory.xSize = 5;
                 entity.inventory.ySize = 3;

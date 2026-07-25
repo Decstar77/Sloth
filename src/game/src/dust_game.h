@@ -61,12 +61,12 @@ namespace dust {
         std::unique_ptr<sloth::StaticMesh>  oreNodeMeshes[7];
         std::unique_ptr<sloth::StaticMesh>  factionShopMeshes[3];
 
-        EntityId                        playerVehicleId = INVALID_ENTITY_ID;
-        bool                             inventoryOpen = false;
-        bool                             vehiclePanelOpen = false;
+        EntityId                            playerVehicleId = INVALID_ENTITY_ID;
+        bool                                inventoryOpen = false;
+        bool                                vehiclePanelOpen = false;
 
-        sloth::PhysicsWorld             physicsWorld;
-        sloth::AudioWorld                audioWorld;
+        sloth::PhysicsWorld                 physicsWorld;
+        sloth::AudioWorld                   audioWorld;
     };
 
 }

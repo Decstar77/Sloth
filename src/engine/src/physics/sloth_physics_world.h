@@ -82,6 +82,12 @@ namespace sloth {
         RigidBody     GetVehicleBody( VehicleHandle vehicle ) const;
         void          SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
 
+        // Wheel transform relative to the vehicle's chassis body (including
+        // current suspension compression, steer angle, and roll) - multiply
+        // onto the chassis' world model matrix to place a wheel mesh authored
+        // with its roll axis along +Y and any perpendicular axis as "up".
+        glm::mat4     GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const;
+
         bool        Raycast( const glm::vec3 & origin, const glm::vec3 & direction, f32 maxDistance, RayCastHit & outHit ) const;
 
         glm::vec3   GetPosition( RigidBody body ) const;

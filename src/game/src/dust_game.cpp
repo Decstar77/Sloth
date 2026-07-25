@@ -71,8 +71,8 @@ namespace dust {
         // Player dune buggy.
         {
             VehicleData vehicleDefaults;
-            glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
-
+            glm::vec3 chassisHalfExtents = vehicleDefaults.halfExtents;
+            
             buggyChassisMesh = UploadMesh( Geometry::CreateBox( chassisHalfExtents.x * 2.0f, chassisHalfExtents.y * 2.0f, chassisHalfExtents.z * 2.0f, { 0.90f, 0.85f, 0.20f } ) );
             buggyWheelMesh = UploadMesh( Geometry::CreateCylinder( vehicleDefaults.wheelRadius, vehicleDefaults.wheelWidth, 12, { 0.05f, 0.05f, 0.05f } ) );
 
@@ -143,7 +143,7 @@ namespace dust {
             };
 
             VehicleData vehicleDefaults;
-            glm::vec3 chassisHalfExtents = vehicleDefaults.chassisHalfExtents;
+            glm::vec3 chassisHalfExtents = vehicleDefaults.halfExtents;
             glm::vec3 shopHalfExtents( 3.0f, 2.3f, 3.0f );
 
             for ( usize i = 0; i < sizeof( factionSpawns ) / sizeof( factionSpawns[0] ); i++ ) {
@@ -200,15 +200,7 @@ namespace dust {
                 for ( const glm::vec3 & aiPosition : fs.aiPositions ) {
                     Entity entity = MakeEntity( ENTITY_TYPE_VEHICLE, fs.type, aiPosition );
                     entity.renderModel = { shader.get(), factionChassisMeshes[i].get() };
-
-                    entity.rigidBodyData.shape = RigidBodyShape::Box;
-                    entity.rigidBodyData.halfExtents = chassisHalfExtents;
-                    entity.rigidBodyData.restitution = 0.1f;
-                    entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
-                    entity.rigidBodyData.friction = 0.05f; // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
-                    entity.rigidBodyData.restitution = 0.05f;
-
-                    world.SpawnEntity( entity );
+                    //world.SpawnEntity( entity );
                 }
             }
         }
@@ -276,7 +268,6 @@ namespace dust {
             return;
         }
 
-        VehicleData & vehicle = entity->vehicle;
         if ( entity->playerControlled == false ) {
             return;
         }
@@ -294,12 +285,14 @@ namespace dust {
             hadInput = true;
         }
 
+        // SetVehicleInput's steer parameter is Jolt's inRight (positive =
+        // steer right), so D (right) must be positive and A (left) negative.
         f32 steer = 0.0f;
-        if ( input.IsKeyDown( Key::A ) ) {
+        if ( input.IsKeyDown( Key::D ) ) {
             steer += 1.0f;
             hadInput = true;
         }
-        if ( input.IsKeyDown( Key::D ) ) {
+        if ( input.IsKeyDown( Key::A ) ) {
             steer -= 1.0f;
             hadInput = true;
         }
@@ -798,15 +791,11 @@ namespace dust {
 
         const VehicleData & vehicle = entity.vehicle;
         for ( i32 i = 0; i < 4; ++i ) {
-            bool isFrontWheel = i < 2;
-            f32 steerRadians = isFrontWheel ? glm::radians( vehicle.steerAngleDegrees ) : 0.0f;
-
-            // Order (applied right-to-left): align the cylinder's default
-            // Y-axis to the wheel's roll axis (X), spin it around that axis,
-            // steer front wheels about the chassis' up axis, then place it.
-            glm::mat4 wheelLocal = glm::translate( glm::mat4( 1.0f ), vehicle.wheelOffsets[i] ) * glm::rotate( glm::mat4( 1.0f ), steerRadians, glm::vec3( 0.0f, 1.0f, 0.0f ) ) * glm::rotate( glm::mat4( 1.0f ), vehicle.wheelSpinRadians, glm::vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( glm::mat4( 1.0f ), glm::radians( 90.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-
-            entity.renderModel.shader->SetMat4( "uModel", chassisModel * wheelLocal );
+            // wheelLocalTransforms is refreshed per-frame from the physics
+            // wheel state (suspension length, steer angle, roll) in
+            // DustWorld::SyncPhysicsTransforms - already relative to the
+            // chassis body, so no extra rotation/placement needed here.
+            entity.renderModel.shader->SetMat4( "uModel", chassisModel * vehicle.wheelLocalTransforms[i] );
             buggyWheelMesh->Draw();
         }
     }

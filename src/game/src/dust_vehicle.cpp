@@ -20,59 +20,17 @@ namespace dust {
         return "Unknown";
     }
 
-    
     void DriveVehicle( PhysicsWorld & physicsWorld, Entity & entity, f32 throttle, f32 steer, f32 deltaTime ) {
         if ( entity.type != ENTITY_TYPE_VEHICLE || !entity.rigidBody.IsValid() ) {
             return;
         }
 
         VehicleData & vehicle = entity.vehicle;
-
-        glm::vec3 forward = entity.rotation * glm::vec3( 0.0f, 0.0f, 1.0f );
-        glm::vec3 right = entity.rotation * glm::vec3( 1.0f, 0.0f, 0.0f );
-        glm::vec3 up = entity.rotation * glm::vec3( 0.0f, 1.0f, 0.0f );
-
-        glm::vec3 velocity = physicsWorld.GetLinearVelocity( entity.rigidBody );
-        f32 forwardSpeed = glm::dot( velocity, forward );
-
-        if ( throttle != 0.0f && glm::abs( forwardSpeed ) < vehicle.maxSpeed ) {
-            physicsWorld.AddForce( entity.rigidBody, forward * throttle * vehicle.enginePower );
+        if ( vehicle.handle.IsValid() == false ) {
+            return;
         }
 
-        // Steering torque; flips sign in reverse like a real car backing up.
-        // Not scaled down at low speed: the chassis is a flat box resting
-        // directly on the ground (no wheels), so its own yaw friction
-        // already resists spinning in place — a speed-scaled torque on top
-        // of that was enough to fully cancel out at low speed and left
-        // steering doing nothing. Turn rate is capped below instead.
-        if ( steer != 0.0f ) {
-            f32 reverseSign = forwardSpeed < 0.0f ? -1.0f : 1.0f;
-            physicsWorld.AddTorque( entity.rigidBody, up * steer * reverseSign * vehicle.turnTorque );
-        }
-
-        // Clamp yaw spin rate so the steering torque above (sized to
-        // overcome ground friction) doesn't turn the vehicle into a
-        // spinning top once it gets going.
-        {
-            glm::vec3 angularVelocity = physicsWorld.GetAngularVelocity( entity.rigidBody );
-            f32 yawRate = glm::dot( angularVelocity, up );
-            f32 clampedYawRate = glm::clamp( yawRate, -vehicle.maxYawRateRadians, vehicle.maxYawRateRadians );
-            if ( clampedYawRate != yawRate ) {
-                physicsWorld.SetAngularVelocity( entity.rigidBody, angularVelocity + up * ( clampedYawRate - yawRate ) );
-            }
-        }
-
-        // Arcade tire grip: cancel most sideways velocity each frame so the
-        // vehicle corners instead of sliding around like a hockey puck.
-        // Stands in for real wheel friction until there's an actual wheel
-        // model.
-        f32 lateralSpeed = glm::dot( velocity, right );
-        f32 gripFactor = glm::clamp( vehicle.gripStrength * deltaTime, 0.0f, 1.0f );
-        physicsWorld.SetLinearVelocity( entity.rigidBody, velocity - right * lateralSpeed * gripFactor );
-
-        // Visual-only wheel state, consumed by DustGame::DrawVehicle().
-        vehicle.steerAngleDegrees = glm::mix( vehicle.steerAngleDegrees, steer * vehicle.maxSteerAngleDegrees, glm::clamp( 8.0f * deltaTime, 0.0f, 1.0f ) );
-        vehicle.wheelSpinRadians += ( forwardSpeed / glm::max( vehicle.wheelRadius, 0.01f ) ) * deltaTime;
+        physicsWorld.SetVehicleInput( vehicle.handle, throttle, steer, 0, 0 );
     }
 
     void DriveVehicleToward( PhysicsWorld & physicsWorld, Entity & entity, glm::vec3 targetPosition, f32 deltaTime ) {
