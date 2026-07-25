@@ -1,6 +1,6 @@
 workspace "Sloth"
     architecture "x86_64"
-    startproject "Sandbox"
+    startproject "SandboxDust"
 
     configurations
     {
@@ -99,8 +99,8 @@ project "Engine"
         symbols "Off"
         optimize "Full"
 
-project "Game"
-    location "src/game"
+project "Dust"
+    location "src/dust"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
@@ -111,13 +111,13 @@ project "Game"
 
     files
     {
-        "src/game/src/**.h",
-        "src/game/src/**.cpp"
+        "src/dust/src/**.h",
+        "src/dust/src/**.cpp"
     }
 
     includedirs
     {
-        "src/game/src",
+        "src/dust/src",
         "src/engine/src",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.GLAD}",
@@ -153,8 +153,62 @@ project "Game"
         symbols "Off"
         optimize "Full"
 
-project "Sandbox"
-    location "src/sandbox"
+project "Tower"
+    location "src/tower"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    staticruntime "off"
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files
+    {
+        "src/tower/src/**.h",
+        "src/tower/src/**.cpp"
+    }
+
+    includedirs
+    {
+        "src/tower/src",
+        "src/engine/src",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}",
+        "%{IncludeDir.JoltPhysics}",
+        "%{IncludeDir.stb}"
+    }
+
+    links
+    {
+        "Engine"
+    }
+
+    filter "system:windows"
+        systemversion "latest"
+        defines { "SLOTH_PLATFORM_WINDOWS" }
+
+    filter "configurations:Debug"
+        defines { "SLOTH_DEBUG" }
+        runtime "Debug"
+        symbols "On"
+        optimize "Off"
+
+    filter "configurations:Release"
+        defines { "SLOTH_RELEASE" }
+        runtime "Release"
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines { "SLOTH_DIST" }
+        runtime "Release"
+        symbols "Off"
+        optimize "Full"
+
+project "SandboxDust"
+    location "src/sandbox/dust"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
@@ -165,13 +219,13 @@ project "Sandbox"
 
     files
     {
-        "src/sandbox/src/**.h",
-        "src/sandbox/src/**.cpp"
+        "src/sandbox/dust/src/**.h",
+        "src/sandbox/dust/src/**.cpp"
     }
 
     includedirs
     {
-        "src/game/src",
+        "src/dust/src",
         "src/engine/src",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.GLAD}",
@@ -180,7 +234,60 @@ project "Sandbox"
 
     links
     {
-        "Game",
+        "Dust",
+        "Engine"
+    }
+
+    filter "system:windows"
+        systemversion "latest"
+        defines { "SLOTH_PLATFORM_WINDOWS" }
+
+    filter "configurations:Debug"
+        defines { "SLOTH_DEBUG" }
+        runtime "Debug"
+        symbols "On"
+        optimize "Off"
+
+    filter "configurations:Release"
+        defines { "SLOTH_RELEASE" }
+        runtime "Release"
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines { "SLOTH_DIST" }
+        runtime "Release"
+        symbols "Off"
+        optimize "Full"
+
+project "SandboxTower"
+    location "src/sandbox/tower"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    staticruntime "off"
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files
+    {
+        "src/sandbox/tower/src/**.h",
+        "src/sandbox/tower/src/**.cpp"
+    }
+
+    includedirs
+    {
+        "src/tower/src",
+        "src/engine/src",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}"
+    }
+
+    links
+    {
+        "Tower",
         "Engine"
     }
 
