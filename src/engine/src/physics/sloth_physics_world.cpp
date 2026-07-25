@@ -249,27 +249,27 @@ namespace sloth {
         // alive for the vehicle's lifetime — a stack object would be
         // destroyed the moment this function returns, leaving a dangling Ref.
         JPH::WheelSettingsWV * w1 = new JPH::WheelSettingsWV(); // Left front
-        w1->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w1->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - wheel_radius );
         w1->mMaxSteerAngle      = max_steering_angle;
         w1->mWidth              = wheel_width;
         w1->mRadius             = wheel_radius;
         w1->mMaxHandBrakeTorque = 0.0f; // Front wheel doesn't have hand brake
 
         JPH::WheelSettingsWV * w2 = new JPH::WheelSettingsWV(); // Right front
-        w2->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w2->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - wheel_radius );
         w2->mMaxSteerAngle      = max_steering_angle;
         w2->mWidth              = wheel_width;
         w2->mRadius             = wheel_radius;
         w2->mMaxHandBrakeTorque = 0.0f; // Front wheel doesn't have hand brake
 
         JPH::WheelSettingsWV * w3 = new JPH::WheelSettingsWV(); // Left rear
-        w3->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w3->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + wheel_radius );
         w3->mWidth              = wheel_width;
         w3->mRadius             = wheel_radius;
         w3->mMaxSteerAngle      = 0.0f;
 
         JPH::WheelSettingsWV * w4 = new JPH::WheelSettingsWV(); // Right rear
-        w4->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w4->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + wheel_radius );
         w4->mWidth              = wheel_width;
         w4->mRadius             = wheel_radius;
         w4->mMaxSteerAngle      = 0.0f;

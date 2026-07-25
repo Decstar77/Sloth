@@ -44,8 +44,12 @@ namespace dust {
 
     struct VehicleData {
         VehicleHandle               handle;
-        glm::vec3                   halfExtents = { 0.9f, 0.35f, 1.7f };
-        f32                         wheelRadius = 0.45f;
+        // Wide and low on purpose: track width (2x halfExtents.x) well above
+        // chassis height keeps the CoM low relative to the footprint, which
+        // is what actually resists rollover - see the buggy reference, wheels
+        // sit near the corners rather than tucked under a tall narrow hull.
+        glm::vec3                   halfExtents = { 1.3f, 0.25f, 1.6f };
+        f32                         wheelRadius = 0.42f;
         f32                         wheelWidth = 0.3f;
         VehicleChassisDefinition    definition;
 
