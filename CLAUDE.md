@@ -4,13 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input, GLAD for OpenGL (4.5 core) function loading, and Jolt Physics for simulation. On top of it sits **Dust**, a Kenshi/X4: Foundations-style open-world sandbox game with one defining constraint: **there are no traditional walking-around human characters.** The player's "character" is always a vehicle — cars, buggies, trucks, tanks, etc. Everything in the entity/gameplay layer should be designed around vehicles-as-actors rather than humanoid pawns (no legs/animation rigs/character controllers — physics-driven rigid bodies and wheeled/tracked vehicle dynamics instead).
+Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input, GLAD for OpenGL (4.5 core) function loading, and Jolt Physics for simulation. It's a shared backend for multiple game prototypes, each its own StaticLib project with its own namespace, entity type, and gameplay logic — the engine itself knows nothing about any of them. There are currently two:
 
-The workspace has three projects:
+- **Dust** — a Kenshi/X4: Foundations-style open-world sandbox game with one defining constraint: **there are no traditional walking-around human characters.** The player's "character" is always a vehicle — cars, buggies, trucks, tanks, etc. Everything in the entity/gameplay layer should be designed around vehicles-as-actors rather than humanoid pawns (no legs/animation rigs/character controllers — physics-driven rigid bodies and wheeled/tracked vehicle dynamics instead).
+- **Tower** — a symmetric, competitive base-build-then-raid game (see "Where Tower is headed" below). Currently a minimal skeleton (floor + a stack of physics boxes, no gameplay yet) proving out the engine-integration pattern for a second prototype.
 
-- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`. Windowing, OpenGL rendering, physics wrapper, fonts/text, arenas, strings, logging. Knows nothing about Dust.
-- **Game** (`src/game`, StaticLib) — Dust, the actual game, namespace `dust`. Entities, world, camera, gameplay logic. Links Engine.
-- **Sandbox** (`src/sandbox`, ConsoleApp) — a thin executable that links Game + Engine and drives the main loop (`src/sandbox/src/main.cpp`).
+The workspace has five projects:
+
+- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`. Windowing, OpenGL rendering, physics wrapper, fonts/text, arenas, strings, logging. Knows nothing about Dust or Tower.
+- **Dust** (`src/dust`, StaticLib) — the Dust game, namespace `dust`. Entities, world, camera, gameplay logic. Links Engine.
+- **Tower** (`src/tower`, StaticLib) — the Tower game, namespace `tower`. Entities, world, camera, gameplay logic. Links Engine.
+- **SandboxDust** (`src/sandbox/dust`, ConsoleApp) — a thin executable that links Dust + Engine and drives Dust's main loop (`src/sandbox/dust/src/main.cpp`).
+- **SandboxTower** (`src/sandbox/tower`, ConsoleApp) — a thin executable that links Tower + Engine and drives Tower's main loop (`src/sandbox/tower/src/main.cpp`).
+
+Each game gets its own Sandbox rather than sharing one, matching the "thin executable" pattern above — this scales cleanly if more prototypes are added later. `startproject` in `premake5.lua` defaults to `SandboxDust`; switch it (or set the other as startup project in Visual Studio) to work on Tower.
 
 ## Build
 
@@ -43,12 +50,12 @@ There is no separate lint or test command yet.
 
 **Input** (`core/sloth_input.h/.cpp`) — polled input state, owned by `Engine`, reached via `Engine::Get().GetInput()`.
 
-**Renderer** (`renderer/`) — a thin, immediate-ish OpenGL wrapper, all pure `sloth` code with no knowledge of Dust:
+**Renderer** (`renderer/`) — a thin, immediate-ish OpenGL wrapper, all pure `sloth` code with no knowledge of Dust or Tower:
 - `sloth_shader.h/.cpp` — `Shader`: wraps a GL program built from raw GLSL source strings. `Bind()`/`Unbind()`, `SetMat4`/`SetInt` (bind-then-set).
 - `sloth_static_mesh.h/.cpp` — `Vertex{ Position, Color }` (both `vec3`; no UVs/normals yet) and `StaticMesh`, a VAO+VBO+EBO for immutable geometry uploaded once at construction (`Draw()` does `glDrawElements`). Not for geometry that changes every frame.
 - `sloth_geometry.h/.cpp` — `MeshData{ Vertices, Indices }` (CPU-side) and `Geometry`, a static builder for procedural primitives: `CreatePlane`, `CreateBox`, `CreateUVSphere`, `CreateIsoSphere`, `CreateCylinder`. Pure geometry generation, outward-facing CCW winding, no GPU calls.
-- `sloth_render_model.h` — `RenderModel{ Shader*, StaticMesh* }`: a small, copyable, **non-owning** pointer pair describing what to draw something with. The shader/mesh are owned and shared elsewhere (currently by `DustGame`); `RenderModel` just references them. This is what `dust::Entity` carries to know how to draw itself, decoupling the renderer from any specific gameplay/entity system.
-- `sloth_camera.h/.cpp` — `Camera`: yaw/pitch (degrees) + position, perspective params, derives view/projection matrices via `GetViewProjectionMatrix()`. Pure math, no input handling — driving it is the caller's job (see `DustCamera` below).
+- `sloth_render_model.h` — `RenderModel{ Shader*, StaticMesh* }`: a small, copyable, **non-owning** pointer pair describing what to draw something with. The shader/mesh are owned and shared elsewhere (currently by `DustGame`/`TowerGame`); `RenderModel` just references them. This is what each game's `Entity` carries to know how to draw itself, decoupling the renderer from any specific gameplay/entity system.
+- `sloth_camera.h/.cpp` — `Camera`: yaw/pitch (degrees) + position, perspective params, derives view/projection matrices via `GetViewProjectionMatrix()`. Pure math, no input handling — driving it is the caller's job (see `DustCamera`/`TowerCamera` below).
 - `sloth_glyph_cache.h/.cpp`, `sloth_text_renderer.h/.cpp` — text-specific rendering (curve-texture-buffer glyph rendering), separate from the general mesh/model path above.
 
 No OBJ/model-file loader and no `Texture` class exist yet — `stb_image.h` is compiled in (`core/sloth_stb_impl.cpp`) but nothing currently calls into it; only `stb_truetype` is wired up, for fonts. Geometry today is entirely procedural (`Geometry::Create*`) plus vertex color, no textures.
@@ -57,7 +64,7 @@ No OBJ/model-file loader and no `Texture` class exist yet — `stb_image.h` is c
 
 **Physics** (`physics/sloth_physics_world.h/.cpp`) — `PhysicsWorld` owns a Jolt Physics simulation (`PhysicsSystem`, job system, temp allocator); all Jolt types are hidden behind a private `Impl` (PIMPL, like `Window` hides `GLFWwindow`), so nothing outside this `.cpp` needs Jolt headers. `Update(deltaTime)` runs a fixed-timestep accumulator internally — call it once per frame with the real variable frame delta. `RigidBody` is a cheap, copyable opaque handle (`Id`, `IsValid()`) into Jolt's body pool; not valid across different `PhysicsWorld` instances or after `DestroyBody()`. Bodies are created via `CreateBoxBody`/`CreateSphereBody` + `RigidBodyDesc` (position/rotation/`BodyMotionType` Static|Kinematic|Dynamic/friction/restitution), and read back via `GetPosition`/`GetRotation`/`GetLinearVelocity`. Body transforms are only valid to read once `Update()` has returned for that call.
 
-## Architecture — Game (`dust` namespace, `src/game`)
+## Architecture — Game (`dust` namespace, `src/dust`)
 
 **Entity** (`dust_entity.h/.cpp`) — a single flat `struct Entity` with a `type` tag (`EntityType`) and a `union` of per-type data blocks (currently just `PropData`, for rigid-body-backed objects with no gameplay logic of their own — crates, rocks, debris; vehicles will be a future `EntityType`/data block here, not a new hierarchy). No inheritance — adding a new entity type means adding an `ENTITY_TYPE_*` enumerator, a `XxxData` struct, a union member, and a case in `MakeEntity()`. Fields that live outside the union, common to every entity type:
 - `position` / `rotation` / `scale` — the entity's canonical transform. **Single source of truth**: for physics-backed entities this is kept in sync from the physics body once per frame (see `DustWorld::SyncPhysicsTransforms()` below) rather than read from the physics world ad hoc, so gameplay/render code never needs to know or care whether a given entity has physics backing.
@@ -75,11 +82,43 @@ No OBJ/model-file loader and no `Texture` class exist yet — `stb_image.h` is c
 
 **DustGame** (`dust_game.h/.cpp`) — the per-frame driver: owns `DustWorld`, `DustCamera`, `PhysicsWorld`, and the render resources (`Shader`, and currently a few hand-owned `StaticMesh`es that entities' `RenderModel`s point at). `Init()` spawns starting entities into `world`; `Update(deltaTime)` steps the camera, steps physics, syncs entity transforms from physics, then flushes pending spawns/destroys (in that order); `Render()` iterates `world.GetEntities()` and draws each via its `RenderModel` and synced `position`/`rotation` — it does not touch `PhysicsWorld` at all.
 
-**Naming conventions**: engine files are `sloth_*.h`/`.cpp` under `core/`, `renderer/`, `physics/`, `font/`; game files are `dust_*.h`/`.cpp` under `src/game/src`. Engine code lives in namespace `sloth`, game code in namespace `dust` (which does `using namespace sloth;` at the top of headers for convenience). Public macros are prefixed `SL_`, premake-injected preprocessor defines are prefixed `SLOTH_`.
+**Naming conventions**: engine files are `sloth_*.h`/`.cpp` under `core/`, `renderer/`, `physics/`, `font/`; Dust's game files are `dust_*.h`/`.cpp` under `src/dust/src`; Tower's are `tower_*.h`/`.cpp` under `src/tower/src`. Engine code lives in namespace `sloth`, Dust's code in namespace `dust`, Tower's in namespace `tower` (each does `using namespace sloth;` at the top of headers for convenience). Public macros are prefixed `SL_`, premake-injected preprocessor defines are prefixed `SLOTH_`.
+
+## Architecture — Game (`tower` namespace, `src/tower`)
+
+Currently a minimal skeleton, following the same shape Dust's architecture established but without any of Dust's gameplay (no factions, items, vehicles, or GUI panels yet) — a starting point for the design in "Where Tower is headed" below, not a scaled-down Dust.
+
+**Entity** (`tower_entity.h/.cpp`) — same pattern as `dust::Entity`: a flat `struct Entity` with a `type` tag (`EntityType`) and a `union` of per-type data blocks, currently just `PropData` (`ENTITY_TYPE_PROP`, rigid-body-backed, no gameplay logic of its own). Same `position`/`rotation`/`scale`/`renderModel`/`rigidBody`/`id` fields outside the union as Dust, for the same reasons — adding a new entity type (raid tools, base pieces, weapons, players) means adding an `ENTITY_TYPE_*` enumerator, a data struct, a union member, and a case in `MakeEntity()`.
+
+**TowerWorld** (`tower_world.h/.cpp`) — same deferred spawn/destroy entity table + `PhysicsWorld*` ownership as `DustWorld`: `SpawnEntity`/`DestroyEntity` buffer a request, applied in `FlushPendingChanges()` once per frame; `SyncPhysicsTransforms()` keeps `Entity::position/rotation` authoritative from physics. No faction system, action system, or simulation LOD buckets yet — those are Dust-specific, not assumed to carry over.
+
+**TowerCamera** (`tower_camera.h/.cpp`) — currently the same Kenshi-style top-down RTS camera as `DustCamera` (WASD pan, RMB-drag orbit, scroll zoom), copied as a starting point. Tower's actual raiding gameplay is first-person (see below), so this camera is a placeholder that will very likely be replaced, not a long-term fit.
+
+**TowerGame** (`tower_game.h/.cpp`) — the per-frame driver: owns `TowerWorld`, `TowerCamera`, `PhysicsWorld`, and hand-owned render resources. `Init()` currently spawns a static floor and a stack of dynamic boxes to prove out rendering/physics; `Update(deltaTime)` steps the camera, physics, transform sync, and pending changes; `Render()` iterates `world.GetEntities()` and draws each via its `RenderModel`.
 
 ## Where the game is headed
+
+### Dust
 
 Dust is meant to be an open-world vehicle sandbox in the spirit of Kenshi (persistent simulated world, emergent factions/economy, no fast-travel-only theme-park structure) crossed with X4: Foundations (vehicle-scale piloting, systemic economy/combat) — but grounded, not spaceborne, and with **vehicles standing in for characters entirely**. Design implications worth keeping in mind when extending the entity/gameplay layer:
 - No humanoid character controller, animation rig, or inventory-on-a-body model is planned — don't build gameplay systems assuming a walking pawn.
 - The player and NPCs alike are always "in" a vehicle; a future vehicle `EntityType` (wheeled/tracked, driven by physics forces/motors on top of `RigidBody`, not kinematic character movement) is the natural next addition to `dust_entity.h`, following the same union-of-data-blocks pattern `PropData` already establishes.
 - Expect terrain/world-scale concerns (large streamed world, vehicle physics at speed, faction/economy simulation) to matter more here than in a typical small-scale character game — the `simHot`/`simWarm`/`simCold` buckets on `DustWorld` already anticipate this.
+
+### Tower
+
+**Elevator pitch.** Tower takes the two best parts of Rust — base building and base raiding — and compresses them into a tight, symmetric, competitive session (roughly 40–60 minutes) instead of a multi-day server grind. Two teams build in total isolation, then take turns raiding each other's base live, in first person. Whoever raids faster and more effectively wins. No 500-hour base, no offline raiding, no loot cycle — just build, raid, compare.
+
+**Core loop.** Each match is played in tiers (rounds), with gear and building materials escalating each round. Whatever survives of a team's base carries over into the next round, so bases show real battle damage over the course of a match. Per round:
+1. **Build Phase** (simultaneous, isolated) — both teams build/repair their base on separate, unseen maps. Duration scales with tier. A "Ready" option lets a team lock in early, but does not shorten the phase for the opposing team.
+2. **Raid Phase A** — Team A raids Team B's base live, in first person; Team B defends live. The base is not visible to Team A beforehand.
+3. **Raid Phase B** — roles reverse: Team B raids Team A's base live; Team A defends live.
+4. **Score & carry-over** — the round is scored, and surviving base structures carry into the next tier's build phase.
+
+This repeats for 3 tiers, and final score determines the match winner.
+
+**Design implications worth keeping in mind when extending the entity/gameplay layer** (revise as the design firms up):
+- Unlike Dust, Tower **does** need first-person human characters — the top-down `TowerCamera` currently in place is a placeholder, not the intended play perspective.
+- Two isolated, symmetric per-team base instances need to exist simultaneously (or be swappable) within a single match, plus a notion of round/tier state, build-vs-raid phase, and per-team scoring that `TowerWorld`/`TowerGame` don't have yet.
+- Base structures need to track damage/survival across rounds (the "carries over" mechanic), not just exist as one-shot props — a durability/health concept on building-type entities, distinct from Dust's rigid-body-only `PropData`.
+- Sessions are short and match-based (40–60 minutes, 3 tiers) rather than persistent-world — expect match/round lifecycle management to matter here in a way it doesn't for Dust's always-running sandbox.
