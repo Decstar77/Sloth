@@ -170,7 +170,7 @@ namespace dust {
                 
                 // Refinery
                 {
-                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(15, 0, 0));
+                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(15, 2, 0));
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
                     entity.building.type = BUILDING_TYPE_REFINERY;
                     entity.credits = 1000;
@@ -184,7 +184,7 @@ namespace dust {
 
                 // Factory
                 {
-                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(30, 0, 0));
+                    Entity entity = MakeEntity( ENTITY_TYPE_BUILDING, fs.type, fs.shopPosition + glm::vec3(30, 2, 0));
                     entity.renderModel = { shader.get(), factionShopMeshes[i].get() };
                     entity.building.type = BUILDING_TYPE_FACTORY;
                     entity.credits = 1000;

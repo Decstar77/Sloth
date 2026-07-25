@@ -60,12 +60,12 @@ namespace dust {
 
         glm::vec3 up = entity.rotation * glm::vec3( 0.0f, 1.0f, 0.0f );
 
-        // Signed angle from `forward` to `toTargetDir` about `up`, in the
-        // same sign convention DriveVehicle's steering torque uses (positive
-        // steer rotates `forward` toward `up × forward`) - so a positive
-        // angle here always means "steer positive to close it", regardless
-        // of which way the vehicle happens to be facing.
-        f32 angle = glm::atan( glm::dot( up, glm::cross( forward, toTargetDir ) ), glm::dot( forward, toTargetDir ) );
+        // Signed angle from `forward` to `toTargetDir` about `up`, matching
+        // SetVehicleInput's steer convention (positive = right, i.e. toward
+        // cross(forward, up) - see DustCamera's flatRight for the same
+        // convention). cross(toTargetDir, forward), not the other order:
+        // that's what makes a target to the right produce positive angle.
+        f32 angle = glm::atan( glm::dot( up, glm::cross( toTargetDir, forward ) ), glm::dot( forward, toTargetDir ) );
 
         f32 steer = glm::clamp( angle / fullSteerAngle, -1.0f, 1.0f );
         f32 throttle = glm::clamp( distance / slowRadius, 0.25f, 1.0f );
