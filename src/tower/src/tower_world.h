@@ -7,15 +7,6 @@
 
 namespace tower {
 
-    // Owns the entity table plus the physics world entities are backed by.
-    //
-    // Spawn/Destroy are deferred: calling them only buffers a request and
-    // hands back the EntityId the entity will have once applied. The actual
-    // table/physics mutation happens in FlushPendingChanges(), which must be
-    // called once per frame (from a single thread) after gameplay code is
-    // done submitting requests for that frame. This keeps the entity table
-    // stable for the rest of the frame and means a freshly spawned entity
-    // only becomes visible to GetEntity() on the frame after it was requested.
     class TowerWorld {
     public:
         void                        Init( sloth::PhysicsWorld * physicsWorld );

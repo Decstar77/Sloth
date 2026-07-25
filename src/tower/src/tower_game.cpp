@@ -77,8 +77,6 @@ namespace tower {
                 world.SpawnEntity( entity );
             }
         }
-
-        camera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
     }
 
     void TowerGame::Shutdown() {
