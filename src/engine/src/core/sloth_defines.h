@@ -150,3 +150,13 @@ using b32 = i32;
 #endif
 
 #define SL_STATIC_ASSERT(expr, msg) static_assert(expr, msg)
+
+// ------------------------------------------------------------------------
+// Common Math
+// ------------------------------------------------------------------------
+//
+static constexpr float SLOTH_PI = 3.14159265358979323846f;
+
+constexpr float DegreesToRadians( float inV ) {
+    return inV * ( SLOTH_PI / 180.0f );
+}

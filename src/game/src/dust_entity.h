@@ -2,12 +2,13 @@
 
 #include <core/sloth_defines.h>
 #include <core/sloth_list.h>
+
 #include <dust_faction.h>
+#include <dust_item.h>
+#include <dust_vehicle.h>
+
 #include <physics/sloth_physics_world.h>
 #include <renderer/sloth_render_model.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 using namespace sloth;
 
@@ -32,88 +33,6 @@ namespace dust {
     inline bool operator==(const EntityId& a, const EntityId& b) { return a.index == b.index && a.generation == b.generation; }
     inline bool operator!=(const EntityId& a, const EntityId& b) { return !(a == b); }
 
-    enum InventoryItemType {
-        INVENTORY_ITEM_TYPE_NONE = 0,
-
-        INVENTORY_ITEM_TYPE_RAW_MATERIAL_BEGIN,
-        INVENTORY_ITEM_TYPE_ORE_IRON,
-        INVENTORY_ITEM_TYPE_ORE_COPPER,
-        INVENTORY_ITEM_TYPE_ORE_SULPHUR,
-        INVENTORY_ITEM_TYPE_ORE_ALUMINUM,
-        INVENTORY_ITEM_TYPE_ORE_CRUDE_OIL,
-        INVENTORY_ITEM_TYPE_ORE_WATER,
-        INVENTORY_ITEM_TYPE_ORE_SILICON,
-        INVENTORY_ITEM_TYPE_RAW_MATERIAL_END,
-
-        // Refinery
-        INVENTORY_ITEM_TYPE_STEEL_INGOT,
-        INVENTORY_ITEM_TYPE_COPPER_WIRE,
-        INVENTORY_ITEM_TYPE_ALUMINUM_PLATE,
-        INVENTORY_ITEM_TYPE_PETROL,
-        INVENTORY_ITEM_TYPE_LUBRICANT,
-        INVENTORY_ITEM_TYPE_GLASS,
-
-        // Chemical Plant
-        INVENTORY_ITEM_TYPE_SULPHURIC_ACID,
-        INVENTORY_ITEM_TYPE_GUNPOWDER,
-        INVENTORY_ITEM_TYPE_RUBBER,
-        INVENTORY_ITEM_TYPE_PLASTIC,
-        INVENTORY_ITEM_TYPE_SILICON_WAFER,
-        INVENTORY_ITEM_TYPE_PURIFIED_WATER,
-
-        // Vechicle Chassis
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BEGIN,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_BUGGY,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_TRUCK,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_APC,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_TANK,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_CRAWLER,
-        INVENTORY_ITEM_TYPE_VEHICLE_CHASSIS_END,
-
-        // Vechicle Armour Parts
-        INVENTORY_ITEM_TYPE_ARMOUR_BEGIN,
-        INVENTORY_ITEM_TYPE_ARMOUR_WOOD_PLANKS,
-        INVENTORY_ITEM_TYPE_ARMOUR_STEEL_PLATING,
-        INVENTORY_ITEM_TYPE_ARMOUR_END,
-
-        // Vechicle Power Parts
-        INVENTORY_ITEM_TYPE_POWER_BEGIN,
-        INVENTORY_ITEM_TYPE_POWER_FUEL_TANK,
-        INVENTORY_ITEM_TYPE_POWER_BATTERY,
-        INVENTORY_ITEM_TYPE_POWER_END,
-
-        // Vechicle Engine Parts
-        INVENTORY_ITEM_TYPE_ENGINE_BEGIN,
-        INVENTORY_ITEM_TYPE_ENGINE_PETROL,
-        INVENTORY_ITEM_TYPE_ENGINE_ELECTRIC,
-        INVENTORY_ITEM_TYPE_ENGINE_END,
-
-        // Vechicle Tire Parts
-        INVENTORY_ITEM_TYPE_TIRE_BEGIN,
-        INVENTORY_ITEM_TYPE_TIRE_SHRUB,
-        INVENTORY_ITEM_TYPE_TIRE_RUBBER,
-        INVENTORY_ITEM_TYPE_TIRE_END,
-
-        INVENTORY_ITEM_TYPE_TURRET_BEGIN,
-        INVENTORY_ITEM_TYPE_TURRET_MINING_LASER,
-        INVENTORY_ITEM_TYPE_TURRET_BULLET_GUN,
-        INVENTORY_ITEM_TYPE_TURRET_END,
-    };
-
-    struct InventoryItem {
-        InventoryItemType type;
-        i32 amount;
-        i32 flatIndex;
-    };
-
-    constexpr u32 INVENTORY_CAPACITY = 64;
-
-    struct Inventory {
-        i32 xSize;
-        i32 ySize;
-        FixedList<InventoryItem, INVENTORY_CAPACITY> items;
-    };
-
     enum class RigidBodyShape {
         Box,
         Sphere,
@@ -128,64 +47,6 @@ namespace dust {
         f32                     friction = 0.5f;
         f32                     restitution = 0.0f;
     };
-
-    enum VehicleChassisType {
-        VEHICLE_CHASSIS_TYPE_BUGGY,
-        VEHICLE_CHASSIS_TYPE_TRUCK,
-        VEHICLE_CHASSIS_TYPE_APC,
-        VEHICLE_CHASSIS_TYPE_TANK,
-        VEHICLE_CHASSIS_TYPE_CRAWLER, // Aircraft carrier but on wheels
-    };
-
-    struct VehicleChassisDefinition {
-        VehicleChassisType chassisType;
-        union {
-            struct {
-                InventoryItemType engineSlot;
-                InventoryItemType tireSlot;
-                InventoryItemType turretSlot;
-                InventoryItemType powerSlot;
-                InventoryItemType generalSlot1;
-                InventoryItemType generalSlot2;
-            } buggy;
-            struct {
-                InventoryItemType engineSlot;
-                InventoryItemType tireSlot;
-                InventoryItemType turretSlot;
-                InventoryItemType powerSlot;
-                InventoryItemType generalSlot1;
-                InventoryItemType generalSlot2;
-                InventoryItemType generalSlot3;
-                InventoryItemType generalSlot4;
-            } truck;
-        };
-    };
-
-    // Arcade-style vehicle: a single dynamic box-shaped chassis body, driven
-    // by forces/torque applied directly to it (no wheel physics/constraints
-    // yet). Wheels are purely visual, positioned/spun/steered from this data
-    // by the renderer; they don't have their own rigid bodies.
-    struct VehicleData {
-        // Vehicle makeup
-        VehicleChassisDefinition definition;
-
-        // Phyiscs data
-        glm::vec3   chassisHalfExtents = { 0.9f, 0.35f, 1.7f };
-        glm::vec3   wheelOffsets[4] = { {  0.9f, 0.10f,  1.3f }, { -0.9f, 0.10f,  1.3f }, {  0.9f, 0.10f, -1.3f }, { -0.9f, 0.10f, -1.3f } };
-        f32         wheelRadius = 0.45f;
-        f32         wheelWidth = 0.3f;
-        f32         enginePower = 18000.0f;    // N, forward/back drive force
-        f32         turnTorque = 18000.0f;     // steering yaw torque
-        f32         maxYawRateRadians = 2.2f;  // rad/s, clamps the turn once spun up
-        f32         maxSpeed = 10.0f;          // m/s, engine cuts out past this
-        f32         gripStrength = 6.0f;       // 1/s, how hard sideways slide is cancelled
-        f32         maxSteerAngleDegrees = 30.0f;
-        f32         steerAngleDegrees = 0.0f;
-        f32         wheelSpinRadians = 0.0f;
-    };
-
-    void DriveVehicle( PhysicsWorld & physicsWorld, Entity & entity, f32 throttle, f32 steer, f32 deltaTime );
-    void DriveVehicleToward( PhysicsWorld & physicsWorld, Entity & entity, glm::vec3 targetPosition, f32 deltaTime );
 
     enum OreNodeType {
         ORE_NODE_TYPE_IRON,

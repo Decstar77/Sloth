@@ -14,6 +14,7 @@
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 
 namespace sloth {
     // ------------------------------------------------------------------------
@@ -119,11 +120,11 @@ namespace sloth {
     static constexpr i32 MaxSubSteps = 4; // caps the accumulator so a stall doesn't cause a spiral of death
 
     struct PhysicsWorld::Impl {
-        JPH::Factory * factory = nullptr;
+        JPH::Factory *                              factory = nullptr;
 
-        BroadPhaseLayerInterfaceImpl broadPhaseLayerInterface;
-        ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter;
-        ObjectLayerPairFilterImpl objectLayerPairFilter;
+        BroadPhaseLayerInterfaceImpl                broadPhaseLayerInterface;
+        ObjectVsBroadPhaseLayerFilterImpl           objectVsBroadPhaseLayerFilter;
+        ObjectLayerPairFilterImpl                   objectLayerPairFilter;
 
         // Constructed in PhysicsWorld's constructor body, not as an inline
         // member initializer: TempAllocatorImpl's constructor calls
@@ -131,18 +132,17 @@ namespace sloth {
         // until JPH::RegisterDefaultAllocator() runs. Member initializers
         // on Impl would run during make_unique<Impl>() in PhysicsWorld's
         // mem-initializer list, before that registration happens.
-        std::unique_ptr<JPH::TempAllocatorImpl> tempAllocator;
-        std::unique_ptr<JPH::JobSystemThreadPool> jobSystem;
-        JPH::PhysicsSystem physicsSystem;
-        JPH::BodyInterface * bodyInterface = nullptr;
+        std::unique_ptr<JPH::TempAllocatorImpl>     tempAllocator;
+        std::unique_ptr<JPH::JobSystemThreadPool>   jobSystem;
+        JPH::PhysicsSystem                          physicsSystem;
+        JPH::BodyInterface *                        bodyInterface = nullptr;
 
-        f32 accumulator = 0.0f;
+        f32                                         accumulator = 0.0f;
 
         RigidBody CreateBodyFromShape( const JPH::Shape * shape, const RigidBodyDesc & desc );
     };
 
-    PhysicsWorld::PhysicsWorld()
-        : impl( std::make_unique<Impl>() ) {
+    PhysicsWorld::PhysicsWorld() : impl( std::make_unique<Impl>() ) {
         JPH::RegisterDefaultAllocator();
 
         impl->factory = new JPH::Factory();
@@ -152,9 +152,7 @@ namespace sloth {
         impl->tempAllocator = std::make_unique<JPH::TempAllocatorImpl>( TempAllocatorSize );
         impl->jobSystem = std::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, -1 );
 
-        impl->physicsSystem.Init( MaxBodies, NumBodyMutexes, MaxBodyPairs, MaxContactConstraints,
-            impl->broadPhaseLayerInterface, impl->objectVsBroadPhaseLayerFilter,
-            impl->objectLayerPairFilter );
+        impl->physicsSystem.Init( MaxBodies, NumBodyMutexes, MaxBodyPairs, MaxContactConstraints, impl->broadPhaseLayerInterface, impl->objectVsBroadPhaseLayerFilter, impl->objectLayerPairFilter );
 
         impl->bodyInterface = &impl->physicsSystem.GetBodyInterface();
     }
@@ -184,8 +182,7 @@ namespace sloth {
     RigidBody PhysicsWorld::Impl::CreateBodyFromShape( const JPH::Shape * shape, const RigidBodyDesc & desc ) {
         JPH::ObjectLayer layer = desc.motionType == BodyMotionType::Static ? Layers::NonMoving : Layers::Moving;
 
-        JPH::BodyCreationSettings settings( shape, ToJolt( desc.position ), ToJolt( desc.rotation ),
-            ToJolt( desc.motionType ), layer );
+        JPH::BodyCreationSettings settings( shape, ToJolt( desc.position ), ToJolt( desc.rotation ), ToJolt( desc.motionType ), layer );
         settings.mFriction = desc.friction;
         settings.mRestitution = desc.restitution;
 
@@ -215,6 +212,73 @@ namespace sloth {
         JPH::BodyID id( body.Id );
         impl->bodyInterface->RemoveBody( id );
         impl->bodyInterface->DestroyBody( id );
+    }
+
+    void PhysicsWorld::CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents ) {
+        const float wheel_radius = 0.3f;
+        const float wheel_width = 0.1f;
+        const float half_vehicle_length = halfExtents.z;
+        const float half_vehicle_width = halfExtents.x;
+        const float half_vehicle_height = halfExtents.y;
+        const float max_steering_angle = DegreesToRadians( 30.0f );
+
+        JPH::VehicleConstraintSettings vehicle;
+
+        // Left front
+        JPH::WheelSettingsWV w1;
+        w1.mPosition            = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w1.mMaxSteerAngle       = max_steering_angle;
+        w1.mWidth               = wheel_radius;
+        w1.mRadius              = wheel_radius;
+        w1.mMaxHandBrakeTorque  = 0.0f; // Front wheel doesn't have hand brake
+
+        // Right front
+        JPH::WheelSettingsWV w2;
+        w2.mPosition            = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w2.mMaxSteerAngle       = max_steering_angle;
+        w2.mWidth               = wheel_radius;
+        w2.mRadius              = wheel_radius;
+        w2.mMaxHandBrakeTorque  = 0.0f; // Front wheel doesn't have hand brake
+
+        // Left rear
+        JPH::WheelSettingsWV w3;
+        w3.mPosition            = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w3.mWidth               = wheel_radius;
+        w3.mRadius              = wheel_radius;
+        w3.mMaxSteerAngle       = 0.0f;
+
+        // Right rear
+        JPH::WheelSettingsWV w4;
+        w4.mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w4.mWidth              = wheel_radius;
+        w4.mRadius             = wheel_radius;
+        w4.mMaxSteerAngle      = 0.0f;
+
+        vehicle.mWheels = { &w1, &w2, &w3, &w4 };
+
+        JPH::WheeledVehicleControllerSettings controller;
+        vehicle.mController = &controller;
+        vehicle.mMaxPitchRollAngle = DegreesToRadians( 60.0f );
+
+        controller.mDifferentials.resize( 1 );
+        controller.mDifferentials[0].mLeftWheel = 0;
+        controller.mDifferentials[0].mRightWheel = 1;
+
+        JPH::ShapeSettings::ShapeResult shape = JPH::BoxShapeSettings( ToJolt( halfExtents ) ).Create();
+        JPH::BodyCreationSettings carSettings = JPH::BodyCreationSettings( shape.Get(), ToJolt( position ), ToJolt( { 1.0f, 0.0f, 0.0f, 0.0f } ), JPH::EMotionType::Dynamic, Layers::Moving );
+        carSettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        carSettings.mMassPropertiesOverride.mMass = 1500.0f;
+
+        JPH::Body * carBody = impl->bodyInterface->CreateBody( carSettings );
+        JPH::VehicleConstraint constraint = JPH::VehicleConstraint( *carBody, vehicle );
+        
+        // Set the collision tester
+        JPH::VehicleCollisionTesterRay tester = JPH::VehicleCollisionTesterRay( Layers::Moving );
+        constraint.SetVehicleCollisionTester( &tester );
+
+        // Add the vehicle
+        impl->physicsSystem.AddConstraint( &constraint );
+        impl->physicsSystem.AddStepListener( &constraint );
     }
 
     glm::vec3 PhysicsWorld::GetPosition( RigidBody body ) const {

@@ -80,12 +80,12 @@ namespace dust {
             entity.playerControlled = true;
             entity.renderModel = { shader.get(), buggyChassisMesh.get() };
 
-            entity.rigidBodyData.shape = RigidBodyShape::Box;
-            entity.rigidBodyData.halfExtents = chassisHalfExtents;
-            entity.rigidBodyData.restitution = 0.1f;
-            entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
-            entity.rigidBodyData.friction = 0.05f; // // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
-            entity.rigidBodyData.restitution = 0.05f;
+            //entity.rigidBodyData.shape = RigidBodyShape::Box;
+            //entity.rigidBodyData.halfExtents = chassisHalfExtents;
+            //entity.rigidBodyData.restitution = 0.1f;
+            //entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
+            //entity.rigidBodyData.friction = 0.05f; // // Low, not zero: the chassis is a flat box directly touching the ground (no wheel model yet)
+            //entity.rigidBodyData.restitution = 0.05f;
 
             playerVehicleId = world.SpawnEntity( entity );
         }
