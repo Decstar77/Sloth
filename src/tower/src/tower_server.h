@@ -8,6 +8,12 @@
 
 namespace tower {
 
+    // Shared between SandboxTowerServer and SandboxTower: the client uses
+    // these to find/manage a locally-spawned dev server (see
+    // SandboxTower's main.cpp).
+    constexpr u16          DefaultServerPort = 27020;
+    constexpr const char * ServerMutexName = "Global\\SlothTowerServerMutex";
+
     // Headless, authoritative driver for a Tower dedicated server process:
     // owns the world simulation and the network listener, but no rendering,
     // camera, or window - unlike TowerGame, which owns GL resources and

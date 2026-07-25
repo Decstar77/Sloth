@@ -12,7 +12,6 @@
 
 using namespace sloth;
 
-static const u16 ServerPort = 27020;
 static const f32 TargetFrameTime = 1.0f / 60.0f;
 
 #if defined( SLOTH_PLATFORM_WINDOWS )
@@ -30,13 +29,19 @@ static BOOL WINAPI ConsoleCtrlHandler( DWORD signal ) {
 int main() {
 #if defined( SLOTH_PLATFORM_WINDOWS )
     SetConsoleCtrlHandler( ConsoleCtrlHandler, TRUE );
+
+    // Held for the lifetime of the process (Windows releases it automatically
+    // on exit, clean or not) so SandboxTower can detect whether a server is
+    // already running before spawning one of its own.
+    HANDLE serverMutex = CreateMutexA( nullptr, FALSE, tower::ServerMutexName );
+    SL_UNUSED( serverMutex );
 #endif
 
     Engine & engine = Engine::Get();
     engine.InitHeadless();
 
     tower::TowerServer server;
-    server.Init( ServerPort );
+    server.Init( tower::DefaultServerPort );
 
     auto lastFrameTime = std::chrono::steady_clock::now();
 
