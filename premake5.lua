@@ -21,6 +21,26 @@ IncludeDir["GLM"] = "vendor"
 IncludeDir["JoltPhysics"] = "vendor/JoltPhysics"
 IncludeDir["stb"] = "vendor/stb"
 IncludeDir["miniaudio"] = "vendor/miniaudio"
+IncludeDir["GameNetworkingSockets"] = "vendor/vcpkg/vcpkg_installed/x64-windows-static-md/include"
+
+VcpkgLibDir = {}
+VcpkgLibDir["Release"] = "vendor/vcpkg/vcpkg_installed/x64-windows-static-md/lib"
+VcpkgLibDir["Debug"] = "vendor/vcpkg/vcpkg_installed/x64-windows-static-md/debug/lib"
+
+-- GameNetworkingSockets pulls in protobuf + abseil + OpenSSL as static libs;
+-- glob them instead of hand-listing ~100 .lib names that shift with vcpkg updates.
+-- libprotobuf-lite is excluded: GNS links the full libprotobuf, and having both
+-- in the same link produces duplicate-symbol (LNK4006) warnings.
+function LinkVcpkgLibs(libdir)
+    local libs = {}
+    for _, file in ipairs(os.matchfiles(libdir .. "/*.lib")) do
+        local name = path.getbasename(file)
+        if name ~= "libprotobuf-lite" and name ~= "libprotobuf-lited" then
+            table.insert(libs, name)
+        end
+    end
+    return libs
+end
 
 group "Dependencies"
     include "vendor/GLFW"
@@ -52,7 +72,8 @@ project "Engine"
         "%{IncludeDir.GLM}",
         "%{IncludeDir.JoltPhysics}",
         "%{IncludeDir.stb}",
-        "%{IncludeDir.miniaudio}"
+        "%{IncludeDir.miniaudio}",
+        "%{IncludeDir.GameNetworkingSockets}"
     }
 
     defines
@@ -78,7 +99,7 @@ project "Engine"
     filter "system:windows"
         systemversion "latest"
         defines { "SLOTH_PLATFORM_WINDOWS" }
-        links { "opengl32.lib" }
+        links { "opengl32.lib", "ws2_32.lib", "crypt32.lib", "winmm.lib", "Iphlpapi.lib" }
         vectorextensions "AVX2"
 
     filter "configurations:Debug"
@@ -86,18 +107,24 @@ project "Engine"
         runtime "Debug"
         symbols "On"
         optimize "Off"
+        libdirs { VcpkgLibDir.Debug }
+        links (LinkVcpkgLibs(VcpkgLibDir.Debug))
 
     filter "configurations:Release"
         defines { "SLOTH_RELEASE", "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED" }
         runtime "Release"
         symbols "On"
         optimize "On"
+        libdirs { VcpkgLibDir.Release }
+        links (LinkVcpkgLibs(VcpkgLibDir.Release))
 
     filter "configurations:Dist"
         defines { "SLOTH_DIST" }
         runtime "Release"
         symbols "Off"
         optimize "Full"
+        libdirs { VcpkgLibDir.Release }
+        links (LinkVcpkgLibs(VcpkgLibDir.Release))
 
 project "Dust"
     location "src/dust"

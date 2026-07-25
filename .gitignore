@@ -2,6 +2,9 @@
 bin/
 bin-int/
 
+# vcpkg manifest-mode restore output (rebuilt from vendor/vcpkg/vcpkg.json)
+vendor/vcpkg/vcpkg_installed/
+
 # Premake-generated project/solution files
 *.sln
 *.slnx
