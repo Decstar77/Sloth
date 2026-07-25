@@ -99,7 +99,7 @@ project "Engine"
     filter "system:windows"
         systemversion "latest"
         defines { "SLOTH_PLATFORM_WINDOWS" }
-        links { "opengl32.lib", "ws2_32.lib", "crypt32.lib", "winmm.lib", "Iphlpapi.lib" }
+        links { "opengl32.lib", "ws2_32.lib", "crypt32.lib", "winmm.lib", "Iphlpapi.lib", "user32.lib" }
         vectorextensions "AVX2"
 
     filter "configurations:Debug"

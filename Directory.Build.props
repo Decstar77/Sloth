@@ -3,5 +3,6 @@
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
     <VcpkgManifestRoot>$(MSBuildThisFileDirectory)vendor\vcpkg\</VcpkgManifestRoot>
     <VcpkgTriplet Condition="'$(Platform)'=='x64'">x64-windows-static-md</VcpkgTriplet>
+    <VcpkgOverlayPorts>$(MSBuildThisFileDirectory)vendor\vcpkg-overlay\ports</VcpkgOverlayPorts>
   </PropertyGroup>
 </Project>
