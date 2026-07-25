@@ -339,3 +339,56 @@ project "SandboxTower"
         runtime "Release"
         symbols "Off"
         optimize "Full"
+
+project "SandboxTowerServer"
+    location "src/sandbox/towerserver"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    staticruntime "off"
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files
+    {
+        "src/sandbox/towerserver/src/**.h",
+        "src/sandbox/towerserver/src/**.cpp"
+    }
+
+    includedirs
+    {
+        "src/tower/src",
+        "src/engine/src",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLAD}",
+        "%{IncludeDir.GLM}"
+    }
+
+    links
+    {
+        "Tower",
+        "Engine"
+    }
+
+    filter "system:windows"
+        systemversion "latest"
+        defines { "SLOTH_PLATFORM_WINDOWS" }
+
+    filter "configurations:Debug"
+        defines { "SLOTH_DEBUG" }
+        runtime "Debug"
+        symbols "On"
+        optimize "Off"
+
+    filter "configurations:Release"
+        defines { "SLOTH_RELEASE" }
+        runtime "Release"
+        symbols "On"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines { "SLOTH_DIST" }
+        runtime "Release"
+        symbols "Off"
+        optimize "Full"

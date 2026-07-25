@@ -23,6 +23,14 @@ namespace sloth {
         static Engine&  Get();
 
         void            Init( const WindowProps& windowProps = WindowProps() );
+
+        // For dedicated-server-style processes with no display: skips
+        // creating the Window, Input, and DebugRenderer (all of which
+        // require a GL context). GetWindow()/GetInput() must not be called
+        // afterward — arenas and everything else engine-owned still work
+        // normally.
+        void            InitHeadless();
+
         void            Shutdown();
 
         // Clears the frame arena and advances Input's edge-triggered state
@@ -30,11 +38,14 @@ namespace sloth {
         // work has been submitted but BEFORE Window::OnUpdate() — Input's
         // previous-state snapshot must happen before GLFW events are polled,
         // otherwise "pressed this frame" edges are overwritten before any
-        // game code observes them.
+        // game code observes them. (In headless mode there is no Input to
+        // advance; this just resets the frame arena.)
         void            EndFrame();
 
-        Window&         GetWindow() { return *window; }
-        Input&          GetInput() { return *input; }
+        bool            IsHeadless() const { return headless; }
+
+        Window&         GetWindow() { SL_ASSERT_MSG( window != nullptr, "Engine::GetWindow: not available in headless mode" ); return *window; }
+        Input&          GetInput() { SL_ASSERT_MSG( input != nullptr, "Engine::GetInput: not available in headless mode" ); return *input; }
         Arena&          GetPermanentArena() { return permanentArena; }
         Arena&          GetFrameArena() { return frameArena; }
 
@@ -42,11 +53,15 @@ namespace sloth {
                         Engine() = default;
                         ~Engine() = default;
 
+        void            InitCommon();
+
     private:
         std::unique_ptr<Window> window;
         std::unique_ptr<Input>  input;
         Arena                   permanentArena;
         Arena                   frameArena;
+        bool                    initialized = false;
+        bool                    headless = false;
     };
 
 } // namespace sloth

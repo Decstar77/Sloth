@@ -6,11 +6,16 @@ namespace sloth {
         return instance;
     }
 
-    void Engine::Init( const WindowProps& windowProps ) {
-        SL_ASSERT_MSG( window == nullptr, "Engine has already been initialized" );
+    void Engine::InitCommon() {
+        SL_ASSERT_MSG( initialized == false, "Engine has already been initialized" );
+        initialized = true;
 
         permanentArena.Init( PermanentArenaSize );
         frameArena.Init( FrameArenaSize );
+    }
+
+    void Engine::Init( const WindowProps& windowProps ) {
+        InitCommon();
 
         window = std::make_unique<Window>( windowProps );
         input = std::make_unique<Input>( window->GetNativeWindow() );
@@ -18,8 +23,15 @@ namespace sloth {
         DebugRenderer::Get().Init();
     }
 
+    void Engine::InitHeadless() {
+        InitCommon();
+        headless = true;
+    }
+
     void Engine::Shutdown() {
-        DebugRenderer::Get().Shutdown();
+        if ( headless == false ) {
+            DebugRenderer::Get().Shutdown();
+        }
 
         input.reset();
         window.reset();
@@ -29,7 +41,9 @@ namespace sloth {
     }
 
     void Engine::EndFrame() {
-        input->Update();
+        if ( input ) {
+            input->Update();
+        }
         frameArena.Reset();
     }
 
