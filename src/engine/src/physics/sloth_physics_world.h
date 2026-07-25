@@ -36,6 +36,17 @@ namespace sloth {
         glm::vec3 point { 0.0f, 0.0f, 0.0f };
     };
 
+    // Opaque handle to a wheeled vehicle created via PhysicsWorld::CreateVehicle.
+    // Indexes into PhysicsWorld's internal vehicle list; not valid across
+    // different PhysicsWorld instances or after DestroyVehicle().
+    struct VehicleHandle {
+        static constexpr u32 InvalidId = 0xFFFFFFFF;
+
+        u32 Id = InvalidId;
+
+        bool IsValid() const { return Id != InvalidId; }
+    };
+
 
     // Owns a Jolt physics simulation: the PhysicsSystem, job system, and
     // temp allocator. All Jolt types are hidden behind Impl (like Window
@@ -66,7 +77,10 @@ namespace sloth {
         RigidBody   CreateSphereBody( f32 radius, const RigidBodyDesc & desc );
         void        DestroyBody( RigidBody body );
 
-        void        CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents );
+        VehicleHandle CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents, f32 wheelRad, f32 wheelWidth );
+        void          DestroyVehicle( VehicleHandle vehicle );
+        RigidBody     GetVehicleBody( VehicleHandle vehicle ) const;
+        void          SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
 
         bool        Raycast( const glm::vec3 & origin, const glm::vec3 & direction, f32 maxDistance, RayCastHit & outHit ) const;
 

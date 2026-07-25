@@ -16,6 +16,8 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 
+#include <vector>
+
 namespace sloth {
     // ------------------------------------------------------------------------
     // Minimal two-layer setup (static / moving), the same boilerplate Jolt's
@@ -139,6 +141,17 @@ namespace sloth {
 
         f32                                         accumulator = 0.0f;
 
+        // Wheel/controller/tester settings are ref-counted Jolt objects that
+        // VehicleConstraint stores pointers/Refs to internally, so they must
+        // outlive CreateVehicle() — they're heap-allocated and kept alive
+        // here via JPH::Ref for as long as the vehicle exists.
+        struct VehicleRecord {
+            JPH::Body *                             carBody = nullptr;
+            JPH::Ref<JPH::VehicleConstraint>        constraint;
+            JPH::Ref<JPH::VehicleCollisionTester>   tester;
+        };
+        std::vector<VehicleRecord>                  vehicles;
+
         RigidBody CreateBodyFromShape( const JPH::Shape * shape, const RigidBodyDesc & desc );
     };
 
@@ -214,71 +227,114 @@ namespace sloth {
         impl->bodyInterface->DestroyBody( id );
     }
 
-    void PhysicsWorld::CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents ) {
-        const float wheel_radius = 0.3f;
-        const float wheel_width = 0.1f;
+    VehicleHandle PhysicsWorld::CreateVehicle( const glm::vec3 & position, const glm::vec3 & halfExtents, f32 wheelRad, f32 wheelWidth ) {
+        const float wheel_radius = wheelRad;
+        const float wheel_width = wheelWidth;
         const float half_vehicle_length = halfExtents.z;
         const float half_vehicle_width = halfExtents.x;
         const float half_vehicle_height = halfExtents.y;
         const float max_steering_angle = DegreesToRadians( 30.0f );
 
+        // Wheels are heap-allocated: VehicleConstraintSettings::mWheels is an
+        // array of JPH::Ref<WheelSettings>, and the constraint keeps that Ref
+        // alive for the vehicle's lifetime — a stack object would be
+        // destroyed the moment this function returns, leaving a dangling Ref.
+        JPH::WheelSettingsWV * w1 = new JPH::WheelSettingsWV(); // Left front
+        w1->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w1->mMaxSteerAngle      = max_steering_angle;
+        w1->mWidth              = wheel_width;
+        w1->mRadius             = wheel_radius;
+        w1->mMaxHandBrakeTorque = 0.0f; // Front wheel doesn't have hand brake
+
+        JPH::WheelSettingsWV * w2 = new JPH::WheelSettingsWV(); // Right front
+        w2->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
+        w2->mMaxSteerAngle      = max_steering_angle;
+        w2->mWidth              = wheel_width;
+        w2->mRadius             = wheel_radius;
+        w2->mMaxHandBrakeTorque = 0.0f; // Front wheel doesn't have hand brake
+
+        JPH::WheelSettingsWV * w3 = new JPH::WheelSettingsWV(); // Left rear
+        w3->mPosition           = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w3->mWidth              = wheel_width;
+        w3->mRadius             = wheel_radius;
+        w3->mMaxSteerAngle      = 0.0f;
+
+        JPH::WheelSettingsWV * w4 = new JPH::WheelSettingsWV(); // Right rear
+        w4->mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
+        w4->mWidth              = wheel_width;
+        w4->mRadius             = wheel_radius;
+        w4->mMaxSteerAngle      = 0.0f;
+
         JPH::VehicleConstraintSettings vehicle;
-
-        // Left front
-        JPH::WheelSettingsWV w1;
-        w1.mPosition            = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
-        w1.mMaxSteerAngle       = max_steering_angle;
-        w1.mWidth               = wheel_radius;
-        w1.mRadius              = wheel_radius;
-        w1.mMaxHandBrakeTorque  = 0.0f; // Front wheel doesn't have hand brake
-
-        // Right front
-        JPH::WheelSettingsWV w2;
-        w2.mPosition            = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, half_vehicle_length - 2.0f * wheel_radius );
-        w2.mMaxSteerAngle       = max_steering_angle;
-        w2.mWidth               = wheel_radius;
-        w2.mRadius              = wheel_radius;
-        w2.mMaxHandBrakeTorque  = 0.0f; // Front wheel doesn't have hand brake
-
-        // Left rear
-        JPH::WheelSettingsWV w3;
-        w3.mPosition            = JPH::Vec3( half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
-        w3.mWidth               = wheel_radius;
-        w3.mRadius              = wheel_radius;
-        w3.mMaxSteerAngle       = 0.0f;
-
-        // Right rear
-        JPH::WheelSettingsWV w4;
-        w4.mPosition           = JPH::Vec3( -half_vehicle_width, -0.9f * half_vehicle_height, -half_vehicle_length + 2.0f * wheel_radius );
-        w4.mWidth              = wheel_radius;
-        w4.mRadius             = wheel_radius;
-        w4.mMaxSteerAngle      = 0.0f;
-
-        vehicle.mWheels = { &w1, &w2, &w3, &w4 };
-
-        JPH::WheeledVehicleControllerSettings controller;
-        vehicle.mController = &controller;
+        vehicle.mWheels = { w1, w2, w3, w4 };
         vehicle.mMaxPitchRollAngle = DegreesToRadians( 60.0f );
 
-        controller.mDifferentials.resize( 1 );
-        controller.mDifferentials[0].mLeftWheel = 0;
-        controller.mDifferentials[0].mRightWheel = 1;
+        // Same lifetime reasoning as the wheels above: mController is
+        // referenced by the constraint beyond this function's scope.
+        JPH::WheeledVehicleControllerSettings * controller = new JPH::WheeledVehicleControllerSettings();
+        controller->mDifferentials.resize( 1 );
+        controller->mDifferentials[0].mLeftWheel = 0;
+        controller->mDifferentials[0].mRightWheel = 1;
+        vehicle.mController = controller;
 
-        JPH::ShapeSettings::ShapeResult shape = JPH::BoxShapeSettings( ToJolt( halfExtents ) ).Create();
-        JPH::BodyCreationSettings carSettings = JPH::BodyCreationSettings( shape.Get(), ToJolt( position ), ToJolt( { 1.0f, 0.0f, 0.0f, 0.0f } ), JPH::EMotionType::Dynamic, Layers::Moving );
+        JPH::ShapeSettings::ShapeResult shapeResult = JPH::BoxShapeSettings( ToJolt( halfExtents ) ).Create();
+        SL_ASSERT_MSG( !shapeResult.HasError(), "PhysicsWorld: failed to create vehicle body shape: %s", shapeResult.GetError().c_str() );
+
+        JPH::BodyCreationSettings carSettings( shapeResult.Get(), ToJolt( position ), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::Moving );
         carSettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
         carSettings.mMassPropertiesOverride.mMass = 1500.0f;
 
         JPH::Body * carBody = impl->bodyInterface->CreateBody( carSettings );
-        JPH::VehicleConstraint constraint = JPH::VehicleConstraint( *carBody, vehicle );
-        
-        // Set the collision tester
-        JPH::VehicleCollisionTesterRay tester = JPH::VehicleCollisionTesterRay( Layers::Moving );
-        constraint.SetVehicleCollisionTester( &tester );
+        SL_ASSERT_MSG( carBody != nullptr, "PhysicsWorld: failed to create vehicle body (max body count reached?)" );
+        impl->bodyInterface->AddBody( carBody->GetID(), JPH::EActivation::Activate );
 
-        // Add the vehicle
-        impl->physicsSystem.AddConstraint( &constraint );
-        impl->physicsSystem.AddStepListener( &constraint );
+        // constraint/tester are Refs (not raw new + leak): the constraint is
+        // owned jointly by physicsSystem and our VehicleRecord, and is freed
+        // once both drop their Ref (physicsSystem's Ref is dropped in
+        // DestroyVehicle below).
+        JPH::Ref<JPH::VehicleConstraint> constraint = new JPH::VehicleConstraint( *carBody, vehicle );
+
+        JPH::Ref<JPH::VehicleCollisionTester> tester = new JPH::VehicleCollisionTesterRay( Layers::Moving );
+        constraint->SetVehicleCollisionTester( tester );
+
+        impl->physicsSystem.AddConstraint( constraint );
+        impl->physicsSystem.AddStepListener( constraint );
+
+        Impl::VehicleRecord record;
+        record.carBody = carBody;
+        record.constraint = constraint;
+        record.tester = tester;
+        impl->vehicles.push_back( std::move( record ) );
+
+        return VehicleHandle { static_cast<u32>( impl->vehicles.size() - 1 ) };
+    }
+
+    void PhysicsWorld::DestroyVehicle( VehicleHandle vehicle ) {
+        SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
+        Impl::VehicleRecord & record = impl->vehicles[vehicle.Id];
+        if ( record.constraint == nullptr ) {
+            return; // already destroyed
+        }
+
+        impl->physicsSystem.RemoveStepListener( record.constraint );
+        impl->physicsSystem.RemoveConstraint( record.constraint );
+        impl->bodyInterface->RemoveBody( record.carBody->GetID() );
+        impl->bodyInterface->DestroyBody( record.carBody->GetID() );
+
+        record.constraint = nullptr;
+        record.tester = nullptr;
+        record.carBody = nullptr;
+    }
+
+    RigidBody PhysicsWorld::GetVehicleBody( VehicleHandle vehicle ) const {
+        SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
+        return RigidBody { impl->vehicles[vehicle.Id].carBody->GetID().GetIndexAndSequenceNumber() };
+    }
+
+    void PhysicsWorld::SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake ) {
+        SL_ASSERT( vehicle.IsValid() && vehicle.Id < impl->vehicles.size() );
+        auto * controller = static_cast<JPH::WheeledVehicleController *>( impl->vehicles[vehicle.Id].constraint->GetController() );
+        controller->SetDriverInput( inForward, inRight, inBrake, inHandBrake );
     }
 
     glm::vec3 PhysicsWorld::GetPosition( RigidBody body ) const {
