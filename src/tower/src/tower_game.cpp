@@ -99,7 +99,8 @@ namespace tower {
         // SyncPhysicsTransforms() so entity.position reflects this frame's
         // physics step, not last frame's.
         if ( Entity * player = world.GetEntity( playerId ) ) {
-            camera.SetPosition( player->position + glm::vec3( 0.0f, player->player.eyeHeight, 0.0f ) );
+            f32 eyeHeight = player->player.isCrouching ? player->player.crouchEyeHeight : player->player.eyeHeight;
+            camera.SetPosition( player->position + glm::vec3( 0.0f, eyeHeight, 0.0f ) );
         }
 
         world.FlushPendingChanges();
@@ -113,8 +114,14 @@ namespace tower {
 
         Input & input = Engine::Get().GetInput();
 
-        // Walk relative to the camera's flat (yaw-only) facing direction, so
-        // "forward" always means "the way you're looking" regardless of pitch.
+        bool wantsCrouch = input.IsKeyDown( Key::LeftControl );
+        if ( wantsCrouch != player->player.isCrouching ) {
+            f32 targetHeight = wantsCrouch ? player->player.crouchHeight : player->rigidBodyData.height;
+            if ( physicsWorld.SetCharacterHeight( player->character, targetHeight, player->rigidBodyData.radius ) ) {
+                player->player.isCrouching = wantsCrouch;
+            }
+        }
+
         f32 yawRadians = glm::radians( camera.GetYaw() );
         glm::vec3 flatForward = glm::normalize( glm::vec3( glm::cos( yawRadians ), 0.0f, glm::sin( yawRadians ) ) );
         glm::vec3 flatRight( -flatForward.z, 0.0f, flatForward.x );
@@ -125,20 +132,28 @@ namespace tower {
         if ( input.IsKeyDown( Key::D ) ) movement += flatRight;
         if ( input.IsKeyDown( Key::A ) ) movement -= flatRight;
 
+        // Sprint is a hold, not a toggle, and is disabled while crouched
+        // (crouching wins if both keys are held).
+        bool sprinting = !player->player.isCrouching && input.IsKeyDown( Key::LeftShift );
+        f32 moveSpeed = player->player.isCrouching ? player->player.crouchMoveSpeed
+                       : sprinting                 ? player->player.sprintMoveSpeed
+                                                    : player->player.moveSpeed;
         if ( glm::length( movement ) > 0.0f ) {
-            movement = glm::normalize( movement ) * player->player.moveSpeed;
+            movement = glm::normalize( movement ) * moveSpeed;
         }
 
-        // Only drive the horizontal velocity directly - the vertical
-        // component is left alone so gravity (and, later, jumping) keeps
-        // working through the physics simulation rather than being
-        // overwritten every frame. CharacterVirtual doesn't integrate
-        // gravity itself, so it has to be applied here, but only while
-        // airborne - while grounded we zero it out rather than letting it
-        // accumulate, or the character would rocket into the floor the
-        // instant it leaves the ground.
+        bool grounded = physicsWorld.IsCharacterGrounded( player->character );
         glm::vec3 currentVelocity = physicsWorld.GetCharacterLinearVelocity( player->character );
-        f32 verticalVelocity = physicsWorld.IsCharacterGrounded( player->character ) ? 0.0f : currentVelocity.y - 9.81f * deltaTime;
+
+        f32 verticalVelocity;
+        if ( grounded && !player->player.isCrouching && input.IsKeyPressed( Key::Space ) ) {
+            verticalVelocity = player->player.jumpSpeed;
+        } else if ( grounded ) {
+            verticalVelocity = 0.0f;
+        } else {
+            verticalVelocity = currentVelocity.y - 9.81f * deltaTime;
+        }
+
         physicsWorld.SetCharacterLinearVelocity( player->character, { movement.x, verticalVelocity, movement.z } );
     }
 

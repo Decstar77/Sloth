@@ -88,15 +88,9 @@ namespace sloth {
         void            SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
         glm::mat4       GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const;
 
-        // Player character: backed by Jolt's CharacterVirtual (a "ghost"
-        // controller resolved via collision queries against the physics
-        // world, not a simulated rigid body), so it is not a RigidBody and
-        // does not go through CreateBoxBody/DestroyBody or the
-        // AddForce/AddTorque family below. ExtendedUpdate() is driven once
-        // per fixed sub-step from Update(), same cadence as physicsSystem.
         CharacterHandle CreatePlayerCharacter( const glm::vec3 & position, f32 height, f32 radius );
         void            DestroyPlayerCharacter( CharacterHandle character );
-
+        bool            SetCharacterHeight( CharacterHandle character, f32 height, f32 radius );
         void            SetCharacterLinearVelocity( CharacterHandle character, const glm::vec3 & velocity );
         glm::vec3       GetCharacterLinearVelocity( CharacterHandle character ) const;
         glm::vec3       GetCharacterPosition( CharacterHandle character ) const;

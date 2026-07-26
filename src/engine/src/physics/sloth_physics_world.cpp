@@ -17,6 +17,7 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 #include <vector>
 
@@ -384,14 +385,23 @@ namespace sloth {
         }
     }
 
-    CharacterHandle PhysicsWorld::CreatePlayerCharacter( const glm::vec3 & position, f32 height, f32 radius ) {
-
+    // Builds a capsule shape whose local origin (0,0,0) is at the
+    // character's feet rather than its center, by wrapping it in a
+    // RotatedTranslatedShape offset up by half the capsule's height. This is
+    // what lets SetCharacterHeight() swap capsule heights (crouch/stand)
+    // without ever moving the character's position.
+    static JPH::RefConst<JPH::Shape> CreateFeetAnchoredCapsule( f32 height, f32 radius ) {
         f32 cylinderHalfHeight = ( height - 2.0f * radius ) * 0.5f;
         SL_ASSERT_MSG( cylinderHalfHeight > 0.0f, "PhysicsWorld: player capsule height must exceed 2*radius" );
 
+        JPH::Ref<JPH::Shape> capsule = new JPH::CapsuleShape( cylinderHalfHeight, radius );
+        return new JPH::RotatedTranslatedShape( JPH::Vec3( 0.0f, cylinderHalfHeight + radius, 0.0f ), JPH::Quat::sIdentity(), capsule );
+    }
+
+    CharacterHandle PhysicsWorld::CreatePlayerCharacter( const glm::vec3 & position, f32 height, f32 radius ) {
         JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
-        settings->mShape = new JPH::CapsuleShape( cylinderHalfHeight, radius );
-        settings->mSupportingVolume = JPH::Plane( JPH::Vec3::sAxisY(), -radius );
+        settings->mShape = CreateFeetAnchoredCapsule( height, radius );
+        // mSupportingVolume's permissive default is fine here since the shape's local origin is the character's feet, not its center.
 
         JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual( settings, ToJolt( position ), JPH::Quat::sIdentity(), 0, &impl->physicsSystem );
 
@@ -405,6 +415,23 @@ namespace sloth {
     void PhysicsWorld::DestroyPlayerCharacter( CharacterHandle character ) {
         SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
         impl->characters[character.Id].character = nullptr;
+    }
+
+    bool PhysicsWorld::SetCharacterHeight( CharacterHandle character, f32 height, f32 radius ) {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+
+        JPH::RefConst<JPH::Shape> shape = CreateFeetAnchoredCapsule( height, radius );
+        JPH::BodyFilter bodyFilter;
+        JPH::ShapeFilter shapeFilter;
+
+        return impl->characters[character.Id].character->SetShape(
+            shape,
+            1.5f * impl->physicsSystem.GetPhysicsSettings().mPenetrationSlop,
+            impl->physicsSystem.GetDefaultBroadPhaseLayerFilter( Layers::Moving ),
+            impl->physicsSystem.GetDefaultLayerFilter( Layers::Moving ),
+            bodyFilter,
+            shapeFilter,
+            *impl->tempAllocator );
     }
 
     void PhysicsWorld::SetCharacterLinearVelocity( CharacterHandle character, const glm::vec3 & velocity ) {

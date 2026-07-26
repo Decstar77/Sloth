@@ -47,8 +47,14 @@ namespace tower {
     };
 
     struct PlayerData {
-        f32 eyeHeight = 0.7f;   // Offset above the capsule's center (its origin) the FPS camera sits at.
-        f32 moveSpeed = 5.0f;   // Walk speed in m/s.
+        f32  eyeHeight = 1.6f;         // Eye offset above the feet (the capsule's origin) while standing.
+        f32  crouchEyeHeight = 0.9f;   // Eye offset above the feet while crouched.
+        f32  moveSpeed = 5.0f;         // Walk speed in m/s.
+        f32  sprintMoveSpeed = 8.5f;   // Walk speed in m/s while sprinting.
+        f32  crouchMoveSpeed = 2.5f;   // Walk speed in m/s while crouched (sprint is disabled while crouched).
+        f32  jumpSpeed = 5.0f;         // Vertical velocity applied on jump, in m/s.
+        f32  crouchHeight = 1.0f;      // Capsule height while crouched (standing height lives in rigidBodyData.height).
+        bool isCrouching = false;      // Current stance; toggled by UpdatePlayerMovement, not user-set.
     };
 
     struct Entity {
