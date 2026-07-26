@@ -3,6 +3,8 @@
 #include <core/sloth_engine.h>
 #include <renderer/sloth_geometry.h>
 
+#include "tower_server.h" // for DefaultServerPort - see tower_server.h
+
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -83,6 +85,11 @@ namespace tower {
             Entity entity = MakeEntity( ENTITY_TYPE_PLAYER, { 0.0f, 3.0f, 10.0f } );
             playerId = world.SpawnEntity( entity );
         }
+
+        SmallString address;
+        address.Format( "127.0.0.1:%u", static_cast<u32>( tower::DefaultServerPort ) );
+        serverConnection = network.Connect( address.Data() );
+        SL_LOG_INFO( "TowerGame: connecting to server at %s", address.Data() );
     }
 
     void TowerGame::Shutdown() {
@@ -91,6 +98,7 @@ namespace tower {
     void TowerGame::Update( f32 deltaTime ) {
         camera.Update( deltaTime );
         UpdatePlayerMovement( deltaTime );
+        UpdateNetworking();
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
@@ -155,6 +163,34 @@ namespace tower {
         }
 
         physicsWorld.SetCharacterLinearVelocity( player->character, { movement.x, verticalVelocity, movement.z } );
+    }
+
+    void TowerGame::UpdateNetworking() {
+        network.Update( Engine::Get().GetFrameArena() );
+
+        for ( usize i = 0; i < network.GetEventCount(); i++ ) {
+            const NetEvent & event = network.GetEvents()[i];
+            if ( event.connection.Id != serverConnection.Id ) {
+                continue; // not the server connection (shouldn't happen client-side, but be defensive)
+            }
+
+            switch ( event.type ) {
+                case NetEventType::Connected:
+                    SL_LOG_INFO( "TowerGame: connected to server" );
+                    break;
+
+                case NetEventType::Disconnected:
+                    SL_LOG_INFO( "TowerGame: disconnected from server" );
+                    break;
+
+                case NetEventType::MessageReceived:
+                    // No wire protocol defined yet - see TowerServer::HandleNetworkEvents.
+                    break;
+
+                case NetEventType::IncomingConnection:
+                    break; // server role only, shouldn't happen client-side
+            }
+        }
     }
 
     void TowerGame::Render() {
