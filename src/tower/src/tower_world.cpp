@@ -74,7 +74,7 @@ namespace tower {
 
         if ( entity.rigidBodyData.createRigidBody == true ) {
             if ( entity.rigidBodyData.shape == RigidBodyShape::PlayerCapsule ) {
-                entity.rigidBody = physicsWorld->CreatePlayerCapsule( entity.position, entity.rigidBodyData.height, entity.rigidBodyData.radius );
+                entity.character = physicsWorld->CreatePlayerCharacter( entity.position, entity.rigidBodyData.height, entity.rigidBodyData.radius );
             } else {
                 sloth::RigidBodyDesc bodyDesc;
                 bodyDesc.position = entity.position;
@@ -112,6 +112,9 @@ namespace tower {
         if ( entity.rigidBody.IsValid() ) {
             physicsWorld->DestroyBody( entity.rigidBody );
         }
+        if ( entity.character.IsValid() ) {
+            physicsWorld->DestroyPlayerCharacter( entity.character );
+        }
 
         i32 nextGeneration = entity.id.generation + 1;
         entity = Entity {};
@@ -122,12 +125,13 @@ namespace tower {
 
     void TowerWorld::SyncPhysicsTransforms() {
         for ( Entity & entity : entities ) {
-            if ( entity.rigidBody.IsValid() == false ) {
-                continue;
+            if ( entity.rigidBody.IsValid() ) {
+                entity.position = physicsWorld->GetPosition( entity.rigidBody );
+                entity.rotation = physicsWorld->GetRotation( entity.rigidBody );
+            } else if ( entity.character.IsValid() ) {
+                entity.position = physicsWorld->GetCharacterPosition( entity.character );
+                entity.rotation = physicsWorld->GetCharacterRotation( entity.character );
             }
-
-            entity.position = physicsWorld->GetPosition( entity.rigidBody );
-            entity.rotation = physicsWorld->GetRotation( entity.rigidBody );
         }
     }
 

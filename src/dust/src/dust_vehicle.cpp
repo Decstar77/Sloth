@@ -30,7 +30,12 @@ namespace dust {
             return;
         }
 
-        physicsWorld.SetVehicleInput( vehicle.handle, throttle, steer, 0, 0 );
+        f32 brake = 0.0f;
+        if ( throttle == 0.0f ) {
+            brake = 1.0f;
+        }
+
+        physicsWorld.SetVehicleInput( vehicle.handle, throttle, steer, brake, 0 );
     }
 
     void DriveVehicleToward( PhysicsWorld & physicsWorld, Entity & entity, glm::vec3 targetPosition, f32 deltaTime ) {

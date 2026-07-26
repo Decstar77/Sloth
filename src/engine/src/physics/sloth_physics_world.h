@@ -44,6 +44,14 @@ namespace sloth {
         bool IsValid() const { return Id != InvalidId; }
     };
 
+    struct CharacterHandle {
+        static constexpr u32 InvalidId = 0xFFFFFFFF;
+
+        u32 Id = InvalidId;
+
+        bool IsValid() const { return Id != InvalidId; }
+    };
+
 
     // Owns a Jolt physics simulation: the PhysicsSystem, job system, and
     // temp allocator. All Jolt types are hidden behind Impl (like Window
@@ -78,37 +86,39 @@ namespace sloth {
         void            DestroyVehicle( VehicleHandle vehicle );
         RigidBody       GetVehicleBody( VehicleHandle vehicle ) const;
         void            SetVehicleInput( VehicleHandle vehicle, f32 inForward, f32 inRight, f32 inBrake, f32 inHandBrake );
+        glm::mat4       GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const;
 
-        // Creates a simple "kinematic-feeling" player controller: a dynamic
-        // capsule body with all rotational degrees of freedom locked, so it
-        // never tips over and stays upright regardless of collision impacts.
-        // Movement is driven by setting linear velocity directly (see
-        // SetLinearVelocity) - gravity still applies on Y, so falling/jumping
-        // works, but nothing ever rotates the capsule.
-        RigidBody       CreatePlayerCapsule( const glm::vec3 & position, f32 height, f32 radius );
+        // Player character: backed by Jolt's CharacterVirtual (a "ghost"
+        // controller resolved via collision queries against the physics
+        // world, not a simulated rigid body), so it is not a RigidBody and
+        // does not go through CreateBoxBody/DestroyBody or the
+        // AddForce/AddTorque family below. ExtendedUpdate() is driven once
+        // per fixed sub-step from Update(), same cadence as physicsSystem.
+        CharacterHandle CreatePlayerCharacter( const glm::vec3 & position, f32 height, f32 radius );
+        void            DestroyPlayerCharacter( CharacterHandle character );
 
-        // Wheel transform relative to the vehicle's chassis body (including
-        // current suspension compression, steer angle, and roll) - multiply
-        // onto the chassis' world model matrix to place a wheel mesh authored
-        // with its roll axis along +Y and any perpendicular axis as "up".
-        glm::mat4     GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const;
+        void            SetCharacterLinearVelocity( CharacterHandle character, const glm::vec3 & velocity );
+        glm::vec3       GetCharacterLinearVelocity( CharacterHandle character ) const;
+        glm::vec3       GetCharacterPosition( CharacterHandle character ) const;
+        glm::quat       GetCharacterRotation( CharacterHandle character ) const;
+        bool            IsCharacterGrounded( CharacterHandle character ) const;
 
-        bool        Raycast( const glm::vec3 & origin, const glm::vec3 & direction, f32 maxDistance, RayCastHit & outHit ) const;
+        bool            Raycast( const glm::vec3 & origin, const glm::vec3 & direction, f32 maxDistance, RayCastHit & outHit ) const;
 
-        glm::vec3   GetPosition( RigidBody body ) const;
-        glm::quat   GetRotation( RigidBody body ) const;
+        glm::vec3       GetPosition( RigidBody body ) const;
+        glm::quat       GetRotation( RigidBody body ) const;
 
-        void        SetLinearVelocity( RigidBody body, const glm::vec3 & velocity );
-        glm::vec3   GetLinearVelocity( RigidBody body ) const;
+        void            SetLinearVelocity( RigidBody body, const glm::vec3 & velocity );
+        glm::vec3       GetLinearVelocity( RigidBody body ) const;
 
-        void        SetAngularVelocity( RigidBody body, const glm::vec3 & angularVelocity );
-        glm::vec3   GetAngularVelocity( RigidBody body ) const;
+        void            SetAngularVelocity( RigidBody body, const glm::vec3 & angularVelocity );
+        glm::vec3       GetAngularVelocity( RigidBody body ) const;
 
-        void        AddForce( RigidBody body, const glm::vec3 & force );
-        void        AddTorque( RigidBody body, const glm::vec3 & torque );
+        void            AddForce( RigidBody body, const glm::vec3 & force );
+        void            AddTorque( RigidBody body, const glm::vec3 & torque );
 
-        // Fraction in [0,1) of a fixed step left over in the accumulator;
-        f32         GetInterpolationAlpha() const;
+        // Fraction     in [0,1) of a fixed step left over in the accumulator;
+        f32             GetInterpolationAlpha() const;
 
       private:
         struct Impl;

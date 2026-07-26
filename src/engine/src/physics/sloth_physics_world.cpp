@@ -16,6 +16,7 @@
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <vector>
 
@@ -162,6 +163,16 @@ namespace sloth {
         };
         std::vector<VehicleRecord>                  vehicles;
 
+        // CharacterVirtual instances are Refs for the same reason vehicle
+        // constraints are: they must outlive the call that creates them.
+        // Unlike bodies, they're never added to the Jolt body manager, so
+        // there's no BodyID to key RigidBody off of - CharacterHandle
+        // indexes this vector directly instead.
+        struct CharacterRecord {
+            JPH::Ref<JPH::CharacterVirtual>         character;
+        };
+        std::vector<CharacterRecord>                characters;
+
         RigidBody CreateBodyFromShape( const JPH::Shape * shape, const RigidBodyDesc & desc );
     };
 
@@ -197,6 +208,26 @@ namespace sloth {
         impl->accumulator = impl->accumulator < FixedTimeStep * MaxSubSteps ? impl->accumulator : FixedTimeStep * MaxSubSteps;
 
         while ( impl->accumulator >= FixedTimeStep ) {
+            JPH::CharacterVirtual::ExtendedUpdateSettings characterUpdateSettings;
+            JPH::BodyFilter characterBodyFilter;
+            JPH::ShapeFilter characterShapeFilter;
+
+            for ( Impl::CharacterRecord & record : impl->characters ) {
+                if ( record.character == nullptr ) {
+                    continue; // destroyed
+                }
+
+                record.character->ExtendedUpdate(
+                    FixedTimeStep,
+                    impl->physicsSystem.GetGravity(),
+                    characterUpdateSettings,
+                    impl->physicsSystem.GetDefaultBroadPhaseLayerFilter( Layers::Moving ),
+                    impl->physicsSystem.GetDefaultLayerFilter( Layers::Moving ),
+                    characterBodyFilter,
+                    characterShapeFilter,
+                    *impl->tempAllocator );
+            }
+
             impl->physicsSystem.Update( FixedTimeStep, 1, impl->tempAllocator.get(), impl->jobSystem.get() );
             impl->accumulator -= FixedTimeStep;
         }
@@ -353,24 +384,52 @@ namespace sloth {
         }
     }
 
-    RigidBody PhysicsWorld::CreatePlayerCapsule( const glm::vec3 & position, f32 height, f32 radius ) {
+    CharacterHandle PhysicsWorld::CreatePlayerCharacter( const glm::vec3 & position, f32 height, f32 radius ) {
 
         f32 cylinderHalfHeight = ( height - 2.0f * radius ) * 0.5f;
         SL_ASSERT_MSG( cylinderHalfHeight > 0.0f, "PhysicsWorld: player capsule height must exceed 2*radius" );
 
-        JPH::ShapeSettings::ShapeResult shapeResult = JPH::CapsuleShapeSettings( cylinderHalfHeight, radius ).Create();
-        SL_ASSERT_MSG( !shapeResult.HasError(), "PhysicsWorld: failed to create capsule shape: %s", shapeResult.GetError().c_str() );
+        JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
+        settings->mShape = new JPH::CapsuleShape( cylinderHalfHeight, radius );
+        settings->mSupportingVolume = JPH::Plane( JPH::Vec3::sAxisY(), -radius );
 
-        JPH::BodyCreationSettings settings( shapeResult.Get(), ToJolt( position ), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Layers::Moving );
-        settings.mAllowedDOFs = JPH::EAllowedDOFs::TranslationX | JPH::EAllowedDOFs::TranslationY | JPH::EAllowedDOFs::TranslationZ;
-        settings.mFriction = 0.0f; // Velocity-driven movement; friction would just fight against wall/floor contacts.
+        JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual( settings, ToJolt( position ), JPH::Quat::sIdentity(), 0, &impl->physicsSystem );
 
-        JPH::Body * body = impl->bodyInterface->CreateBody( settings );
-        SL_ASSERT_MSG( body != nullptr, "PhysicsWorld: failed to create player capsule body (max body count reached?)" );
+        Impl::CharacterRecord record;
+        record.character = character;
+        impl->characters.push_back( std::move( record ) );
 
-        impl->bodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
+        return CharacterHandle { static_cast<u32>( impl->characters.size() - 1 ) };
+    }
 
-        return RigidBody { body->GetID().GetIndexAndSequenceNumber() };
+    void PhysicsWorld::DestroyPlayerCharacter( CharacterHandle character ) {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        impl->characters[character.Id].character = nullptr;
+    }
+
+    void PhysicsWorld::SetCharacterLinearVelocity( CharacterHandle character, const glm::vec3 & velocity ) {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        impl->characters[character.Id].character->SetLinearVelocity( ToJolt( velocity ) );
+    }
+
+    glm::vec3 PhysicsWorld::GetCharacterLinearVelocity( CharacterHandle character ) const {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        return FromJolt( impl->characters[character.Id].character->GetLinearVelocity() );
+    }
+
+    glm::vec3 PhysicsWorld::GetCharacterPosition( CharacterHandle character ) const {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        return FromJolt( impl->characters[character.Id].character->GetPosition() );
+    }
+
+    glm::quat PhysicsWorld::GetCharacterRotation( CharacterHandle character ) const {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        return FromJolt( impl->characters[character.Id].character->GetRotation() );
+    }
+
+    bool PhysicsWorld::IsCharacterGrounded( CharacterHandle character ) const {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        return impl->characters[character.Id].character->IsSupported();
     }
 
     glm::mat4 PhysicsWorld::GetVehicleWheelTransform( VehicleHandle vehicle, i32 wheelIndex ) const {

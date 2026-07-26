@@ -9,6 +9,7 @@ namespace tower {
         entity.rotation = glm::quat( 1, 0, 0, 0 );
         entity.scale = 1.0f;
         entity.rigidBody = RigidBody();
+        entity.character = CharacterHandle();
 
         switch ( type ) {
             case ENTITY_TYPE_INVALID: {

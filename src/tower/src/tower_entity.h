@@ -65,7 +65,8 @@ namespace tower {
         RenderModel        renderModel;
 
         // Physics
-        RigidBody          rigidBody;
+        RigidBody          rigidBody;      // ENTITY_TYPE_PLAYER never sets this - see character below.
+        CharacterHandle    character;      // Only valid for ENTITY_TYPE_PLAYER, backed by Jolt's CharacterVirtual rather than a RigidBody.
         RigidBodySpawnData rigidBodyData;
 
         union {

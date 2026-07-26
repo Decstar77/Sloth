@@ -107,7 +107,7 @@ namespace tower {
 
     void TowerGame::UpdatePlayerMovement( f32 deltaTime ) {
         Entity * player = world.GetEntity( playerId );
-        if ( player == nullptr || !player->rigidBody.IsValid() ) {
+        if ( player == nullptr || !player->character.IsValid() ) {
             return;
         }
 
@@ -132,9 +132,14 @@ namespace tower {
         // Only drive the horizontal velocity directly - the vertical
         // component is left alone so gravity (and, later, jumping) keeps
         // working through the physics simulation rather than being
-        // overwritten every frame.
-        glm::vec3 currentVelocity = physicsWorld.GetLinearVelocity( player->rigidBody );
-        physicsWorld.SetLinearVelocity( player->rigidBody, { movement.x, currentVelocity.y, movement.z } );
+        // overwritten every frame. CharacterVirtual doesn't integrate
+        // gravity itself, so it has to be applied here, but only while
+        // airborne - while grounded we zero it out rather than letting it
+        // accumulate, or the character would rocket into the floor the
+        // instant it leaves the ground.
+        glm::vec3 currentVelocity = physicsWorld.GetCharacterLinearVelocity( player->character );
+        f32 verticalVelocity = physicsWorld.IsCharacterGrounded( player->character ) ? 0.0f : currentVelocity.y - 9.81f * deltaTime;
+        physicsWorld.SetCharacterLinearVelocity( player->character, { movement.x, verticalVelocity, movement.z } );
     }
 
     void TowerGame::Render() {

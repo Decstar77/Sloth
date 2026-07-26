@@ -27,7 +27,7 @@ int main() {
     Window & window = engine.GetWindow();
 
     Font font( &engine.GetPermanentArena() );
-    font.Load( "../../assets/fonts/roboto/Roboto-Regular.ttf" );
+    font.Load( "../../../assets/fonts/roboto/Roboto-Regular.ttf" );
     GlyphCache glyphCache;
     TextRenderer textRenderer;
     GuiRenderer guiRenderer;
