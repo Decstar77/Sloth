@@ -7,6 +7,7 @@
 #include "tower_server.h" // for DefaultServerPort - see tower_server.h
 
 #include <glad/gl.h>
+#include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -107,6 +108,14 @@ namespace tower {
             capsuleMesh = UploadMesh( capsuleData );
         }
 
+        // Small white "hands" box, drawn in front of every player (see
+        // RenderPlayerHands) - the capsule alone gives no sense of facing
+        // since it's rotationally symmetric, and for the local player this
+        // doubles as a simple FPS viewmodel/aim reference.
+        {
+            handMesh = UploadMesh( Geometry::CreateBox( 0.12f, 0.12f, 0.3f, { 1.0f, 1.0f, 1.0f } ) );
+        }
+
         SmallString address;
         address.Format( "127.0.0.1:%u", static_cast<u32>( tower::DefaultServerPort ) );
         serverConnection = network.Connect( address.Data() );
@@ -122,6 +131,16 @@ namespace tower {
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
+
+        // The character capsule is rotationally symmetric, so physics never
+        // needed to (and doesn't) turn it - SyncPhysicsTransforms() just
+        // left entity.rotation at identity. Drive it from the camera's yaw
+        // instead: this is what makes the hands box below point the right
+        // way, and what gets sent to other clients as our facing.
+        if ( Entity * player = world.GetEntity( playerId ) ) {
+            f32 yawRadians = glm::radians( camera.GetYaw() );
+            player->rotation = glm::angleAxis( glm::half_pi<f32>() - yawRadians, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+        }
 
         // Runs after SyncPhysicsTransforms() so it reports this frame's
         // fresh position, and before FlushPendingChanges() so any remote
@@ -320,6 +339,42 @@ namespace tower {
             glm::mat4 model = glm::translate( glm::mat4( 1.0f ), entity.position ) * glm::mat4_cast( entity.rotation ) * glm::scale( glm::mat4( 1.0f ), glm::vec3( entity.scale ) );
             shader->SetMat4( "uModel", model );
             entity.renderModel.mesh->Draw();
+        }
+
+        RenderPlayerHands();
+    }
+
+    void TowerGame::RenderPlayerHands() {
+        constexpr f32 handHeight = 1.3f;        // Above the feet - remote players only, see below.
+        constexpr f32 handForwardOffset = 0.4f;
+        constexpr f32 handRightOffset = 0.25f;  // Off-center to the right, like a held item, instead of floating dead-center.
+        constexpr f32 handDownOffset = 0.2f;    // Local player only, to sit the box in the lower part of the view like a held item.
+
+        for ( const Entity & entity : world.GetEntities() ) {
+            if ( entity.type != ENTITY_TYPE_PLAYER && entity.type != ENTITY_TYPE_REMOTE_PLAYER ) {
+                continue;
+            }
+
+            glm::mat4 model;
+            if ( entity.id == playerId ) {
+                // Local player: build the box's orientation straight from
+                // the camera's own basis (not the yaw-only entity.rotation
+                // used for replication) so it tilts with pitch too - a
+                // simple FPS viewmodel to aim with.
+                const Camera & cam = camera.GetCamera();
+                glm::vec3 handPosition = cam.GetPosition() + cam.GetForward() * handForwardOffset + cam.GetRight() * handRightOffset - cam.GetUp() * handDownOffset;
+                model = glm::mat4( glm::vec4( cam.GetRight(), 0.0f ), glm::vec4( cam.GetUp(), 0.0f ), glm::vec4( cam.GetForward(), 0.0f ), glm::vec4( handPosition, 1.0f ) );
+            } else {
+                glm::vec3 forward = entity.rotation * glm::vec3( 0.0f, 0.0f, 1.0f );
+                // -X, not +X: with how player rotation is built from yaw in
+                // Update(), local +X ends up pointing left, not right.
+                glm::vec3 right = entity.rotation * glm::vec3( -1.0f, 0.0f, 0.0f );
+                glm::vec3 handPosition = entity.position + glm::vec3( 0.0f, handHeight, 0.0f ) + forward * handForwardOffset + right * handRightOffset;
+                model = glm::translate( glm::mat4( 1.0f ), handPosition ) * glm::mat4_cast( entity.rotation );
+            }
+
+            shader->SetMat4( "uModel", model );
+            handMesh->Draw();
         }
     }
 

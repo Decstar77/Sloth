@@ -34,6 +34,7 @@ namespace tower {
         void                    UpdatePlayerMovement( f32 deltaTime );
         void                    UpdateNetworking();
         void                    ApplyWorldSnapshot( const u8 * data, usize size );
+        void                    RenderPlayerHands();
 
     private:
         TowerWorld                          world;
@@ -45,6 +46,7 @@ namespace tower {
         std::unique_ptr<sloth::StaticMesh>  floorMesh;
         std::unique_ptr<sloth::StaticMesh>  boxMesh;
         std::unique_ptr<sloth::StaticMesh>  capsuleMesh; // No capsule primitive in Geometry yet - a cylinder stands in for other players' capsules.
+        std::unique_ptr<sloth::StaticMesh>  handMesh;    // Small placeholder box drawn in front of every player (including the local one) so facing/aim is visible.
 
         sloth::PhysicsWorld                 physicsWorld;
 
