@@ -117,7 +117,7 @@ namespace tower {
         }
 
         font = std::make_unique<Font>( &Engine::Get().GetPermanentArena() );
-        font->Load( "../../../assets/fonts/roboto/Roboto-Regular.ttf" );
+        font->Load( "C:/Projects/2026/Sloth/assets/fonts/roboto/Roboto-Regular.ttf" ); // Hardcode for now
 
         SmallString address;
         address.Format( "127.0.0.1:%u", static_cast<u32>( tower::DefaultServerPort ) );

@@ -14,8 +14,8 @@ namespace tower {
     static constexpr f32 MaxHealth = 100.0f;
     static constexpr f32 ShotDamage = 25.0f;
     static constexpr f32 ShotMaxRange = 200.0f;
-    static constexpr f32 PlayerHitRadius = 0.4f;         // Players are hit-tested as a sphere, not their actual capsule - good enough for a placeholder-geometry prototype.
-    static constexpr f32 PlayerHitCenterHeight = 1.0f;   // Above feet, roughly chest height.
+    static constexpr f32 PlayerHitHeight = 1.8f;   // Matches MakeEntity's ENTITY_TYPE_PLAYER capsule height (tower_entity.cpp).
+    static constexpr f32 PlayerHitRadius = 0.5f;   // Padded past the visual capsule's 0.35 radius, since the hands box (see TowerGame::RenderPlayerHands) sticks out further than that.
 
     static f32 RandomRange( f32 min, f32 max ) {
         static std::mt19937 rng { std::random_device {}() };
@@ -54,6 +54,24 @@ namespace tower {
 
         outT = t;
         return true;
+    }
+
+    // Approximates a ray-vs-vertical-capsule test as several spheres
+    // stacked from feet to head, rather than exact capsule math - good
+    // enough for this prototype's placeholder geometry, and it reuses
+    // RaySphereIntersect's "outT is the current best" shrinking behavior to
+    // naturally pick the nearest sample along the body.
+    static bool RayPlayerIntersect( const glm::vec3 & origin, const glm::vec3 & direction, const glm::vec3 & feet, f32 & outT ) {
+        constexpr i32 sampleCount = 6;
+        bool hitAny = false;
+        for ( i32 i = 0; i < sampleCount; i++ ) {
+            f32 height = PlayerHitHeight * static_cast<f32>( i ) / static_cast<f32>( sampleCount - 1 );
+            glm::vec3 center = feet + glm::vec3( 0.0f, height, 0.0f );
+            if ( RaySphereIntersect( origin, direction, center, PlayerHitRadius, outT ) ) {
+                hitAny = true;
+            }
+        }
+        return hitAny;
     }
 
     void TowerServer::Init( u16 port ) {
@@ -177,10 +195,9 @@ namespace tower {
         }
         glm::vec3 direction = message.direction / directionLength;
 
-        // Players are hit-tested as a sphere, not their real capsule (see
-        // PlayerHitRadius) - nearest-hit-wins across everyone but the
-        // shooter, tracked by shrinking the accepted range as candidates are
-        // found (see RaySphereIntersect).
+        // Nearest-hit-wins across everyone but the shooter, tracked by
+        // shrinking the accepted range as candidates are found (see
+        // RaySphereIntersect/RayPlayerIntersect).
         ServerPlayer * target = nullptr;
         f32 closestT = ShotMaxRange;
 
@@ -189,8 +206,7 @@ namespace tower {
                 continue;
             }
 
-            glm::vec3 center = candidate.position + glm::vec3( 0.0f, PlayerHitCenterHeight, 0.0f );
-            if ( RaySphereIntersect( message.origin, direction, center, PlayerHitRadius, closestT ) ) {
+            if ( RayPlayerIntersect( message.origin, direction, candidate.position, closestT ) ) {
                 target = &candidate;
             }
         }
