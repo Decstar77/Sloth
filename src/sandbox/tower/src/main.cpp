@@ -12,9 +12,46 @@
 
 #include <GLFW/glfw3.h>
 
+#include <cstdlib>
 #include <string>
 
 using namespace sloth;
+
+namespace {
+    // Minimal --key value parsing for the handful of window-placement flags
+    // tower_run_mp.bat uses to tile multiple client windows across a
+    // monitor; not a general-purpose CLI parser.
+    struct LaunchArgs {
+        i32  width = 1280;
+        i32  height = 720;
+        i32  x = 0;
+        i32  y = 0;
+        bool hasPosition = false; // Only call Window::SetPosition() if -x/-y were actually passed - otherwise let the OS place the window as usual.
+    };
+
+    LaunchArgs ParseLaunchArgs( int argc, char ** argv ) {
+        LaunchArgs args;
+
+        for ( int i = 1; i + 1 < argc; i += 2 ) {
+            std::string key = argv[i];
+            const char * value = argv[i + 1];
+
+            if ( key == "--width" ) {
+                args.width = std::atoi( value );
+            } else if ( key == "--height" ) {
+                args.height = std::atoi( value );
+            } else if ( key == "--x" ) {
+                args.x = std::atoi( value );
+                args.hasPosition = true;
+            } else if ( key == "--y" ) {
+                args.y = std::atoi( value );
+                args.hasPosition = true;
+            }
+        }
+
+        return args;
+    }
+} // namespace
 
 #if defined( SLOTH_PLATFORM_WINDOWS )
 namespace {
@@ -84,7 +121,9 @@ namespace {
 } // namespace
 #endif
 
-int main() {
+int main( int argc, char ** argv ) {
+    LaunchArgs launchArgs = ParseLaunchArgs( argc, argv );
+
 #if defined( SLOTH_PLATFORM_WINDOWS )
     if ( !IsServerAlreadyRunning() ) {
         SpawnLocalServer();
@@ -93,13 +132,17 @@ int main() {
 
     WindowProps props;
     props.Title = "Sloth Engine - Tower";
-    props.Width = 1280;
-    props.Height = 720;
+    props.Width = launchArgs.width;
+    props.Height = launchArgs.height;
 
     Engine & engine = Engine::Get();
     engine.Init( props );
 
     Window & window = engine.GetWindow();
+
+    if ( launchArgs.hasPosition ) {
+        window.SetPosition( launchArgs.x, launchArgs.y );
+    }
 
     tower::TowerGame game;
     game.Init();
