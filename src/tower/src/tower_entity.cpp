@@ -27,6 +27,11 @@ namespace tower {
                 entity.rigidBodyData.motionType = BodyMotionType::Dynamic;
                 entity.player = PlayerData();
             } break;
+            case ENTITY_TYPE_REMOTE_PLAYER: {
+                // No rigid body/character - purely a visual proxy, positioned
+                // directly from network snapshots (see TowerGame::UpdateNetworking).
+                entity.remotePlayer = RemotePlayerData();
+            } break;
         }
 
         return entity;
@@ -40,6 +45,8 @@ namespace tower {
                 return "Prop";
             case ENTITY_TYPE_PLAYER:
                 return "Player";
+            case ENTITY_TYPE_REMOTE_PLAYER:
+                return "RemotePlayer";
         }
 
         return "Unknown";

@@ -1,6 +1,10 @@
 #include "tower_server.h"
 
+#include "tower_protocol.h"
+
 #include <core/sloth_engine.h>
+
+#include <cstring>
 
 using namespace sloth;
 
@@ -53,6 +57,7 @@ namespace tower {
 
         network.Update( Engine::Get().GetFrameArena() );
         HandleNetworkEvents();
+        BroadcastWorldSnapshot();
     }
 
     void TowerServer::HandleNetworkEvents() {
@@ -65,19 +70,84 @@ namespace tower {
                     network.AcceptConnection( event.connection );
                     break;
 
-                case NetEventType::Connected:
+                case NetEventType::Connected: {
                     SL_LOG_INFO( "TowerServer: connection %u established", event.connection.Id );
-                    break;
 
-                case NetEventType::Disconnected:
+                    ServerPlayer player;
+                    player.connection = event.connection;
+                    player.id = event.connection.Id;
+                    players.push_back( player );
+
+                    WelcomeMessage welcome;
+                    welcome.playerId = player.id;
+                    network.SendMessage( event.connection, &welcome, sizeof( welcome ), NetSendType::Reliable );
+                } break;
+
+                case NetEventType::Disconnected: {
                     SL_LOG_INFO( "TowerServer: connection %u disconnected", event.connection.Id );
-                    break;
 
-                case NetEventType::MessageReceived:
-                    // No wire protocol defined yet - just observe traffic for now.
-                    SL_LOG_INFO( "TowerServer: message from %u (%zu bytes)", event.connection.Id, event.dataSize );
-                    break;
+                    for ( auto it = players.begin(); it != players.end(); ++it ) {
+                        if ( it->connection.Id == event.connection.Id ) {
+                            players.erase( it );
+                            break;
+                        }
+                    }
+                } break;
+
+                case NetEventType::MessageReceived: {
+                    if ( event.dataSize < sizeof( MessageType ) ) {
+                        break;
+                    }
+
+                    MessageType type;
+                    memcpy( &type, event.data, sizeof( MessageType ) );
+
+                    if ( type == MessageType::PlayerState && event.dataSize == sizeof( PlayerStateMessage ) ) {
+                        PlayerStateMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+
+                        for ( ServerPlayer & player : players ) {
+                            if ( player.connection.Id == event.connection.Id ) {
+                                player.position = message.position;
+                                player.rotation = message.rotation;
+                                player.hasState = true;
+                                break;
+                            }
+                        }
+                    }
+                } break;
             }
+        }
+    }
+
+    void TowerServer::BroadcastWorldSnapshot() {
+        if ( players.empty() ) {
+            return;
+        }
+
+        // Only players who've reported at least one state are included, so a
+        // freshly connected player doesn't briefly appear at the origin for
+        // everyone else before their first PlayerState arrives.
+        std::vector<PlayerSnapshotEntry> entries;
+        entries.reserve( players.size() );
+        for ( const ServerPlayer & player : players ) {
+            if ( player.hasState ) {
+                entries.push_back( { player.id, player.position, player.rotation } );
+            }
+        }
+
+        usize bufferSize = sizeof( WorldSnapshotHeader ) + entries.size() * sizeof( PlayerSnapshotEntry );
+        std::vector<u8> buffer( bufferSize );
+
+        WorldSnapshotHeader header;
+        header.playerCount = static_cast<u32>( entries.size() );
+        memcpy( buffer.data(), &header, sizeof( header ) );
+        if ( !entries.empty() ) {
+            memcpy( buffer.data() + sizeof( header ), entries.data(), entries.size() * sizeof( PlayerSnapshotEntry ) );
+        }
+
+        for ( const ServerPlayer & player : players ) {
+            network.SendMessage( player.connection, buffer.data(), buffer.size(), NetSendType::Unreliable );
         }
     }
 

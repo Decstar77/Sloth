@@ -11,6 +11,7 @@
 #include "tower_world.h"
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace tower {
@@ -32,6 +33,7 @@ namespace tower {
     private:
         void                    UpdatePlayerMovement( f32 deltaTime );
         void                    UpdateNetworking();
+        void                    ApplyWorldSnapshot( const u8 * data, usize size );
 
     private:
         TowerWorld                          world;
@@ -42,14 +44,20 @@ namespace tower {
         std::unique_ptr<sloth::Shader>      shader;
         std::unique_ptr<sloth::StaticMesh>  floorMesh;
         std::unique_ptr<sloth::StaticMesh>  boxMesh;
+        std::unique_ptr<sloth::StaticMesh>  capsuleMesh; // No capsule primitive in Geometry yet - a cylinder stands in for other players' capsules.
 
         sloth::PhysicsWorld                 physicsWorld;
 
-        // No wire protocol yet (see TowerServer::HandleNetworkEvents) - for
-        // now this just establishes and tracks the connection to the local
-        // dev server SandboxTower spawns on startup.
         sloth::NetworkSystem                network;
         sloth::NetConnection                serverConnection;
+
+        // See tower_protocol.h. Movement is client-authoritative: each
+        // client reports its own transform every frame and mirrors everyone
+        // else's via ENTITY_TYPE_REMOTE_PLAYER entities driven straight from
+        // the server's snapshots (no physics/prediction on remote players).
+        u32                                  localPlayerId = 0;
+        bool                                 hasLocalPlayerId = false;
+        std::unordered_map<u32, EntityId>    remotePlayers;
     };
 
 }

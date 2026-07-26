@@ -6,6 +6,8 @@
 
 #include "tower_world.h"
 
+#include <vector>
+
 namespace tower {
 
     // Shared between SandboxTowerServer and SandboxTower: the client uses
@@ -31,11 +33,26 @@ namespace tower {
 
       private:
         void                    HandleNetworkEvents();
+        void                    BroadcastWorldSnapshot();
+
+        // Player state is tracked here, keyed by connection, rather than as
+        // TowerWorld entities: movement is client-authoritative for now (the
+        // client runs its own CharacterVirtual and just reports where it
+        // ended up), so the server has no physics representation of players
+        // to simulate, only the latest reported transform to relay to peers.
+        struct ServerPlayer {
+            sloth::NetConnection connection;
+            u32                  id = 0; // == connection.Id
+            glm::vec3            position { 0.0f, 0.0f, 0.0f };
+            glm::quat            rotation { 1.0f, 0.0f, 0.0f, 0.0f };
+            bool                 hasState = false; // Have we received at least one PlayerState from them yet?
+        };
 
       private:
-        TowerWorld              world;
-        sloth::PhysicsWorld     physicsWorld;
-        sloth::NetworkSystem    network;
+        TowerWorld                  world;
+        sloth::PhysicsWorld         physicsWorld;
+        sloth::NetworkSystem        network;
+        std::vector<ServerPlayer>   players;
     };
 
 } // namespace tower

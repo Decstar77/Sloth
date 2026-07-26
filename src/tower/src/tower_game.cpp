@@ -3,11 +3,15 @@
 #include <core/sloth_engine.h>
 #include <renderer/sloth_geometry.h>
 
+#include "tower_protocol.h"
 #include "tower_server.h" // for DefaultServerPort - see tower_server.h
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <algorithm>
+#include <cstring>
 
 using namespace sloth;
 
@@ -86,6 +90,23 @@ namespace tower {
             playerId = world.SpawnEntity( entity );
         }
 
+        // Other players are drawn as a cylinder standing in for a capsule
+        // (Geometry has no capsule primitive yet), sized to match the local
+        // player's physics capsule (see MakeEntity's ENTITY_TYPE_PLAYER
+        // case). CreateCylinder is centered at the origin, so vertices are
+        // shifted up by half the height to move the mesh's local origin to
+        // the feet - matching entity.position's convention for player-shaped
+        // entities (see PhysicsWorld::CreatePlayerCharacter).
+        {
+            f32 height = 1.8f;
+            f32 radius = 0.35f;
+            MeshData capsuleData = Geometry::CreateCylinder( radius, height, 16, { 0.9f, 0.35f, 0.35f } );
+            for ( Vertex & vertex : capsuleData.vertices ) {
+                vertex.position.y += height * 0.5f;
+            }
+            capsuleMesh = UploadMesh( capsuleData );
+        }
+
         SmallString address;
         address.Format( "127.0.0.1:%u", static_cast<u32>( tower::DefaultServerPort ) );
         serverConnection = network.Connect( address.Data() );
@@ -98,10 +119,14 @@ namespace tower {
     void TowerGame::Update( f32 deltaTime ) {
         camera.Update( deltaTime );
         UpdatePlayerMovement( deltaTime );
-        UpdateNetworking();
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
+
+        // Runs after SyncPhysicsTransforms() so it reports this frame's
+        // fresh position, and before FlushPendingChanges() so any remote
+        // player entities it spawns go live this frame.
+        UpdateNetworking();
 
         // Camera follows the player capsule's eye position - must run after
         // SyncPhysicsTransforms() so entity.position reflects this frame's
@@ -181,14 +206,91 @@ namespace tower {
 
                 case NetEventType::Disconnected:
                     SL_LOG_INFO( "TowerGame: disconnected from server" );
+                    hasLocalPlayerId = false;
                     break;
 
-                case NetEventType::MessageReceived:
-                    // No wire protocol defined yet - see TowerServer::HandleNetworkEvents.
-                    break;
+                case NetEventType::MessageReceived: {
+                    if ( event.dataSize < sizeof( MessageType ) ) {
+                        break;
+                    }
+
+                    MessageType type;
+                    memcpy( &type, event.data, sizeof( MessageType ) );
+
+                    if ( type == MessageType::Welcome && event.dataSize == sizeof( WelcomeMessage ) ) {
+                        WelcomeMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        localPlayerId = message.playerId;
+                        hasLocalPlayerId = true;
+                        SL_LOG_INFO( "TowerGame: assigned player id %u", localPlayerId );
+                    } else if ( type == MessageType::WorldSnapshot && event.dataSize >= sizeof( WorldSnapshotHeader ) ) {
+                        ApplyWorldSnapshot( event.data, event.dataSize );
+                    }
+                } break;
 
                 case NetEventType::IncomingConnection:
                     break; // server role only, shouldn't happen client-side
+            }
+        }
+
+        // Report our own transform every frame - see
+        // TowerServer::HandleNetworkEvents' PlayerState handling. Gated on
+        // having our assigned id so we never send before the server can
+        // attribute it to a real player id.
+        if ( hasLocalPlayerId ) {
+            if ( Entity * player = world.GetEntity( playerId ) ) {
+                PlayerStateMessage message;
+                message.position = player->position;
+                message.rotation = player->rotation;
+                network.SendMessage( serverConnection, &message, sizeof( message ), NetSendType::Unreliable );
+            }
+        }
+    }
+
+    void TowerGame::ApplyWorldSnapshot( const u8 * data, usize size ) {
+        WorldSnapshotHeader header;
+        memcpy( &header, data, sizeof( header ) );
+
+        usize expectedSize = sizeof( WorldSnapshotHeader ) + static_cast<usize>( header.playerCount ) * sizeof( PlayerSnapshotEntry );
+        if ( size != expectedSize ) {
+            return; // malformed/truncated
+        }
+
+        std::vector<u32> seenIds;
+        seenIds.reserve( header.playerCount );
+
+        const u8 * cursor = data + sizeof( header );
+        for ( u32 i = 0; i < header.playerCount; i++ ) {
+            PlayerSnapshotEntry entry;
+            memcpy( &entry, cursor, sizeof( entry ) );
+            cursor += sizeof( entry );
+
+            if ( entry.playerId == localPlayerId ) {
+                continue; // that's us - not drawn, we're first-person
+            }
+
+            seenIds.push_back( entry.playerId );
+
+            auto it = remotePlayers.find( entry.playerId );
+            if ( it == remotePlayers.end() ) {
+                Entity remote = MakeEntity( ENTITY_TYPE_REMOTE_PLAYER, entry.position );
+                remote.rotation = entry.rotation;
+                remote.renderModel = { shader.get(), capsuleMesh.get() };
+                remote.remotePlayer.networkId = entry.playerId;
+                remotePlayers[entry.playerId] = world.SpawnEntity( remote );
+            } else if ( Entity * remoteEntity = world.GetEntity( it->second ) ) {
+                remoteEntity->position = entry.position;
+                remoteEntity->rotation = entry.rotation;
+            }
+        }
+
+        // Anyone we knew about but wasn't in this snapshot has disconnected.
+        for ( auto it = remotePlayers.begin(); it != remotePlayers.end(); ) {
+            if ( std::find( seenIds.begin(), seenIds.end(), it->first ) == seenIds.end() ) {
+                world.DestroyEntity( it->second );
+                it = remotePlayers.erase( it );
+            } else {
+                ++it;
             }
         }
     }

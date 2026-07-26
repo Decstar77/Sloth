@@ -14,6 +14,7 @@ namespace tower {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
         ENTITY_TYPE_PLAYER,
+        ENTITY_TYPE_REMOTE_PLAYER, // A visual-only stand-in for another client's player, driven by network snapshots rather than local input/physics.
     };
 
     struct EntityId {
@@ -57,6 +58,10 @@ namespace tower {
         bool isCrouching = false;      // Current stance; toggled by UpdatePlayerMovement, not user-set.
     };
 
+    struct RemotePlayerData {
+        u32 networkId = 0; // Server-assigned player id (see tower_protocol.h) this entity mirrors.
+    };
+
     struct Entity {
         // Entity
         EntityType  type;
@@ -76,8 +81,9 @@ namespace tower {
         RigidBodySpawnData rigidBodyData;
 
         union {
-            PropData    prop;
-            PlayerData  player;
+            PropData          prop;
+            PlayerData        player;
+            RemotePlayerData  remotePlayer;
         };
     };
 
