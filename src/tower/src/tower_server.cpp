@@ -29,10 +29,6 @@ namespace tower {
         return glm::vec3( RandomRange( -25.0f, 25.0f ), 3.0f, RandomRange( -25.0f, 25.0f ) );
     }
 
-    // outT is also the caller's current best distance on the way in, so
-    // passing the closest hit found so far naturally rejects anything
-    // farther than that - callers scanning multiple targets don't need a
-    // separate "is this closer" check.
     static bool RaySphereIntersect( const glm::vec3 & origin, const glm::vec3 & direction, const glm::vec3 & center, f32 radius, f32 & outT ) {
         glm::vec3 oc = origin - center;
         f32 b = glm::dot( oc, direction );
@@ -45,7 +41,7 @@ namespace tower {
         f32 sqrtDiscriminant = glm::sqrt( discriminant );
         f32 t = -b - sqrtDiscriminant;
         if ( t < 0.0f ) {
-            t = -b + sqrtDiscriminant; // origin is inside the sphere - use the exit point instead, still counts as a hit
+            t = -b + sqrtDiscriminant; 
         }
 
         if ( t < 0.0f || t > outT ) {
@@ -195,12 +191,27 @@ namespace tower {
         }
         glm::vec3 direction = message.direction / directionLength;
 
-        // Nearest-hit-wins across everyone but the shooter, tracked by
-        // shrinking the accepted range as candidates are found (see
-        // RaySphereIntersect/RayPlayerIntersect).
-        ServerPlayer * target = nullptr;
-        f32 closestT = ShotMaxRange;
+        // Gunshot sound cue for everyone but the shooter - they already
+        // played it locally the instant they fired, for zero-latency
+        // feedback (see TowerGame::UpdateShooting). Sent unconditionally,
+        // hit or miss - a gunshot makes noise either way.
+        PlayerShotFiredMessage shotFired;
+        shotFired.origin = message.origin;
+        for ( const ServerPlayer & listener : players ) {
+            if ( listener.connection.Id != shooterConnection.Id ) {
+                network.SendMessage( listener.connection, &shotFired, sizeof( shotFired ), NetSendType::Unreliable );
+            }
+        }
 
+        // World geometry (props, floor) blocks the shot.
+        f32 closestT = ShotMaxRange;
+        RayCastHit worldHit;
+        if ( physicsWorld.Raycast( message.origin, direction, ShotMaxRange, worldHit ) ) {
+            closestT = glm::length( worldHit.point - message.origin );
+        }
+
+        // Nearest-hit-wins across everyone but the shooter
+        ServerPlayer * target = nullptr;
         for ( ServerPlayer & candidate : players ) {
             if ( candidate.connection.Id == shooterConnection.Id || !candidate.hasState ) {
                 continue;
@@ -217,6 +228,15 @@ namespace tower {
 
         target->health -= ShotDamage;
         SL_LOG_INFO( "TowerServer: player %u hit player %u (health now %.0f)", shooterConnection.Id, target->id, static_cast<f64>( target->health ) );
+
+        // Hit sound cue, positional at the target, for everyone (shooter,
+        // target, and bystanders alike) - unlike health/respawn below,
+        // which only the target needs to know about.
+        PlayerHitConfirmMessage hitConfirm;
+        hitConfirm.position = target->position + glm::vec3( 0.0f, PlayerHitHeight * 0.5f, 0.0f );
+        for ( const ServerPlayer & listener : players ) {
+            network.SendMessage( listener.connection, &hitConfirm, sizeof( hitConfirm ), NetSendType::Unreliable );
+        }
 
         if ( target->health <= 0.0f ) {
             target->health = MaxHealth;

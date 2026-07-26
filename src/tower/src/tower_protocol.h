@@ -16,9 +16,11 @@ namespace tower {
         Welcome = 1,        // server -> client, once, right after Connected: tells the client its assigned playerId.
         PlayerState = 2,    // client -> server, every frame: the sender's own position/rotation.
         WorldSnapshot = 3,  // server -> client, every tick: every known player's position/rotation.
-        PlayerShot = 4,     // client -> server, on fire: a hitscan shot to resolve.
-        PlayerHealth = 5,   // server -> client (target only): your health changed.
-        PlayerRespawn = 6,  // server -> client (target only): you died, teleport to this position.
+        PlayerShot = 4,       // client -> server, on fire: a hitscan shot to resolve.
+        PlayerHealth = 5,     // server -> client (target only): your health changed.
+        PlayerRespawn = 6,    // server -> client (target only): you died, teleport to this position.
+        PlayerShotFired = 7,  // server -> clients (everyone but the shooter, who already predicted it locally): play a gunshot sound here.
+        PlayerHitConfirm = 8, // server -> clients (everyone): a hit landed here, play a hit sound.
     };
 
     struct WelcomeMessage {
@@ -63,6 +65,16 @@ namespace tower {
 
     struct PlayerRespawnMessage {
         MessageType type = MessageType::PlayerRespawn;
+        glm::vec3   position { 0.0f, 0.0f, 0.0f };
+    };
+
+    struct PlayerShotFiredMessage {
+        MessageType type = MessageType::PlayerShotFired;
+        glm::vec3   origin { 0.0f, 0.0f, 0.0f };
+    };
+
+    struct PlayerHitConfirmMessage {
+        MessageType type = MessageType::PlayerHitConfirm;
         glm::vec3   position { 0.0f, 0.0f, 0.0f };
     };
 

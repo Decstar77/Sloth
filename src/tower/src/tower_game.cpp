@@ -12,6 +12,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 
 using namespace sloth;
@@ -48,6 +49,41 @@ namespace tower {
 
     static std::unique_ptr<StaticMesh> UploadMesh( const MeshData & data ) {
         return std::make_unique<StaticMesh>( data.vertices.data(), static_cast<u32>( data.vertices.size() ), data.indices.data(), static_cast<u32>( data.indices.size() ) );
+    }
+
+    // Absolute paths, matching the font load below - keep consistent if that
+    // ever moves back to a relative/working-directory-relative scheme.
+    static const char * FootstepSounds[] = {
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-1.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-2.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-3.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-4.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-5.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-6.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-7.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-8.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-9.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/footsteps/Light-Armor-Concrete-Walking-10.wav",
+    };
+
+    static const char * GunshotSounds[] = {
+        "C:/Projects/2026/Sloth/assets/sounds/glock/gun_pistol_shot_01.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/glock/gun_pistol_shot_02.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/glock/gun_pistol_shot_03.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/glock/gun_pistol_shot_04.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/glock/gun_pistol_shot_05.wav",
+    };
+
+    static const char * HitSounds[] = {
+        "C:/Projects/2026/Sloth/assets/sounds/bullet-hits/basic_hit_01.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/bullet-hits/basic_hit_02.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/bullet-hits/basic_hit_03.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/bullet-hits/basic_hit_04.wav",
+        "C:/Projects/2026/Sloth/assets/sounds/bullet-hits/basic_hit_05.wav",
+    };
+
+    static const char * PickRandomSound( const char * const * paths, usize count ) {
+        return paths[static_cast<usize>( rand() ) % count];
     }
 
     void TowerGame::Init() {
@@ -92,12 +128,6 @@ namespace tower {
         }
 
         // Other players are drawn as a cylinder standing in for a capsule
-        // (Geometry has no capsule primitive yet), sized to match the local
-        // player's physics capsule (see MakeEntity's ENTITY_TYPE_PLAYER
-        // case). CreateCylinder is centered at the origin, so vertices are
-        // shifted up by half the height to move the mesh's local origin to
-        // the feet - matching entity.position's convention for player-shaped
-        // entities (see PhysicsWorld::CreatePlayerCharacter).
         {
             f32 height = 1.8f;
             f32 radius = 0.35f;
@@ -108,10 +138,7 @@ namespace tower {
             capsuleMesh = UploadMesh( capsuleData );
         }
 
-        // Small white "hands" box, drawn in front of every player (see
-        // RenderPlayerHands) - the capsule alone gives no sense of facing
-        // since it's rotationally symmetric, and for the local player this
-        // doubles as a simple FPS viewmodel/aim reference.
+        // Small white "hands" box, drawn in front of every player 
         {
             handMesh = UploadMesh( Geometry::CreateBox( 0.12f, 0.12f, 0.3f, { 1.0f, 1.0f, 1.0f } ) );
         }
@@ -136,28 +163,24 @@ namespace tower {
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
 
-        // The character capsule is rotationally symmetric, so physics never
-        // needed to (and doesn't) turn it - SyncPhysicsTransforms() just
-        // left entity.rotation at identity. Drive it from the camera's yaw
-        // instead: this is what makes the hands box below point the right
-        // way, and what gets sent to other clients as our facing.
         if ( Entity * player = world.GetEntity( playerId ) ) {
             f32 yawRadians = glm::radians( camera.GetYaw() );
             player->rotation = glm::angleAxis( glm::half_pi<f32>() - yawRadians, glm::vec3( 0.0f, 1.0f, 0.0f ) );
         }
 
-        // Runs after SyncPhysicsTransforms() so it reports this frame's
-        // fresh position, and before FlushPendingChanges() so any remote
-        // player entities it spawns go live this frame.
         UpdateNetworking();
 
-        // Camera follows the player capsule's eye position - must run after
-        // SyncPhysicsTransforms() so entity.position reflects this frame's
-        // physics step, not last frame's.
+        // Camera follows the player capsule's eye position and must run after SyncPhysicsTransforms() so entity.position reflects this frame's  physics step, not last frame's.
         if ( Entity * player = world.GetEntity( playerId ) ) {
             f32 eyeHeight = player->player.isCrouching ? player->player.crouchEyeHeight : player->player.eyeHeight;
             camera.SetPosition( player->position + glm::vec3( 0.0f, eyeHeight, 0.0f ) );
         }
+
+        // Listener follows the camera, so 3D sounds (remote gunshots/hits)
+        // pan and attenuate relative to where we're actually looking from.
+        const Camera & cam = camera.GetCamera();
+        audioWorld.SetListenerTransform( cam.GetPosition(), cam.GetForward(), cam.GetUp() );
+        audioWorld.Update();
 
         world.FlushPendingChanges();
     }
@@ -211,6 +234,24 @@ namespace tower {
         }
 
         physicsWorld.SetCharacterLinearVelocity( player->character, { movement.x, verticalVelocity, movement.z } );
+
+        UpdateFootsteps( deltaTime, grounded, movement );
+    }
+
+    static constexpr f32 FootstepStrideLength = 2.2f; // Meters between steps - distance-based rather than a timer, so sprinting naturally steps faster and crouching slower.
+
+    void TowerGame::UpdateFootsteps( f32 deltaTime, bool grounded, const glm::vec3 & desiredMovement ) {
+        f32 speed = glm::length( desiredMovement );
+        if ( !grounded || speed <= 0.0f ) {
+            footstepDistance = 0.0f; // Don't bank distance while airborne/still, or landing would immediately fire a stale step.
+            return;
+        }
+
+        footstepDistance += speed * deltaTime;
+        if ( footstepDistance >= FootstepStrideLength ) {
+            footstepDistance -= FootstepStrideLength;
+            audioWorld.PlaySound2D( PickRandomSound( FootstepSounds, SL_ARRAY_COUNT( FootstepSounds ) ) );
+        }
     }
 
     static constexpr f32 RecoilDuration = 0.15f;
@@ -229,10 +270,11 @@ namespace tower {
 
         recoilTimer = RecoilDuration;
 
-        // Hit detection is entirely server-side (see TowerServer::
-        // HandlePlayerShot) - we just report the ray, reliably since a
-        // dropped shot would be a real (if rare) gameplay bug, not just a
-        // stale frame like the position updates below.
+        // Played locally, immediately - zero-latency feedback rather than
+        // waiting on a round trip. Other clients hear this shot via the
+        // server's PlayerShotFired broadcast instead (see UpdateNetworking).
+        audioWorld.PlaySound2D( PickRandomSound( GunshotSounds, SL_ARRAY_COUNT( GunshotSounds ) ) );
+
         const Camera & cam = camera.GetCamera();
         PlayerShotMessage shot;
         shot.origin = cam.GetPosition();
@@ -283,6 +325,14 @@ namespace tower {
                         PlayerRespawnMessage message;
                         memcpy( &message, event.data, sizeof( message ) );
                         HandlePlayerRespawn( message );
+                    } else if ( type == MessageType::PlayerShotFired && event.dataSize == sizeof( PlayerShotFiredMessage ) ) {
+                        PlayerShotFiredMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        audioWorld.PlaySound3D( PickRandomSound( GunshotSounds, SL_ARRAY_COUNT( GunshotSounds ) ), message.origin );
+                    } else if ( type == MessageType::PlayerHitConfirm && event.dataSize == sizeof( PlayerHitConfirmMessage ) ) {
+                        PlayerHitConfirmMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        audioWorld.PlaySound3D( PickRandomSound( HitSounds, SL_ARRAY_COUNT( HitSounds ) ), message.position );
                     }
                 } break;
 
@@ -291,10 +341,7 @@ namespace tower {
             }
         }
 
-        // Report our own transform every frame - see
-        // TowerServer::HandleNetworkEvents' PlayerState handling. Gated on
-        // having our assigned id so we never send before the server can
-        // attribute it to a real player id.
+        // Report our own transform every frame
         if ( hasLocalPlayerId ) {
             if ( Entity * player = world.GetEntity( playerId ) ) {
                 PlayerStateMessage message;
@@ -366,10 +413,6 @@ namespace tower {
         physicsWorld.SetCharacterPosition( player->character, message.position );
         physicsWorld.SetCharacterLinearVelocity( player->character, glm::vec3( 0.0f ) );
 
-        // Update the entity directly rather than waiting for the next
-        // SyncPhysicsTransforms() - the camera-follow and outgoing
-        // PlayerState later this same frame (see Update()) should already
-        // reflect the teleport, not one frame of the old position.
         player->position = message.position;
     }
 
@@ -410,10 +453,6 @@ namespace tower {
         f32 screenHeight = static_cast<f32>( window.GetHeight() );
         glm::mat4 screenProjection = MakeScreenProjection( screenWidth, screenHeight );
 
-        // Crosshair: a "+" of two thin rects centered on screen. No
-        // GuiContext/GuiFrame needed - that's only for widget hot/active
-        // tracking, and this is just static drawing straight through
-        // GuiRenderer.
         {
             constexpr f32 armLength = 8.0f;
             constexpr f32 thickness = 2.0f;
@@ -452,13 +491,6 @@ namespace tower {
 
             glm::mat4 model;
             if ( entity.id == playerId ) {
-                // Local player: build the box's orientation straight from
-                // the camera's own basis (not the yaw-only entity.rotation
-                // used for replication) so it tilts with pitch too - a
-                // simple FPS viewmodel to aim with.
-                // Recoil eases back out over RecoilDuration - pull the box
-                // toward the camera (less forward offset) proportional to
-                // how much of that window is left.
                 constexpr f32 recoilPushback = 0.15f;
                 f32 recoil = ( recoilTimer / RecoilDuration ) * recoilPushback;
 

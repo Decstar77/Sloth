@@ -1,5 +1,6 @@
 #pragma once
 
+#include <audio/sloth_audio_world.h>
 #include <core/sloth_defines.h>
 #include <core/sloth_string.h>
 #include <font/sloth_font.h>
@@ -42,6 +43,7 @@ namespace tower {
         void                    ApplyWorldSnapshot( const u8 * data, usize size );
         void                    HandlePlayerHealth( const PlayerHealthMessage & message );
         void                    HandlePlayerRespawn( const PlayerRespawnMessage & message );
+        void                    UpdateFootsteps( f32 deltaTime, bool grounded, const glm::vec3 & desiredMovement );
         void                    RenderPlayerHands();
         void                    RenderHud();
 
@@ -66,6 +68,8 @@ namespace tower {
         sloth::GuiRenderer                  guiRenderer;
 
         sloth::PhysicsWorld                 physicsWorld;
+        sloth::AudioWorld                   audioWorld;
+        f32                                  footstepDistance = 0.0f; // Meters walked since the last footstep - see UpdateFootsteps.
 
         sloth::NetworkSystem                network;
         sloth::NetConnection                serverConnection;
