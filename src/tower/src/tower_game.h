@@ -2,12 +2,17 @@
 
 #include <core/sloth_defines.h>
 #include <core/sloth_string.h>
+#include <font/sloth_font.h>
 #include <network/sloth_network.h>
 #include <physics/sloth_physics_world.h>
+#include <renderer/sloth_glyph_cache.h>
+#include <renderer/sloth_gui_renderer.h>
 #include <renderer/sloth_shader.h>
 #include <renderer/sloth_static_mesh.h>
+#include <renderer/sloth_text_renderer.h>
 
 #include "tower_camera.h"
+#include "tower_protocol.h"
 #include "tower_world.h"
 
 #include <memory>
@@ -32,9 +37,13 @@ namespace tower {
 
     private:
         void                    UpdatePlayerMovement( f32 deltaTime );
+        void                    UpdateShooting( f32 deltaTime );
         void                    UpdateNetworking();
         void                    ApplyWorldSnapshot( const u8 * data, usize size );
+        void                    HandlePlayerHealth( const PlayerHealthMessage & message );
+        void                    HandlePlayerRespawn( const PlayerRespawnMessage & message );
         void                    RenderPlayerHands();
+        void                    RenderHud();
 
     private:
         TowerWorld                          world;
@@ -48,6 +57,14 @@ namespace tower {
         std::unique_ptr<sloth::StaticMesh>  capsuleMesh; // No capsule primitive in Geometry yet - a cylinder stands in for other players' capsules.
         std::unique_ptr<sloth::StaticMesh>  handMesh;    // Small placeholder box drawn in front of every player (including the local one) so facing/aim is visible.
 
+        // HUD - crosshair (GuiRenderer, no font needed) and health text
+        // (TextRenderer/Font/GlyphCache). No GuiContext/GuiFrame here since
+        // there are no widgets (buttons/panels) yet, just static drawing.
+        std::unique_ptr<sloth::Font>        font;
+        sloth::GlyphCache                   glyphCache;
+        sloth::TextRenderer                 textRenderer;
+        sloth::GuiRenderer                  guiRenderer;
+
         sloth::PhysicsWorld                 physicsWorld;
 
         sloth::NetworkSystem                network;
@@ -60,6 +77,13 @@ namespace tower {
         u32                                  localPlayerId = 0;
         bool                                 hasLocalPlayerId = false;
         std::unordered_map<u32, EntityId>    remotePlayers;
+
+        // Combat: hitscan is resolved server-side (see TowerServer::
+        // HandlePlayerShot) - firing just reports a ray and waits for a
+        // PlayerHealth/PlayerRespawn reply. recoilTimer only drives the
+        // local hands-box kickback, it's not gameplay state.
+        f32                                  localHealth = 100.0f;
+        f32                                  recoilTimer = 0.0f;
     };
 
 }

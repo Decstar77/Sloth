@@ -4,6 +4,7 @@
 #include <physics/sloth_physics_world.h>
 #include <network/sloth_network.h>
 
+#include "tower_protocol.h"
 #include "tower_world.h"
 
 #include <vector>
@@ -34,18 +35,22 @@ namespace tower {
       private:
         void                    HandleNetworkEvents();
         void                    BroadcastWorldSnapshot();
+        void                    HandlePlayerShot( sloth::NetConnection shooterConnection, const PlayerShotMessage & message );
 
         // Player state is tracked here, keyed by connection, rather than as
         // TowerWorld entities: movement is client-authoritative for now (the
         // client runs its own CharacterVirtual and just reports where it
         // ended up), so the server has no physics representation of players
         // to simulate, only the latest reported transform to relay to peers.
+        // Health lives here for the same reason - it's server-owned state
+        // about a connection, not a simulated entity.
         struct ServerPlayer {
             sloth::NetConnection connection;
             u32                  id = 0; // == connection.Id
             glm::vec3            position { 0.0f, 0.0f, 0.0f };
             glm::quat            rotation { 1.0f, 0.0f, 0.0f, 0.0f };
             bool                 hasState = false; // Have we received at least one PlayerState from them yet?
+            f32                  health = 100.0f;
         };
 
       private:

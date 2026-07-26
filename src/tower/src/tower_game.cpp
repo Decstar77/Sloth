@@ -116,6 +116,9 @@ namespace tower {
             handMesh = UploadMesh( Geometry::CreateBox( 0.12f, 0.12f, 0.3f, { 1.0f, 1.0f, 1.0f } ) );
         }
 
+        font = std::make_unique<Font>( &Engine::Get().GetPermanentArena() );
+        font->Load( "../../../assets/fonts/roboto/Roboto-Regular.ttf" );
+
         SmallString address;
         address.Format( "127.0.0.1:%u", static_cast<u32>( tower::DefaultServerPort ) );
         serverConnection = network.Connect( address.Data() );
@@ -128,6 +131,7 @@ namespace tower {
     void TowerGame::Update( f32 deltaTime ) {
         camera.Update( deltaTime );
         UpdatePlayerMovement( deltaTime );
+        UpdateShooting( deltaTime );
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
@@ -209,6 +213,33 @@ namespace tower {
         physicsWorld.SetCharacterLinearVelocity( player->character, { movement.x, verticalVelocity, movement.z } );
     }
 
+    static constexpr f32 RecoilDuration = 0.15f;
+
+    void TowerGame::UpdateShooting( f32 deltaTime ) {
+        recoilTimer = std::max( 0.0f, recoilTimer - deltaTime );
+
+        Entity * player = world.GetEntity( playerId );
+        if ( player == nullptr || !player->character.IsValid() ) {
+            return;
+        }
+
+        if ( !Engine::Get().GetInput().IsMouseButtonPressed( MouseButton::Left ) ) {
+            return;
+        }
+
+        recoilTimer = RecoilDuration;
+
+        // Hit detection is entirely server-side (see TowerServer::
+        // HandlePlayerShot) - we just report the ray, reliably since a
+        // dropped shot would be a real (if rare) gameplay bug, not just a
+        // stale frame like the position updates below.
+        const Camera & cam = camera.GetCamera();
+        PlayerShotMessage shot;
+        shot.origin = cam.GetPosition();
+        shot.direction = cam.GetForward();
+        network.SendMessage( serverConnection, &shot, sizeof( shot ), NetSendType::Reliable );
+    }
+
     void TowerGame::UpdateNetworking() {
         network.Update( Engine::Get().GetFrameArena() );
 
@@ -244,6 +275,14 @@ namespace tower {
                         SL_LOG_INFO( "TowerGame: assigned player id %u", localPlayerId );
                     } else if ( type == MessageType::WorldSnapshot && event.dataSize >= sizeof( WorldSnapshotHeader ) ) {
                         ApplyWorldSnapshot( event.data, event.dataSize );
+                    } else if ( type == MessageType::PlayerHealth && event.dataSize == sizeof( PlayerHealthMessage ) ) {
+                        PlayerHealthMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        HandlePlayerHealth( message );
+                    } else if ( type == MessageType::PlayerRespawn && event.dataSize == sizeof( PlayerRespawnMessage ) ) {
+                        PlayerRespawnMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        HandlePlayerRespawn( message );
                     }
                 } break;
 
@@ -314,6 +353,26 @@ namespace tower {
         }
     }
 
+    void TowerGame::HandlePlayerHealth( const PlayerHealthMessage & message ) {
+        localHealth = message.health;
+    }
+
+    void TowerGame::HandlePlayerRespawn( const PlayerRespawnMessage & message ) {
+        Entity * player = world.GetEntity( playerId );
+        if ( player == nullptr || !player->character.IsValid() ) {
+            return;
+        }
+
+        physicsWorld.SetCharacterPosition( player->character, message.position );
+        physicsWorld.SetCharacterLinearVelocity( player->character, glm::vec3( 0.0f ) );
+
+        // Update the entity directly rather than waiting for the next
+        // SyncPhysicsTransforms() - the camera-follow and outgoing
+        // PlayerState later this same frame (see Update()) should already
+        // reflect the teleport, not one frame of the old position.
+        player->position = message.position;
+    }
+
     void TowerGame::Render() {
         Engine & engine = Engine::Get();
         Window & window = engine.GetWindow();
@@ -342,6 +401,42 @@ namespace tower {
         }
 
         RenderPlayerHands();
+        RenderHud();
+    }
+
+    void TowerGame::RenderHud() {
+        Window & window = Engine::Get().GetWindow();
+        f32 screenWidth = static_cast<f32>( window.GetWidth() );
+        f32 screenHeight = static_cast<f32>( window.GetHeight() );
+        glm::mat4 screenProjection = MakeScreenProjection( screenWidth, screenHeight );
+
+        // Crosshair: a "+" of two thin rects centered on screen. No
+        // GuiContext/GuiFrame needed - that's only for widget hot/active
+        // tracking, and this is just static drawing straight through
+        // GuiRenderer.
+        {
+            constexpr f32 armLength = 8.0f;
+            constexpr f32 thickness = 2.0f;
+            glm::vec2 center { screenWidth * 0.5f, screenHeight * 0.5f };
+            glm::vec4 color { 1.0f, 1.0f, 1.0f, 0.85f };
+
+            guiRenderer.DrawRect( { center.x - armLength, center.y - thickness * 0.5f }, { center.x + armLength, center.y + thickness * 0.5f }, color );
+            guiRenderer.DrawRect( { center.x - thickness * 0.5f, center.y - armLength }, { center.x + thickness * 0.5f, center.y + armLength }, color );
+            guiRenderer.Flush( screenProjection );
+        }
+
+        // Health, bottom-right corner.
+        if ( font->IsLoaded() ) {
+            SmallString healthLabel;
+            healthLabel.Format( "Health: %d", static_cast<i32>( localHealth ) );
+
+            constexpr f32 pixelHeight = 24.0f;
+            constexpr f32 margin = 16.0f;
+            f32 textWidth = textRenderer.MeasureText( *font, glyphCache, healthLabel.View(), pixelHeight );
+            glm::vec2 pos { screenWidth - margin - textWidth, screenHeight - margin }; // y is the text baseline, not its top - see DrawText's docs.
+
+            textRenderer.DrawText( *font, glyphCache, healthLabel.View(), pos, pixelHeight, { 0.0f, 0.0f, 0.0f, 1.0f }, screenProjection );
+        }
     }
 
     void TowerGame::RenderPlayerHands() {
@@ -361,8 +456,14 @@ namespace tower {
                 // the camera's own basis (not the yaw-only entity.rotation
                 // used for replication) so it tilts with pitch too - a
                 // simple FPS viewmodel to aim with.
+                // Recoil eases back out over RecoilDuration - pull the box
+                // toward the camera (less forward offset) proportional to
+                // how much of that window is left.
+                constexpr f32 recoilPushback = 0.15f;
+                f32 recoil = ( recoilTimer / RecoilDuration ) * recoilPushback;
+
                 const Camera & cam = camera.GetCamera();
-                glm::vec3 handPosition = cam.GetPosition() + cam.GetForward() * handForwardOffset + cam.GetRight() * handRightOffset - cam.GetUp() * handDownOffset;
+                glm::vec3 handPosition = cam.GetPosition() + cam.GetForward() * ( handForwardOffset - recoil ) + cam.GetRight() * handRightOffset - cam.GetUp() * handDownOffset;
                 model = glm::mat4( glm::vec4( cam.GetRight(), 0.0f ), glm::vec4( cam.GetUp(), 0.0f ), glm::vec4( cam.GetForward(), 0.0f ), glm::vec4( handPosition, 1.0f ) );
             } else {
                 glm::vec3 forward = entity.rotation * glm::vec3( 0.0f, 0.0f, 1.0f );

@@ -93,6 +93,7 @@ namespace sloth {
         bool            SetCharacterHeight( CharacterHandle character, f32 height, f32 radius );
         void            SetCharacterLinearVelocity( CharacterHandle character, const glm::vec3 & velocity );
         glm::vec3       GetCharacterLinearVelocity( CharacterHandle character ) const;
+        void            SetCharacterPosition( CharacterHandle character, const glm::vec3 & position ); // Teleport - e.g. respawn. Does not refresh contacts; next ExtendedUpdate() re-resolves them.
         glm::vec3       GetCharacterPosition( CharacterHandle character ) const;
         glm::quat       GetCharacterRotation( CharacterHandle character ) const;
         bool            IsCharacterGrounded( CharacterHandle character ) const;

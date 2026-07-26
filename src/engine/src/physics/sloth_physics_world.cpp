@@ -444,6 +444,11 @@ namespace sloth {
         return FromJolt( impl->characters[character.Id].character->GetLinearVelocity() );
     }
 
+    void PhysicsWorld::SetCharacterPosition( CharacterHandle character, const glm::vec3 & position ) {
+        SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
+        impl->characters[character.Id].character->SetPosition( ToJolt( position ) );
+    }
+
     glm::vec3 PhysicsWorld::GetCharacterPosition( CharacterHandle character ) const {
         SL_ASSERT( character.IsValid() && character.Id < impl->characters.size() );
         return FromJolt( impl->characters[character.Id].character->GetPosition() );

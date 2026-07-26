@@ -5,10 +5,56 @@
 #include <core/sloth_engine.h>
 
 #include <cstring>
+#include <random>
 
 using namespace sloth;
 
 namespace tower {
+
+    static constexpr f32 MaxHealth = 100.0f;
+    static constexpr f32 ShotDamage = 25.0f;
+    static constexpr f32 ShotMaxRange = 200.0f;
+    static constexpr f32 PlayerHitRadius = 0.4f;         // Players are hit-tested as a sphere, not their actual capsule - good enough for a placeholder-geometry prototype.
+    static constexpr f32 PlayerHitCenterHeight = 1.0f;   // Above feet, roughly chest height.
+
+    static f32 RandomRange( f32 min, f32 max ) {
+        static std::mt19937 rng { std::random_device {}() };
+        std::uniform_real_distribution<f32> dist( min, max );
+        return dist( rng );
+    }
+
+    static glm::vec3 RandomSpawnPosition() {
+        // Keeps clear of the floor's edges (30x30 half-extents - see Init()
+        // below) and matches the initial spawn's drop height.
+        return glm::vec3( RandomRange( -25.0f, 25.0f ), 3.0f, RandomRange( -25.0f, 25.0f ) );
+    }
+
+    // outT is also the caller's current best distance on the way in, so
+    // passing the closest hit found so far naturally rejects anything
+    // farther than that - callers scanning multiple targets don't need a
+    // separate "is this closer" check.
+    static bool RaySphereIntersect( const glm::vec3 & origin, const glm::vec3 & direction, const glm::vec3 & center, f32 radius, f32 & outT ) {
+        glm::vec3 oc = origin - center;
+        f32 b = glm::dot( oc, direction );
+        f32 c = glm::dot( oc, oc ) - radius * radius;
+        f32 discriminant = b * b - c;
+        if ( discriminant < 0.0f ) {
+            return false;
+        }
+
+        f32 sqrtDiscriminant = glm::sqrt( discriminant );
+        f32 t = -b - sqrtDiscriminant;
+        if ( t < 0.0f ) {
+            t = -b + sqrtDiscriminant; // origin is inside the sphere - use the exit point instead, still counts as a hit
+        }
+
+        if ( t < 0.0f || t > outT ) {
+            return false;
+        }
+
+        outT = t;
+        return true;
+    }
 
     void TowerServer::Init( u16 port ) {
         world.Init( &physicsWorld );
@@ -114,10 +160,62 @@ namespace tower {
                                 break;
                             }
                         }
+                    } else if ( type == MessageType::PlayerShot && event.dataSize == sizeof( PlayerShotMessage ) ) {
+                        PlayerShotMessage message;
+                        memcpy( &message, event.data, sizeof( message ) );
+                        HandlePlayerShot( event.connection, message );
                     }
                 } break;
             }
         }
+    }
+
+    void TowerServer::HandlePlayerShot( NetConnection shooterConnection, const PlayerShotMessage & message ) {
+        f32 directionLength = glm::length( message.direction );
+        if ( directionLength < 0.0001f ) {
+            return; // malformed - a real client always fires along its camera forward, which is unit-length
+        }
+        glm::vec3 direction = message.direction / directionLength;
+
+        // Players are hit-tested as a sphere, not their real capsule (see
+        // PlayerHitRadius) - nearest-hit-wins across everyone but the
+        // shooter, tracked by shrinking the accepted range as candidates are
+        // found (see RaySphereIntersect).
+        ServerPlayer * target = nullptr;
+        f32 closestT = ShotMaxRange;
+
+        for ( ServerPlayer & candidate : players ) {
+            if ( candidate.connection.Id == shooterConnection.Id || !candidate.hasState ) {
+                continue;
+            }
+
+            glm::vec3 center = candidate.position + glm::vec3( 0.0f, PlayerHitCenterHeight, 0.0f );
+            if ( RaySphereIntersect( message.origin, direction, center, PlayerHitRadius, closestT ) ) {
+                target = &candidate;
+            }
+        }
+
+        if ( target == nullptr ) {
+            return;
+        }
+
+        target->health -= ShotDamage;
+        SL_LOG_INFO( "TowerServer: player %u hit player %u (health now %.0f)", shooterConnection.Id, target->id, static_cast<f64>( target->health ) );
+
+        if ( target->health <= 0.0f ) {
+            target->health = MaxHealth;
+            target->position = RandomSpawnPosition();
+
+            PlayerRespawnMessage respawn;
+            respawn.position = target->position;
+            network.SendMessage( target->connection, &respawn, sizeof( respawn ), NetSendType::Reliable );
+
+            SL_LOG_INFO( "TowerServer: player %u died, respawning", target->id );
+        }
+
+        PlayerHealthMessage healthMessage;
+        healthMessage.health = target->health;
+        network.SendMessage( target->connection, &healthMessage, sizeof( healthMessage ), NetSendType::Reliable );
     }
 
     void TowerServer::BroadcastWorldSnapshot() {
