@@ -4,20 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input, GLAD for OpenGL (4.5 core) function loading, and Jolt Physics for simulation. It's a shared backend for multiple game prototypes, each its own StaticLib project with its own namespace, entity type, and gameplay logic — the engine itself knows nothing about any of them. There are currently two:
+Sloth is a C++20 game engine (Windows-only for now) built with premake5, using GLFW for windowing/input, GLAD for OpenGL (4.5 core) function loading, GameNetworkingSockets for client/server networking, miniaudio for sound, and Jolt Physics for simulation (including its `CharacterVirtual` controller). It's a shared backend for multiple game prototypes, each its own StaticLib project with its own namespace, entity type, and gameplay logic — the engine itself knows nothing about any of them.
 
-- **Dust** — a Kenshi/X4: Foundations-style open-world sandbox game with one defining constraint: **there are no traditional walking-around human characters.** The player's "character" is always a vehicle — cars, buggies, trucks, tanks, etc. Everything in the entity/gameplay layer should be designed around vehicles-as-actors rather than humanoid pawns (no legs/animation rigs/character controllers — physics-driven rigid bodies and wheeled/tracked vehicle dynamics instead).
-- **Tower** — a symmetric, competitive base-build-then-raid game (see "Where Tower is headed" below). Currently a minimal skeleton (floor + a stack of physics boxes, no gameplay yet) proving out the engine-integration pattern for a second prototype.
+**Tower is the active project right now.** Dust exists but is paused — its `premake5.lua` projects (`Dust`, `SandboxDust`) are commented out, not deleted, so it's a one-line uncomment to resume later. Default to working in `src/tower` and `src/sandbox/tower*` unless told otherwise.
 
-The workspace has five projects:
+- **Tower** — a symmetric, competitive base-build-then-raid game (see "Where Tower is headed" below). Client/server multiplayer over GameNetworkingSockets: a `TowerServer` is authoritative for player health/hit detection/respawn and relays player transforms between clients; movement itself is client-authoritative (each client runs its own physics character and reports where it ended up). Has a working first-person player controller (walk/sprint/crouch/jump), hitscan shooting with a HUD (crosshair + health), footstep/gunshot/hit sound effects, and a first pass at Rust-style building (floor tiles + wall sockets — see "Where Tower is headed"). No round/tier/build-vs-raid phase system yet.
+- **Dust** (paused) — a Kenshi/X4: Foundations-style open-world sandbox game with one defining constraint: **there are no traditional walking-around human characters.** The player's "character" is always a vehicle — cars, buggies, trucks, tanks, etc. Everything in the entity/gameplay layer should be designed around vehicles-as-actors rather than humanoid pawns (no legs/animation rigs/character controllers — physics-driven rigid bodies and wheeled/tracked vehicle dynamics instead).
 
-- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`. Windowing, OpenGL rendering, physics wrapper, fonts/text, arenas, strings, logging. Knows nothing about Dust or Tower.
-- **Dust** (`src/dust`, StaticLib) — the Dust game, namespace `dust`. Entities, world, camera, gameplay logic. Links Engine.
-- **Tower** (`src/tower`, StaticLib) — the Tower game, namespace `tower`. Entities, world, camera, gameplay logic. Links Engine.
-- **SandboxDust** (`src/sandbox/dust`, ConsoleApp) — a thin executable that links Dust + Engine and drives Dust's main loop (`src/sandbox/dust/src/main.cpp`).
-- **SandboxTower** (`src/sandbox/tower`, ConsoleApp) — a thin executable that links Tower + Engine and drives Tower's main loop (`src/sandbox/tower/src/main.cpp`).
+The workspace has these projects (Dust/SandboxDust commented out in `premake5.lua`, see above):
 
-Each game gets its own Sandbox rather than sharing one, matching the "thin executable" pattern above — this scales cleanly if more prototypes are added later. `startproject` in `premake5.lua` defaults to `SandboxDust`; switch it (or set the other as startup project in Visual Studio) to work on Tower.
+- **Engine** (`src/engine`, StaticLib) — the engine itself, namespace `sloth`. Windowing, OpenGL rendering, physics wrapper (including character controllers), networking, audio, GUI/text rendering, fonts, arenas, strings, logging. Knows nothing about Dust or Tower.
+- **Tower** (`src/tower`, StaticLib) — the Tower game, namespace `tower`. Entities, world, camera, networking client, building, gameplay logic. Links Engine.
+- **SandboxTower** (`src/sandbox/tower`, ConsoleApp) — a thin executable that links Tower + Engine and drives the Tower **client's** main loop (`src/sandbox/tower/src/main.cpp`). On startup it auto-spawns a local `SandboxTowerServer.exe` if one isn't already running (see `tower::ServerMutexName`), so pressing play alone gets you a working local match; run it twice (see `tower_run_mp.bat` at the repo root) to test multiple clients against the same local server.
+- **SandboxTowerServer** (`src/sandbox/towerserver`, ConsoleApp) — headless dedicated server executable; links Tower + Engine, runs `TowerServer` via `Engine::InitHeadless()` in a fixed 60Hz loop, no window/GL/input.
+- **Dust** (`src/dust`, StaticLib, paused) — the Dust game, namespace `dust`. Entities, world, camera, gameplay logic. Links Engine.
+- **SandboxDust** (`src/sandbox/dust`, ConsoleApp, paused) — a thin executable that links Dust + Engine and drives Dust's main loop (`src/sandbox/dust/src/main.cpp`).
+
+Each game gets its own Sandbox rather than sharing one, matching the "thin executable" pattern above — this scales cleanly if more prototypes are added later. `startproject` in `premake5.lua` is `SandboxTower`.
 
 ## Build
 
@@ -30,6 +33,15 @@ generate_projects_vs2026.bat   # regenerates the .slnx/.vcxproj files via premak
 Run this after changing `premake5.lua` (new files added under `src/**` are picked up automatically via glob, so regeneration is only needed for structural changes: new projects, include dirs, defines, etc.). Then build `Sloth.slnx` with MSVC (Debug/Release/Dist configurations, x86_64 only).
 
 There is no separate lint or test command yet.
+
+### First-time setup (new machine / new agent environment)
+
+1. **Visual Studio.** The solution targets a "vs2026"-generation MSVC toolset. If `MSBuild.exe` isn't on `PATH` (or resolves to the wrong one, e.g. the .NET SDK's copy), use the one under the VS install directly — in this environment that's `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`. Building from the IDE avoids this entirely.
+2. **GameNetworkingSockets, via vcpkg.** `vendor/vcpkg/vcpkg.json` is a manifest listing `gamenetworkingsockets`; `vendor/vcpkg/vcpkg_installed/` (its build output — headers + static libs for protobuf/abseil/OpenSSL/GNS itself) is **gitignored** and must be built locally, not pulled from git. Without it, `Engine` fails to link (missing GameNetworkingSockets/protobuf/abseil/OpenSSL symbols) — `premake5.lua`'s `LinkVcpkgLibs()` globs whatever `.lib` files exist under `vendor/vcpkg/vcpkg_installed/x64-windows-static-md{,/debug}/lib`, so an empty/missing directory means an (almost) empty link line.
+   - If a `vcpkg` executable isn't already available, get one (clone https://github.com/microsoft/vcpkg and run `bootstrap-vcpkg.bat`, or install it some other way) and make sure it's on `PATH`.
+   - From `vendor/vcpkg/`, run `vcpkg install --triplet x64-windows-static-md` — manifest mode picks up `vcpkg.json` automatically and builds everything (this can take a while the first time; GameNetworkingSockets pulls in protobuf + abseil + OpenSSL).
+3. **premake regeneration gotcha.** The `premake5.exe` vendored at the repo root is `5.0.0-beta8`, which does **not** recognize the `vs2026` action (`generate_projects_vs2026.bat` will fail with `no such action 'vs2026'`). If the `.slnx`/`.vcxproj` files already exist (as they do in this repo), you generally don't need to regenerate them — premake resolves `files { "src/**.h", "src/**.cpp" }` globs into an explicit file list *at generation time*, baked into the `.vcxproj`, so **adding a new source file under an existing project's folder does not show up in a command-line MSBuild until something regenerates the project** (Visual Studio's own IDE glob-rescanning is a separate mechanism and may pick it up live). If you hit a `C1083: Cannot open source file` error for a file that clearly exists on disk, that's this: either regenerate with a premake5 build that supports the target action, or hand-edit the `<ClInclude>`/`<ClCompile>` entries in the relevant `.vcxproj` as a stopgap.
+4. **Assets.** Fonts (`assets/fonts/`) and sounds (`assets/sounds/`) are already vendored in the repo, nothing to download. Note `TowerGame::Init()` currently loads the font via a **hardcoded absolute path** (`C:/Projects/2026/Sloth/assets/fonts/...`), same for the sound file paths in `tower_game.cpp` — a known wart that will break if the repo lives at a different path; worth fixing to a working-directory-relative path (see Dust's `main.cpp` for the `"../../../assets/..."` convention) next time that file's being touched anyway.
 
 ## Architecture — Engine (`sloth` namespace)
 

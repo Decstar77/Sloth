@@ -1,6 +1,6 @@
 workspace "Sloth"
     architecture "x86_64"
-    startproject "SandboxDust"
+    startproject "SandboxTower"
 
     configurations
     {
@@ -126,6 +126,10 @@ project "Engine"
         libdirs { VcpkgLibDir.Release }
         links (LinkVcpkgLibs(VcpkgLibDir.Release))
 
+--[[ Dust is on hold while Tower is the active project - see CLAUDE.md.
+     Commented out (not deleted) rather than removed so it's a one-line
+     uncomment to bring back, and so SandboxDust below (which links it)
+     doesn't need re-deriving from scratch either.
 project "Dust"
     location "src/dust"
     kind "StaticLib"
@@ -179,6 +183,7 @@ project "Dust"
         runtime "Release"
         symbols "Off"
         optimize "Full"
+]]
 
 project "Tower"
     location "src/tower"
@@ -234,6 +239,8 @@ project "Tower"
         symbols "Off"
         optimize "Full"
 
+--[[ See the Dust StaticLib project above - commented out together, since
+     this links it.
 project "SandboxDust"
     location "src/sandbox/dust"
     kind "ConsoleApp"
@@ -286,6 +293,7 @@ project "SandboxDust"
         runtime "Release"
         symbols "Off"
         optimize "Full"
+]]
 
 project "SandboxTower"
     location "src/sandbox/tower"
