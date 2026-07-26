@@ -138,9 +138,16 @@ namespace tower {
             capsuleMesh = UploadMesh( capsuleData );
         }
 
-        // Small white "hands" box, drawn in front of every player 
+        // Small white "hands" box, drawn in front of every player
         {
             handMesh = UploadMesh( Geometry::CreateBox( 0.12f, 0.12f, 0.3f, { 1.0f, 1.0f, 1.0f } ) );
+        }
+
+        // Building - floor tiles and the walls that socket into their sides.
+        // See tower_building.h for placement math/dimensions.
+        {
+            buildingFloorMesh = UploadMesh( Geometry::CreateBox( BuildingFloorSize, BuildingFloorThickness, BuildingFloorSize, { 0.65f, 0.5f, 0.35f } ) );
+            buildingWallMesh = UploadMesh( Geometry::CreateBox( BuildingWallThickness, BuildingWallHeight, BuildingFloorSize, { 0.55f, 0.42f, 0.3f } ) );
         }
 
         font = std::make_unique<Font>( &Engine::Get().GetPermanentArena() );
@@ -159,6 +166,7 @@ namespace tower {
         camera.Update( deltaTime );
         UpdatePlayerMovement( deltaTime );
         UpdateShooting( deltaTime );
+        UpdateBuilding();
 
         physicsWorld.Update( deltaTime );
         world.SyncPhysicsTransforms();
@@ -280,6 +288,57 @@ namespace tower {
         shot.origin = cam.GetPosition();
         shot.direction = cam.GetForward();
         network.SendMessage( serverConnection, &shot, sizeof( shot ), NetSendType::Reliable );
+    }
+
+    static constexpr f32 BuildRange = 8.0f;
+
+    void TowerGame::UpdateBuilding() {
+        Input & input = Engine::Get().GetInput();
+        const Camera & cam = camera.GetCamera();
+
+        if ( input.IsKeyPressed( Key::F ) ) {
+            // Flat on whatever's under the crosshair (or a fixed distance
+            // ahead if nothing's there within range), free to face any yaw -
+            // not locked to a world grid. Basic implementation: always
+            // placed level, no matching the hit surface's own slope/normal.
+            RayCastHit hit;
+            glm::vec3 position = physicsWorld.Raycast( cam.GetPosition(), cam.GetForward(), BuildRange, hit )
+                ? hit.point
+                : cam.GetPosition() + cam.GetForward() * BuildRange * 0.5f;
+            position.y += BuildingFloorThickness * 0.5f;
+
+            glm::quat rotation = glm::angleAxis( glm::radians( camera.GetYaw() ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+
+            RenderModel floorModel { shader.get(), buildingFloorMesh.get() };
+            PlaceFloor( world, position, rotation, floorModel );
+        }
+
+        if ( input.IsKeyPressed( Key::G ) ) {
+            // Attach a wall to whichever floor - and which of its 4 sides -
+            // is under the crosshair.
+            RayCastHit hit;
+            if ( !physicsWorld.Raycast( cam.GetPosition(), cam.GetForward(), BuildRange, hit ) ) {
+                return;
+            }
+
+            EntityId floorId = world.FindEntityByRigidBody( hit.body );
+            Entity * floorEntity = world.GetEntity( floorId );
+            if ( floorEntity == nullptr || floorEntity->type != ENTITY_TYPE_BUILDING_FLOOR ) {
+                return;
+            }
+
+            // Nearest side to the hit point, worked out in the floor's own
+            // local space (undoing its position/rotation) - squared
+            // comparison avoids needing an abs() import for just this.
+            glm::vec3 localHit = glm::inverse( floorEntity->rotation ) * ( hit.point - floorEntity->position );
+            bool xDominant = ( localHit.x * localHit.x ) > ( localHit.z * localHit.z );
+            BuildingSide side = xDominant
+                ? ( localHit.x > 0.0f ? BuildingSide::PosX : BuildingSide::NegX )
+                : ( localHit.z > 0.0f ? BuildingSide::PosZ : BuildingSide::NegZ );
+
+            RenderModel wallModel { shader.get(), buildingWallMesh.get() };
+            PlaceWall( world, floorId, side, wallModel );
+        }
     }
 
     void TowerGame::UpdateNetworking() {

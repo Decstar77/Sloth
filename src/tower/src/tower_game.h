@@ -12,6 +12,7 @@
 #include <renderer/sloth_static_mesh.h>
 #include <renderer/sloth_text_renderer.h>
 
+#include "tower_building.h"
 #include "tower_camera.h"
 #include "tower_protocol.h"
 #include "tower_world.h"
@@ -44,6 +45,7 @@ namespace tower {
         void                    HandlePlayerHealth( const PlayerHealthMessage & message );
         void                    HandlePlayerRespawn( const PlayerRespawnMessage & message );
         void                    UpdateFootsteps( f32 deltaTime, bool grounded, const glm::vec3 & desiredMovement );
+        void                    UpdateBuilding();
         void                    RenderPlayerHands();
         void                    RenderHud();
 
@@ -58,6 +60,8 @@ namespace tower {
         std::unique_ptr<sloth::StaticMesh>  boxMesh;
         std::unique_ptr<sloth::StaticMesh>  capsuleMesh; // No capsule primitive in Geometry yet - a cylinder stands in for other players' capsules.
         std::unique_ptr<sloth::StaticMesh>  handMesh;    // Small placeholder box drawn in front of every player (including the local one) so facing/aim is visible.
+        std::unique_ptr<sloth::StaticMesh>  buildingFloorMesh;
+        std::unique_ptr<sloth::StaticMesh>  buildingWallMesh;
 
         // HUD - crosshair (GuiRenderer, no font needed) and health text
         // (TextRenderer/Font/GlyphCache). No GuiContext/GuiFrame here since

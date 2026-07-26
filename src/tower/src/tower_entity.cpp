@@ -1,4 +1,5 @@
 #include "tower_entity.h"
+#include "tower_building.h"
 
 namespace tower {
 
@@ -32,6 +33,20 @@ namespace tower {
                 // directly from network snapshots (see TowerGame::UpdateNetworking).
                 entity.remotePlayer = RemotePlayerData();
             } break;
+            case ENTITY_TYPE_BUILDING_FLOOR: {
+                entity.rigidBodyData.createRigidBody = true;
+                entity.rigidBodyData.shape = RigidBodyShape::Box;
+                entity.rigidBodyData.halfExtents = { BuildingFloorSize * 0.5f, BuildingFloorThickness * 0.5f, BuildingFloorSize * 0.5f };
+                entity.rigidBodyData.motionType = BodyMotionType::Static;
+                entity.buildingFloor = BuildingFloorData();
+            } break;
+            case ENTITY_TYPE_BUILDING_WALL: {
+                entity.rigidBodyData.createRigidBody = true;
+                entity.rigidBodyData.shape = RigidBodyShape::Box;
+                entity.rigidBodyData.halfExtents = { BuildingWallThickness * 0.5f, BuildingWallHeight * 0.5f, BuildingFloorSize * 0.5f };
+                entity.rigidBodyData.motionType = BodyMotionType::Static;
+                entity.buildingWall = BuildingWallData();
+            } break;
         }
 
         return entity;
@@ -47,6 +62,10 @@ namespace tower {
                 return "Player";
             case ENTITY_TYPE_REMOTE_PLAYER:
                 return "RemotePlayer";
+            case ENTITY_TYPE_BUILDING_FLOOR:
+                return "BuildingFloor";
+            case ENTITY_TYPE_BUILDING_WALL:
+                return "BuildingWall";
         }
 
         return "Unknown";

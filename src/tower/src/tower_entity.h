@@ -14,7 +14,9 @@ namespace tower {
         ENTITY_TYPE_INVALID = 0,
         ENTITY_TYPE_PROP,
         ENTITY_TYPE_PLAYER,
-        ENTITY_TYPE_REMOTE_PLAYER, // A visual-only stand-in for another client's player, driven by network snapshots rather than local input/physics.
+        ENTITY_TYPE_REMOTE_PLAYER,  // A visual-only stand-in for another client's player, driven by network snapshots rather than local input/physics.
+        ENTITY_TYPE_BUILDING_FLOOR, // See tower_building.h - a foundation tile, placeable at an arbitrary position/yaw, with a wall socket on each of its 4 sides.
+        ENTITY_TYPE_BUILDING_WALL,  // See tower_building.h - occupies one wall socket of a single ENTITY_TYPE_BUILDING_FLOOR.
     };
 
     struct EntityId {
@@ -62,6 +64,21 @@ namespace tower {
         u32 networkId = 0; // Server-assigned player id (see tower_protocol.h) this entity mirrors.
     };
 
+    // Indexes both BuildingFloorData::wallOccupied and
+    // tower_building.h's GetWallLocalOffset/GetWallLocalRotation - the four
+    // sides of a floor tile, in the tile's own local (pre-rotation) space.
+    enum class BuildingSide : u8 { PosX = 0, PosZ = 1, NegX = 2, NegZ = 3 };
+    constexpr u8 BUILDING_SIDE_COUNT = 4;
+
+    struct BuildingFloorData {
+        bool wallOccupied[BUILDING_SIDE_COUNT] = { false, false, false, false };
+    };
+
+    struct BuildingWallData {
+        EntityId floorId = INVALID_ENTITY_ID; // Which floor tile this wall is socketed into.
+        u8       side = 0;                    // BuildingSide, which of that floor's 4 sides.
+    };
+
     struct Entity {
         // Entity
         EntityType  type;
@@ -84,6 +101,8 @@ namespace tower {
             PropData          prop;
             PlayerData        player;
             RemotePlayerData  remotePlayer;
+            BuildingFloorData buildingFloor;
+            BuildingWallData  buildingWall;
         };
     };
 
